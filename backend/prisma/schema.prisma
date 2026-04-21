@@ -1,0 +1,52 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Espacio {
+  id              Int      @id @default(autoincrement())
+  nombre          String
+  ubicacion       String
+  capacidad       Int
+  horario_apertura String
+  horario_cierre   String
+  activo          Boolean  @default(true)
+  reservas        Reserva[]
+  horarios        HorarioDisponible[]
+}
+
+model Reserva {
+  id             Int      @id @default(autoincrement())
+  espacio_id     Int
+  solicitante_id Int
+  deportista_id  Int
+  fecha          DateTime
+  hora_inicio    String
+  hora_fin       String
+  disciplina_id  Int
+  motivo         String
+  estado         String   @default("pendiente") // pendiente, confirmada, cancelada
+  comprobante_pdf String?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+  espacio        Espacio  @relation(fields: [espacio_id], references: [id])
+}
+
+model HorarioDisponible {
+  id         Int     @id @default(autoincrement())
+  espacio_id Int
+  dia_semana Int     // 0-6
+  hora_inicio String
+  hora_fin    String
+  disponible  Boolean @default(true)
+  espacio     Espacio @relation(fields: [espacio_id], references: [id])
+}
