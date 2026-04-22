@@ -1,13 +1,43 @@
 import "dotenv/config";
 import { NestFactory } from "@nestjs/core";
+import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { AppModule } from "./app.module.js";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
   app.enableCors();
-  await app.listen(process.env.PORT ?? 4000);
-  console.log(
-    `🚀 Servidor corriendo en http://localhost:${process.env.PORT ?? 4000}`,
-  );
+
+  const config = new DocumentBuilder()
+    .setTitle("API de Gestión de Espacios y Disciplinas")
+    .setDescription(
+      "Documentación técnica de los endpoints de la API. " +
+        "Nota: El sistema utiliza un header 'x-rol' para la autorización (Mock Auth).",
+    )
+    .setVersion("1.0")
+    .addApiKey(
+      {
+        type: "apiKey",
+        name: "x-rol",
+        in: "header",
+        description:
+          'Ingresa "admin" para autorizar las peticiones del middleware',
+      },
+      "permisos-rol",
+    )
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+
+  SwaggerModule.setup("docs", app, document);
+
+  const port = process.env.PORT ?? 4000;
+  await app.listen(port);
+
+  console.log(`\n----------------------------------------------------------`);
+  console.log(`🚀 Servidor corriendo en: http://localhost:${port}`);
+  console.log(`📑 Documentación en: http://localhost:${port}/docs`);
+  console.log(`----------------------------------------------------------\n`);
 }
+
 bootstrap();
