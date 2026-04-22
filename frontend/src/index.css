@@ -1,111 +1,85 @@
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
+/* Fondo general de la app */
 body {
-  margin: 0;
+  @apply bg-[#f0f2f5] font-sans;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+/* Botones de Navegación Superiores */
+.nav-container {
+  @apply flex justify-center gap-4 py-4 bg-white shadow-sm mb-6;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
+.btn-nav {
+  @apply px-6 py-2 rounded-lg font-bold border-2 transition-all;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+.btn-nav-active {
+  @apply bg-blue-900 border-blue-900 text-white shadow-md;
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+.btn-nav-inactive {
+  @apply bg-white border-gray-200 text-gray-500 hover:border-blue-300;
+}
+
+/* Layout Principal */
+.admin-layout {
+  @apply flex gap-8 p-10 min-h-[90vh];
+}
+
+/* Sidebar de nombres */
+.sidebar-solicitudes {
+  @apply w-[350px];
+}
+
+.titulo-seccion {
+  @apply text-xs font-black text-gray-400 uppercase tracking-widest mb-6;
+}
+
+.btn-estudiante {
+  @apply w-full text-left p-5 rounded-2xl border-2 transition-all duration-200 shadow-sm mb-4 font-bold text-lg;
+}
+
+.btn-estudiante-active {
+  @apply bg-[#003366] border-[#003366] text-white shadow-lg translate-x-2;
+}
+
+.btn-estudiante-inactive {
+  @apply bg-white border-transparent text-gray-700 hover:border-blue-200;
+}
+
+/* Tarjeta de Detalle (Checkout Style) */
+.card-detalle {
+  @apply flex-1 bg-white rounded-[32px] p-10 shadow-xl border border-gray-100 flex flex-col;
+}
+
+.grid-info {
+  @apply grid grid-cols-2 gap-8 mb-10;
+}
+
+.info-box {
+  @apply border-b border-gray-100 pb-2;
+}
+
+.info-label {
+  @apply block text-[10px] font-black text-gray-400 uppercase;
+}
+
+.info-value {
+  @apply text-xl font-medium text-gray-800;
+}
+
+.motivo-box {
+  @apply col-span-2 bg-gray-50 p-6 rounded-2xl italic text-gray-600 border border-gray-100;
+}
+
+/* Botones de Acción */
+.btn-principal {
+  @apply flex-[2] bg-[#003366] text-white font-bold py-5 rounded-2xl hover:bg-blue-900 transition-all shadow-lg text-lg;
+}
+
+.btn-secundario {
+  @apply flex-1 bg-gray-100 text-gray-500 font-bold py-5 rounded-2xl hover:bg-gray-200 transition-all text-lg;
 }
