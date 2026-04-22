@@ -24,20 +24,21 @@ model Espacio {
 }
 
 model Reserva {
-  id             Int      @id @default(autoincrement())
-  espacio_id     Int
-  solicitante_id Int
-  deportista_id  Int
-  fecha          DateTime
-  hora_inicio    String
-  hora_fin       String
-  disciplina_id  Int
-  motivo         String
-  estado         String   @default("pendiente") // pendiente, confirmada, cancelada
+  id              Int        @id @default(autoincrement())
+  espacio_id      Int
+  solicitante_id  Int
+  deportista_id   Int
+  fecha           DateTime
+  hora_inicio     String
+  hora_fin        String
+  disciplina_id   Int
+  motivo          String
+  estado          String     @default("confirmada")
   comprobante_pdf String?
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
-  espacio        Espacio  @relation(fields: [espacio_id], references: [id])
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+  espacio         Espacio    @relation(fields: [espacio_id], references: [id])
+  disciplina      Disciplina @relation(fields: [disciplina_id], references: [id])
 }
 
 model HorarioDisponible {
@@ -48,4 +49,13 @@ model HorarioDisponible {
   hora_fin    String
   disponible  Boolean @default(true)
   espacio     Espacio @relation(fields: [espacio_id], references: [id])
+}
+
+model Disciplina {
+  id          Int       @id @default(autoincrement())
+  nombre      String    @unique
+  descripcion String?
+  activo      Boolean   @default(true)
+  orden       Int       @default(0)
+  reservas    Reserva[]
 }

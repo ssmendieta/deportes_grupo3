@@ -8,16 +8,17 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log("🚀 Iniciando Seed del Grupo 3: Gestión de Reservas...");
 
-  // 1. LIMPIEZA DE TABLAS (En orden para no romper restricciones de FK)
+  // 1. LIMPIEZA DE TABLAS
   await prisma.horarioDisponible.deleteMany({});
   await prisma.reserva.deleteMany({});
+  await prisma.disciplina.deleteMany({});
   await prisma.espacio.deleteMany({});
 
-  // 2. CREACIÓN DE ESPACIOS (Los requeridos en el Sprint 1)
+  // 2. CREACIÓN DE ESPACIOS
   const coliseo = await prisma.espacio.create({
     data: {
-      nombre: "Coliseo UCB",
-      ubicacion: "Bloque A",
+      nombre: "Coliseo Polideportivo",
+      ubicacion: "Campus Central - Bloque A",
       capacidad: 150,
       horario_apertura: "07:00",
       horario_cierre: "22:00",
@@ -30,95 +31,113 @@ async function main() {
       nombre: "Cancha de Arquitectura",
       ubicacion: "Facultad de Arquitectura - Exterior",
       capacidad: 12,
-      horario_apertura: "06:00",
+      horario_apertura: "14:00",
       horario_cierre: "18:00",
       activo: true,
     },
   });
 
-  console.log("✅ Espacios creados: Coliseo y Cancha de Arquitectura");
+  console.log("✅ Espacios creados");
 
-  // 3. PLANTILLA DE HORARIOS DISPONIBLES (Para el calendario dinámico)
-  // Crearemos bloques de 2 horas para el Coliseo (Lunes a Viernes)
-  const diasSemana = [1, 2, 3, 4, 5]; // Lunes a Viernes
+  // 3. DISCIPLINAS
+  await prisma.disciplina.createMany({
+    data: [
+      { nombre: "Fútsal", descripcion: "Fútbol sala", activo: true, orden: 1 },
+      {
+        nombre: "Básquetbol",
+        descripcion: "Baloncesto",
+        activo: true,
+        orden: 2,
+      },
+      { nombre: "Voleibol", descripcion: "Vóleibol", activo: true, orden: 3 },
+      { nombre: "Ajedrez", descripcion: "Ajedrez", activo: true, orden: 4 },
+    ],
+  });
+
+  console.log("✅ Disciplinas creadas");
+
+  // 4. HORARIOS BLOQUEADOS POR CLASES
+  // TODO: Reemplazar con horarios reales cuando Don Víctor los confirme
+  const diasSemana = [1, 2, 3, 4, 5];
+
+  const clasesColiseo = [
+    { hora_inicio: "08:00", hora_fin: "10:00" },
+    { hora_inicio: "10:00", hora_fin: "12:00" },
+    { hora_inicio: "12:00", hora_fin: "14:00" },
+  ];
+
+  const clasesCancha = [{ hora_inicio: "07:00", hora_fin: "14:00" }];
 
   for (const dia of diasSemana) {
-    await prisma.horarioDisponible.createMany({
-      data: [
-        {
+    for (const clase of clasesColiseo) {
+      await prisma.horarioDisponible.create({
+        data: {
           espacio_id: coliseo.id,
           dia_semana: dia,
-          hora_inicio: "08:00",
-          hora_fin: "10:00",
-          disponible: true,
+          hora_inicio: clase.hora_inicio,
+          hora_fin: clase.hora_fin,
+          disponible: false,
         },
-        {
-          espacio_id: coliseo.id,
-          dia_semana: dia,
-          hora_inicio: "10:00",
-          hora_fin: "12:00",
-          disponible: true,
-        },
-        {
-          espacio_id: coliseo.id,
-          dia_semana: dia,
-          hora_inicio: "14:00",
-          hora_fin: "16:00",
-          disponible: true,
-        },
-        {
+      });
+    }
+
+    for (const clase of clasesCancha) {
+      await prisma.horarioDisponible.create({
+        data: {
           espacio_id: canchaArquitectura.id,
           dia_semana: dia,
-          hora_inicio: "07:00",
-          hora_fin: "09:00",
-          disponible: true,
+          hora_inicio: clase.hora_inicio,
+          hora_fin: clase.hora_fin,
+          disponible: false,
         },
-        {
-          espacio_id: canchaArquitectura.id,
-          dia_semana: dia,
-          hora_inicio: "09:00",
-          hora_fin: "11:00",
-          disponible: true,
-        },
-      ],
-    });
+      });
+    }
   }
 
-  console.log("✅ Plantilla de horarios semanales generada");
+  console.log("✅ Horarios de clases creados");
 
-  // 4. RESERVAS DE PRUEBA (Para ver el calendario con datos ocupados)
+  // 5. RESERVAS DE PRUEBA
   const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+
+  // Obtener ids de disciplinas
+  const futsal = await prisma.disciplina.findFirst({
+    where: { nombre: "Fútsal" },
+  });
+  const basquet = await prisma.disciplina.findFirst({
+    where: { nombre: "Básquetbol" },
+  });
 
   await prisma.reserva.createMany({
     data: [
       {
         espacio_id: coliseo.id,
-        solicitante_id: 101, // ID ficticio (vendrá del G1)
-        deportista_id: 501, // ID ficticio
+        solicitante_id: 101,
+        deportista_id: 501,
         fecha: hoy,
-        hora_inicio: "08:00",
-        hora_fin: "10:00",
-        disciplina_id: 1, // Basquetbol
-        motivo: "Entrenamiento Selección Universitaria",
+        hora_inicio: "14:00",
+        hora_fin: "16:00",
+        disciplina_id: futsal!.id,
+        motivo: "Entrenamiento Fútsal Menores",
         estado: "confirmada",
-        comprobante_pdf: "comprobante_reserva_001.pdf",
+        comprobante_pdf: null,
       },
       {
         espacio_id: canchaArquitectura.id,
         solicitante_id: 102,
         deportista_id: 502,
         fecha: hoy,
-        hora_inicio: "07:00",
-        hora_fin: "09:00",
-        disciplina_id: 2, // Futbol Sala
-        motivo: "Torneo Interfacultades",
-        estado: "pendiente",
+        hora_inicio: "15:00",
+        hora_fin: "17:00",
+        disciplina_id: basquet!.id,
+        motivo: "Entrenamiento Básquetbol",
+        estado: "confirmada",
         comprobante_pdf: null,
       },
     ],
   });
 
-  console.log("✅ Reservas de prueba creadas exitosamente");
+  console.log("✅ Reservas de prueba creadas");
   console.log("--- SEED FINALIZADO ---");
 }
 
@@ -129,7 +148,6 @@ main()
   .catch((e) => {
     console.error("❌ Error en el seed:");
     console.error(e);
-    // Quitamos el process.exit(1) para que no de error de tipos
   })
   .finally(async () => {
     await prisma.$disconnect();
