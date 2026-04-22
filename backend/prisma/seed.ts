@@ -112,8 +112,10 @@ async function main() {
     data: [
       {
         espacio_id: coliseo.id,
-        solicitante_id: 101,
-        deportista_id: 501,
+        solicitante_id: 0,
+        deportista_id: 0,
+        nombre_solicitante: "Juan Pérez",
+        carnet: "202012345",
         fecha: hoy,
         hora_inicio: "14:00",
         hora_fin: "16:00",
@@ -124,8 +126,10 @@ async function main() {
       },
       {
         espacio_id: canchaArquitectura.id,
-        solicitante_id: 102,
-        deportista_id: 502,
+        solicitante_id: 0,
+        deportista_id: 0,
+        nombre_solicitante: "María García",
+        carnet: "202054321",
         fecha: hoy,
         hora_inicio: "15:00",
         hora_fin: "17:00",

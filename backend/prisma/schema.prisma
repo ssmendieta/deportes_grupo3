@@ -24,21 +24,23 @@ model Espacio {
 }
 
 model Reserva {
-  id              Int        @id @default(autoincrement())
-  espacio_id      Int
-  solicitante_id  Int
-  deportista_id   Int
-  fecha           DateTime
-  hora_inicio     String
-  hora_fin        String
-  disciplina_id   Int
-  motivo          String
-  estado          String     @default("confirmada")
-  comprobante_pdf String?
-  created_at      DateTime   @default(now())
-  updated_at      DateTime   @updatedAt
-  espacio         Espacio    @relation(fields: [espacio_id], references: [id])
-  disciplina      Disciplina @relation(fields: [disciplina_id], references: [id])
+  id                  Int        @id @default(autoincrement())
+  espacio_id          Int
+  solicitante_id      Int        @default(0)
+  deportista_id       Int        @default(0)
+  nombre_solicitante  String
+  carnet              String
+  fecha               DateTime
+  hora_inicio         String
+  hora_fin            String
+  disciplina_id       Int
+  motivo              String
+  estado              String     @default("confirmada")
+  comprobante_pdf     String?
+  created_at          DateTime   @default(now())
+  updated_at          DateTime   @updatedAt
+  espacio             Espacio    @relation(fields: [espacio_id], references: [id])
+  disciplina          Disciplina @relation(fields: [disciplina_id], references: [id])
 }
 
 model HorarioDisponible {
