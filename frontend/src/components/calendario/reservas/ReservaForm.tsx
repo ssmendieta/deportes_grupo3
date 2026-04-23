@@ -1,27 +1,52 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import {
+  getEspacios,
+  getDisciplinas,
+  crearReserva,
+  type Espacio,
+  type Disciplina,
+} from "../../../services/reservaService";
 
 type ReservaFormProps = {
   onVolverAdmin: () => void;
 };
 
 const ReservaForm: React.FC<ReservaFormProps> = ({ onVolverAdmin }) => {
+  const [espacios, setEspacios] = useState<Espacio[]>([]);
+  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState("");
+  const [exito, setExito] = useState(false);
+
   const [formData, setFormData] = useState({
     nombre: "",
     carnet: "",
     motivo: "",
-    espacio: "Cancha Arquitectura",
+    espacio_id: "",
+    disciplina_id: "",
     dia: "",
     horaInicio: "",
     horaFinal: "",
   });
 
+  useEffect(() => {
+    const cargarDatos = async () => {
+      const [esp, disc] = await Promise.all([getEspacios(), getDisciplinas()]);
+      setEspacios(esp);
+      setDisciplinas(disc);
+      if (esp.length > 0)
+        setFormData((prev) => ({ ...prev, espacio_id: String(esp[0].id) }));
+      if (disc.length > 0)
+        setFormData((prev) => ({ ...prev, disciplina_id: String(disc[0].id) }));
+    };
+    cargarDatos();
+  }, []);
+
   const calcularHoras = () => {
     if (!formData.horaInicio || !formData.horaFinal) return 0;
-
     const inicio = new Date(`2026-01-01T${formData.horaInicio}`);
     const fin = new Date(`2026-01-01T${formData.horaFinal}`);
     const diff = (fin.getTime() - inicio.getTime()) / (1000 * 60 * 60);
-
     return diff > 0 ? diff : 0;
   };
 
@@ -32,8 +57,50 @@ const ReservaForm: React.FC<ReservaFormProps> = ({ onVolverAdmin }) => {
     !formData.carnet ||
     !formData.motivo ||
     !formData.dia ||
+    !formData.espacio_id ||
+    !formData.disciplina_id ||
     horas <= 0 ||
     horas > 3;
+
+  const handleSubmit = async () => {
+    setError("");
+    setCargando(true);
+    try {
+      await crearReserva({
+        espacio_id: parseInt(formData.espacio_id),
+        disciplina_id: parseInt(formData.disciplina_id),
+        fecha: formData.dia,
+        hora_inicio: formData.horaInicio,
+        hora_fin: formData.horaFinal,
+        motivo: formData.motivo,
+        nombre_solicitante: formData.nombre,
+        carnet: formData.carnet,
+      });
+      setExito(true);
+      setTimeout(() => onVolverAdmin(), 2000);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("Error al crear la reserva");
+      }
+    }
+  };
+
+  if (exito) {
+    return (
+      <div
+        style={{
+          textAlign: "center",
+          padding: "100px",
+          fontFamily: "Segoe UI",
+        }}
+      >
+        <h2 style={{ color: "green" }}>✅ Reserva creada exitosamente</h2>
+        <p style={{ color: "#666" }}>Redirigiendo...</p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -58,14 +125,13 @@ const ReservaForm: React.FC<ReservaFormProps> = ({ onVolverAdmin }) => {
           alt="UCB"
           style={{ height: "50px" }}
         />
-
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <div style={{ textAlign: "right" }}>
             <div style={{ fontWeight: "bold", color: "#003366" }}>
-              Juan Perez
+              Don Víctor Hugo Nina
             </div>
             <div style={{ fontSize: "12px", color: "#666" }}>
-              Estudiante - Arquitectura
+              Administrador - Deportes
             </div>
           </div>
           <div
@@ -81,7 +147,7 @@ const ReservaForm: React.FC<ReservaFormProps> = ({ onVolverAdmin }) => {
               fontWeight: "bold",
             }}
           >
-            JP
+            VN
           </div>
         </div>
       </div>
@@ -99,7 +165,7 @@ const ReservaForm: React.FC<ReservaFormProps> = ({ onVolverAdmin }) => {
         <h2
           style={{ textAlign: "center", color: "#003366", marginBottom: "5px" }}
         >
-          Solicitar Cancha
+          Nueva Reserva
         </h2>
         <p
           style={{
@@ -112,6 +178,22 @@ const ReservaForm: React.FC<ReservaFormProps> = ({ onVolverAdmin }) => {
           UCB - Dirección de Deportes
         </p>
 
+        {error && (
+          <div
+            style={{
+              backgroundColor: "#fff0f0",
+              border: "1px solid #ffcccc",
+              borderRadius: "10px",
+              padding: "12px",
+              marginBottom: "20px",
+              color: "red",
+              fontSize: "13px",
+            }}
+          >
+            ⚠️ {error}
+          </div>
+        )}
+
         <div style={{ marginBottom: "20px" }}>
           <label
             style={{
@@ -122,17 +204,19 @@ const ReservaForm: React.FC<ReservaFormProps> = ({ onVolverAdmin }) => {
               marginBottom: "8px",
             }}
           >
-            NOMBRE
+            NOMBRE DEL SOLICITANTE
           </label>
           <input
             type="text"
-            placeholder="Ej. Juan Perez"
+            placeholder="Ej. Juan Pérez"
+            value={formData.nombre}
             style={{
               width: "100%",
               padding: "12px",
               borderRadius: "10px",
               border: "1px solid #e0e0e0",
               outline: "none",
+              boxSizing: "border-box",
             }}
             onChange={(e) =>
               setFormData({ ...formData, nombre: e.target.value })
@@ -154,13 +238,15 @@ const ReservaForm: React.FC<ReservaFormProps> = ({ onVolverAdmin }) => {
           </label>
           <input
             type="text"
-            placeholder="Ej. 12345678 LP"
+            placeholder="Ej. 12345678"
+            value={formData.carnet}
             style={{
               width: "100%",
               padding: "12px",
               borderRadius: "10px",
               border: "1px solid #e0e0e0",
               outline: "none",
+              boxSizing: "border-box",
             }}
             onChange={(e) =>
               setFormData({ ...formData, carnet: e.target.value })
@@ -178,17 +264,19 @@ const ReservaForm: React.FC<ReservaFormProps> = ({ onVolverAdmin }) => {
               marginBottom: "8px",
             }}
           >
-            ¿PARA QUÉ NECESITAS EL ESPACIO?
+            MOTIVO
           </label>
           <input
             type="text"
-            placeholder="Ej. Práctica de Futsal"
+            placeholder="Ej. Práctica de Fútsal"
+            value={formData.motivo}
             style={{
               width: "100%",
               padding: "12px",
               borderRadius: "10px",
               border: "1px solid #e0e0e0",
               outline: "none",
+              boxSizing: "border-box",
             }}
             onChange={(e) =>
               setFormData({ ...formData, motivo: e.target.value })
@@ -206,45 +294,96 @@ const ReservaForm: React.FC<ReservaFormProps> = ({ onVolverAdmin }) => {
         >
           <div>
             <label
-              style={{ fontSize: "11px", fontWeight: "bold", color: "#999" }}
+              style={{
+                fontSize: "11px",
+                fontWeight: "bold",
+                color: "#999",
+                display: "block",
+                marginBottom: "8px",
+              }}
             >
-              SELECCIONA LUGAR
+              ESPACIO
             </label>
             <select
+              value={formData.espacio_id}
               style={{
                 width: "100%",
                 padding: "12px",
                 borderRadius: "10px",
                 border: "1px solid #e0e0e0",
+                boxSizing: "border-box",
               }}
               onChange={(e) =>
-                setFormData({ ...formData, espacio: e.target.value })
+                setFormData({ ...formData, espacio_id: e.target.value })
               }
             >
-              <option>Cancha Arquitectura</option>
-              <option>Coliseo</option>
+              {espacios.map((esp) => (
+                <option key={esp.id} value={esp.id}>
+                  {esp.nombre}
+                </option>
+              ))}
             </select>
           </div>
 
           <div>
             <label
-              style={{ fontSize: "11px", fontWeight: "bold", color: "#999" }}
+              style={{
+                fontSize: "11px",
+                fontWeight: "bold",
+                color: "#999",
+                display: "block",
+                marginBottom: "8px",
+              }}
             >
-              FECHA
+              DISCIPLINA
             </label>
-            <input
-              type="date"
+            <select
+              value={formData.disciplina_id}
               style={{
                 width: "100%",
                 padding: "12px",
                 borderRadius: "10px",
                 border: "1px solid #e0e0e0",
+                boxSizing: "border-box",
               }}
               onChange={(e) =>
-                setFormData({ ...formData, dia: e.target.value })
+                setFormData({ ...formData, disciplina_id: e.target.value })
               }
-            />
+            >
+              {disciplinas.map((disc) => (
+                <option key={disc.id} value={disc.id}>
+                  {disc.nombre}
+                </option>
+              ))}
+            </select>
           </div>
+        </div>
+
+        <div style={{ marginBottom: "20px" }}>
+          <label
+            style={{
+              fontSize: "11px",
+              fontWeight: "bold",
+              color: "#999",
+              display: "block",
+              marginBottom: "8px",
+            }}
+          >
+            FECHA
+          </label>
+          <input
+            type="date"
+            value={formData.dia}
+            style={{
+              width: "100%",
+              padding: "12px",
+              borderRadius: "10px",
+              border: "1px solid #e0e0e0",
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+            onChange={(e) => setFormData({ ...formData, dia: e.target.value })}
+          />
         </div>
 
         <div
@@ -257,37 +396,54 @@ const ReservaForm: React.FC<ReservaFormProps> = ({ onVolverAdmin }) => {
         >
           <div>
             <label
-              style={{ fontSize: "11px", fontWeight: "bold", color: "#999" }}
+              style={{
+                fontSize: "11px",
+                fontWeight: "bold",
+                color: "#999",
+                display: "block",
+                marginBottom: "8px",
+              }}
             >
               DESDE
             </label>
             <input
               type="time"
+              value={formData.horaInicio}
               style={{
                 width: "100%",
                 padding: "12px",
                 borderRadius: "10px",
                 border: "1px solid #e0e0e0",
+                outline: "none",
+                boxSizing: "border-box",
               }}
               onChange={(e) =>
                 setFormData({ ...formData, horaInicio: e.target.value })
               }
             />
           </div>
-
           <div>
             <label
-              style={{ fontSize: "11px", fontWeight: "bold", color: "#999" }}
+              style={{
+                fontSize: "11px",
+                fontWeight: "bold",
+                color: "#999",
+                display: "block",
+                marginBottom: "8px",
+              }}
             >
               HASTA
             </label>
             <input
               type="time"
+              value={formData.horaFinal}
               style={{
                 width: "100%",
                 padding: "12px",
                 borderRadius: "10px",
                 border: "1px solid #e0e0e0",
+                outline: "none",
+                boxSizing: "border-box",
               }}
               onChange={(e) =>
                 setFormData({ ...formData, horaFinal: e.target.value })
@@ -318,24 +474,21 @@ const ReservaForm: React.FC<ReservaFormProps> = ({ onVolverAdmin }) => {
           >
             VOLVER
           </button>
-
           <button
-            disabled={botonBloqueado}
+            disabled={botonBloqueado || cargando}
+            onClick={handleSubmit}
             style={{
               flex: 2,
               padding: "15px",
               borderRadius: "12px",
               border: "none",
-              backgroundColor: botonBloqueado ? "#ccc" : "#003366",
+              backgroundColor: botonBloqueado || cargando ? "#ccc" : "#003366",
               color: "white",
               fontWeight: "bold",
-              cursor: botonBloqueado ? "not-allowed" : "pointer",
+              cursor: botonBloqueado || cargando ? "not-allowed" : "pointer",
             }}
-            onClick={() =>
-              alert("Solicitud enviada a la Dirección de Deportes UCB.")
-            }
           >
-            CREAR RESERVA
+            {cargando ? "CREANDO..." : "CREAR RESERVA"}
           </button>
         </div>
       </div>

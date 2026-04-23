@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import AlertasCalendario from "../components/calendario/AlertasCalendario";
 import EncabezadoCalendario from "../components/calendario/EncabezadoCalendario";
 import GrillaCalendarioSemanal from "../components/calendario/GrillaCalendarioSemanal";
 import LeyendaCalendario from "../components/calendario/LeyendaCalendario";
 import NavegacionSemana from "../components/calendario/NavegacionSemana";
-import { BLOQUES_OCUPADOS_MOCK } from "../mocks/CalendarioMock";
+import { getReservas } from "../services/reservaService";
 
 type Props = {
   onVerReservas: () => void;
@@ -27,6 +27,11 @@ function sumarDias(fecha: Date, dias: number) {
 function CalendarioAdminPage({ onVerReservas }: Props) {
   const [semanaBase, setSemanaBase] = useState(obtenerLunes(new Date()));
   const [mensaje, setMensaje] = useState("");
+  const [totalReservas, setTotalReservas] = useState(0);
+
+  useEffect(() => {
+    getReservas().then((reservas) => setTotalReservas(reservas.length));
+  }, []);
 
   const etiquetaSemana = useMemo(() => {
     const finSemana = sumarDias(semanaBase, 6);
@@ -45,7 +50,7 @@ function CalendarioAdminPage({ onVerReservas }: Props) {
       <section className="resumen-calendario">
         <div className="tarjeta-resumen">
           <span>Reservas registradas</span>
-          <strong>{BLOQUES_OCUPADOS_MOCK.length}</strong>
+          <strong>{totalReservas}</strong>
         </div>
 
         <div className="tarjeta-resumen">
@@ -66,6 +71,7 @@ function CalendarioAdminPage({ onVerReservas }: Props) {
 
       <GrillaCalendarioSemanal
         modo="admin"
+        semanaBase={semanaBase}
         onConflicto={(msg) => setMensaje(msg)}
       />
     </div>

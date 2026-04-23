@@ -1,93 +1,62 @@
-import React, { useState } from "react";
-import { jsPDF } from "jspdf";
-
-type Reserva = {
-  id: number;
-  nombre: string;
-  fecha: string;
-  hora: string;
-  espacio: string;
-  carnet: string;
-};
+import React, { useState, useEffect } from "react";
+import {
+  getReservas,
+  cancelarReserva,
+  getComprobanteUrl,
+  type Reserva,
+} from "../../../services/reservaService";
 
 type AdminReservaProps = {
   onCrearReserva: () => void;
 };
 
 const AdminReserva: React.FC<AdminReservaProps> = ({ onCrearReserva }) => {
-  const [reservas, setReservas] = useState<Reserva[]>([
-    {
-      id: 1,
-      nombre: "Juan Perez",
-      fecha: "2026-04-25",
-      hora: "14:00 - 16:00",
-      espacio: "Cancha Arquitectura",
-      carnet: "12763669",
-    },
-    {
-      id: 2,
-      nombre: "Maria Lopez",
-      fecha: "2026-04-26",
-      hora: "09:00 - 12:00",
-      espacio: "Coliseo",
-      carnet: "1345612",
-    },
-  ]);
-
+  const [reservas, setReservas] = useState<Reserva[]>([]);
   const [seleccionada, setSeleccionada] = useState<Reserva | null>(null);
   const [filtroFecha, setFiltroFecha] = useState("");
   const [filtroEspacio, setFiltroEspacio] = useState("");
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState("");
 
-  const generarPDF = (reserva: Reserva) => {
-    const doc = new jsPDF();
+  useEffect(() => {
+    const cargar = async () => {
+      setCargando(true);
+      try {
+        const params: { fecha?: string; espacioId?: number } = {};
+        if (filtroFecha) params.fecha = filtroFecha;
+        const data = await getReservas(params);
+        setReservas(data);
+      } catch {
+        setError("Error al cargar reservas");
+      } finally {
+        setCargando(false);
+      }
+    };
+    cargar();
+  }, [filtroFecha, filtroEspacio]);
 
-    doc.setFontSize(18);
-    doc.text("Universidad Católica Boliviana", 20, 20);
-
-    doc.setFontSize(14);
-    doc.text("Dirección de Deportes", 20, 30);
-
-    doc.setFontSize(16);
-    doc.text("CARTA DE ACEPTACIÓN DE RESERVA", 20, 50);
-
-    doc.setFontSize(12);
-    doc.text(`Estimado/a: ${reserva.nombre}`, 20, 70);
-
-    doc.text(
-      "Se le informa que su solicitud de reserva ha sido ACEPTADA con los siguientes detalles:",
-      20,
-      85,
-      { maxWidth: 170 },
-    );
-
-    doc.text(`Carrera: ${reserva.carnet}`, 20, 105);
-    doc.text(`Espacio: ${reserva.espacio}`, 20, 115);
-    doc.text(`Fecha: ${reserva.fecha}`, 20, 125);
-    doc.text(`Horario: ${reserva.hora}`, 20, 135);
-
-    doc.text("Atentamente,", 20, 170);
-    doc.text("Dirección de Deportes", 20, 180);
-
-    doc.save(`Reserva_${reserva.nombre}.pdf`);
+  const handleCancelar = async (id: number) => {
+    try {
+      await cancelarReserva(id);
+      setSeleccionada(null);
+      const data = await getReservas({});
+      setReservas(data);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message);
+      }
+    }
   };
 
-  const aceptarReserva = (reserva: Reserva) => {
-    generarPDF(reserva);
-    setReservas((prev) => prev.filter((r) => r.id !== reserva.id));
-    setSeleccionada(null);
-  };
-
-  const cancelarReserva = (id: number) => {
-    setReservas((prev) => prev.filter((r) => r.id !== id));
-    setSeleccionada(null);
+  const handleVerPDF = (id: number) => {
+    window.open(getComprobanteUrl(id), "_blank");
   };
 
   const reservasFiltradas = reservas.filter((res) => {
-    const coincideFecha = filtroFecha ? res.fecha === filtroFecha : true;
     const coincideEspacio = filtroEspacio
-      ? res.espacio === filtroEspacio
+      ? res.espacio.nombre === filtroEspacio
       : true;
-    return coincideFecha && coincideEspacio;
+    return coincideEspacio;
   });
 
   return (
@@ -109,7 +78,7 @@ const AdminReserva: React.FC<AdminReservaProps> = ({ onCrearReserva }) => {
               marginBottom: "20px",
             }}
           >
-            FILTRAR SOLICITUDES
+            FILTRAR RESERVAS
           </h3>
 
           <div
@@ -177,8 +146,12 @@ const AdminReserva: React.FC<AdminReservaProps> = ({ onCrearReserva }) => {
                 }}
               >
                 <option value="">Todos</option>
-                <option value="Cancha Arquitectura">Cancha Arquitectura</option>
-                <option value="Coliseo">Coliseo</option>
+                <option value="Cancha de Arquitectura">
+                  Cancha de Arquitectura
+                </option>
+                <option value="Coliseo Polideportivo">
+                  Coliseo Polideportivo
+                </option>
               </select>
             </div>
 
@@ -207,10 +180,18 @@ const AdminReserva: React.FC<AdminReservaProps> = ({ onCrearReserva }) => {
               marginBottom: "15px",
             }}
           >
-            RESERVAS
+            RESERVAS ({reservasFiltradas.length})
           </h3>
 
-          {reservasFiltradas.length > 0 ? (
+          {error && <p style={{ color: "red", fontSize: "12px" }}>{error}</p>}
+
+          {cargando ? (
+            <div
+              style={{ color: "#999", textAlign: "center", padding: "20px" }}
+            >
+              Cargando...
+            </div>
+          ) : reservasFiltradas.length > 0 ? (
             reservasFiltradas.map((res) => (
               <div
                 key={res.id}
@@ -227,7 +208,14 @@ const AdminReserva: React.FC<AdminReservaProps> = ({ onCrearReserva }) => {
                   boxShadow: "0 4px 20px rgba(0,0,0,0.04)",
                 }}
               >
-                {res.nombre}
+                <div>{res.nombre_solicitante}</div>
+                <div style={{ fontSize: "12px", opacity: 0.7 }}>
+                  {new Date(res.fecha).toLocaleDateString()} | {res.hora_inicio}{" "}
+                  - {res.hora_fin}
+                </div>
+                <div style={{ fontSize: "11px", opacity: 0.6 }}>
+                  {res.espacio.nombre}
+                </div>
               </div>
             ))
           ) : (
@@ -240,7 +228,7 @@ const AdminReserva: React.FC<AdminReservaProps> = ({ onCrearReserva }) => {
                 textAlign: "center",
               }}
             >
-              No hay reservas para ese filtro
+              No hay reservas
             </div>
           )}
         </div>
@@ -257,7 +245,7 @@ const AdminReserva: React.FC<AdminReservaProps> = ({ onCrearReserva }) => {
           {seleccionada ? (
             <div>
               <h2 style={{ color: "#333", margin: 0 }}>
-                Información de la Solicitud
+                Información de la Reserva
               </h2>
               <p
                 style={{
@@ -288,10 +276,9 @@ const AdminReserva: React.FC<AdminReservaProps> = ({ onCrearReserva }) => {
                     NOMBRE COMPLETO
                   </label>
                   <div style={{ fontSize: "18px", fontWeight: "500" }}>
-                    {seleccionada.nombre}
+                    {seleccionada.nombre_solicitante}
                   </div>
                 </div>
-
                 <div>
                   <label
                     style={{
@@ -306,7 +293,6 @@ const AdminReserva: React.FC<AdminReservaProps> = ({ onCrearReserva }) => {
                     {seleccionada.carnet}
                   </div>
                 </div>
-
                 <div>
                   <label
                     style={{
@@ -318,10 +304,23 @@ const AdminReserva: React.FC<AdminReservaProps> = ({ onCrearReserva }) => {
                     ESPACIO
                   </label>
                   <div style={{ fontSize: "18px", fontWeight: "500" }}>
-                    {seleccionada.espacio}
+                    {seleccionada.espacio.nombre}
                   </div>
                 </div>
-
+                <div>
+                  <label
+                    style={{
+                      color: "#999",
+                      fontSize: "11px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    DISCIPLINA
+                  </label>
+                  <div style={{ fontSize: "18px", fontWeight: "500" }}>
+                    {seleccionada.disciplina.nombre}
+                  </div>
+                </div>
                 <div>
                   <label
                     style={{
@@ -333,29 +332,70 @@ const AdminReserva: React.FC<AdminReservaProps> = ({ onCrearReserva }) => {
                     HORARIO
                   </label>
                   <div style={{ fontSize: "18px", fontWeight: "500" }}>
-                    {seleccionada.fecha} | {seleccionada.hora}
+                    {new Date(seleccionada.fecha).toLocaleDateString()} |{" "}
+                    {seleccionada.hora_inicio} - {seleccionada.hora_fin}
+                  </div>
+                </div>
+                <div>
+                  <label
+                    style={{
+                      color: "#999",
+                      fontSize: "11px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    MOTIVO
+                  </label>
+                  <div style={{ fontSize: "18px", fontWeight: "500" }}>
+                    {seleccionada.motivo}
+                  </div>
+                </div>
+                <div>
+                  <label
+                    style={{
+                      color: "#999",
+                      fontSize: "11px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    ESTADO
+                  </label>
+                  <div
+                    style={{
+                      fontSize: "16px",
+                      fontWeight: "bold",
+                      color:
+                        seleccionada.estado === "confirmada" ? "green" : "red",
+                    }}
+                  >
+                    {seleccionada.estado.toUpperCase()}
                   </div>
                 </div>
               </div>
 
               <div style={{ display: "flex", gap: "20px", marginTop: "60px" }}>
                 <button
-                  onClick={() => cancelarReserva(seleccionada.id)}
+                  onClick={() => handleCancelar(seleccionada.id)}
+                  disabled={seleccionada.estado === "cancelada"}
                   style={{
                     flex: 1,
                     padding: "18px",
-                    backgroundColor: "#f5f5f5",
+                    backgroundColor:
+                      seleccionada.estado === "cancelada" ? "#eee" : "#f5f5f5",
                     color: "#666",
                     border: "none",
                     borderRadius: "12px",
                     fontWeight: "bold",
-                    cursor: "pointer",
+                    cursor:
+                      seleccionada.estado === "cancelada"
+                        ? "not-allowed"
+                        : "pointer",
                   }}
                 >
-                  CANCELAR
+                  CANCELAR RESERVA
                 </button>
                 <button
-                  onClick={() => aceptarReserva(seleccionada)}
+                  onClick={() => handleVerPDF(seleccionada.id)}
                   style={{
                     flex: 1,
                     padding: "18px",
@@ -375,7 +415,7 @@ const AdminReserva: React.FC<AdminReservaProps> = ({ onCrearReserva }) => {
             <div
               style={{ textAlign: "center", marginTop: "100px", color: "#ccc" }}
             >
-              Selecciona una solicitud
+              Selecciona una reserva
             </div>
           )}
         </div>
