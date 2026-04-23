@@ -51,13 +51,16 @@ export class ReservasService {
   }
 
   async create(dto: CreateReservaDto) {
+    console.log("DTO recibido:", dto);
     const fechaDate = new Date(dto.fecha);
     fechaDate.setHours(0, 0, 0, 0);
+    console.log("Fecha procesada:", fechaDate);
 
     // 1. Verificar que el espacio existe
     const espacio = await this.prisma.espacio.findUnique({
       where: { id: dto.espacio_id },
     });
+    console.log("Espacio encontrado:", espacio);
 
     if (!espacio) {
       throw new NotFoundException(
@@ -69,6 +72,7 @@ export class ReservasService {
     const disciplina = await this.prisma.disciplina.findUnique({
       where: { id: dto.disciplina_id },
     });
+    console.log("Disciplina encontrada:", disciplina);
 
     if (!disciplina) {
       throw new NotFoundException(
@@ -149,6 +153,55 @@ export class ReservasService {
         `El horario (${dto.hora_inicio} - ${dto.hora_fin}) ya está reservado`,
       );
     }
+    // Después de encontrar disciplina
+    console.log("Verificando horario del espacio...");
+    console.log(
+      "hora_inicio:",
+      dto.hora_inicio,
+      "apertura:",
+      espacio.horario_apertura,
+    );
+    console.log("hora_fin:", dto.hora_fin, "cierre:", espacio.horario_cierre);
+    console.log(
+      "Comparacion inicio:",
+      dto.hora_inicio < espacio.horario_apertura,
+    );
+    console.log("Comparacion fin:", dto.hora_fin > espacio.horario_cierre);
+    console.log("Verificando conflicto con clases...");
+    // después del claseConflicto
+    console.log("Clase conflicto:", claseConflicto);
+
+    console.log("Verificando conflicto con reservas...");
+    // después del reservaConflicto
+    console.log("Reserva conflicto:", reservaConflicto);
+
+    console.log("Creando reserva...");
+    // después del prisma.reserva.create
+    console.log("Reserva creada exitosamente");
+    console.log("Creando reserva...");
+
+    const nuevaReserva = await this.prisma.reserva.create({
+      data: {
+        espacio_id: dto.espacio_id,
+        solicitante_id: 0,
+        deportista_id: 0,
+        fecha: fechaDate,
+        hora_inicio: dto.hora_inicio,
+        hora_fin: dto.hora_fin,
+        disciplina_id: dto.disciplina_id,
+        motivo: dto.motivo,
+        estado: "confirmada",
+        nombre_solicitante: dto.nombre_solicitante,
+        carnet: dto.carnet,
+      },
+      include: {
+        espacio: true,
+        disciplina: true,
+      },
+    });
+
+    console.log("Reserva creada:", nuevaReserva.id);
+    return nuevaReserva;
   }
 
   async update(id: number, dto: UpdateReservaDto) {
