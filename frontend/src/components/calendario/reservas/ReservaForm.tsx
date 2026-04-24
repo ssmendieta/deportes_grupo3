@@ -125,6 +125,7 @@ const ReservaForm: React.FC<ReservaFormProps> = ({ onVolverAdmin }) => {
           alt="UCB"
           style={{ height: "50px" }}
         />
+        {/*
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <div style={{ textAlign: "right" }}>
             <div style={{ fontWeight: "bold", color: "#003366" }}>
@@ -150,6 +151,7 @@ const ReservaForm: React.FC<ReservaFormProps> = ({ onVolverAdmin }) => {
             VN
           </div>
         </div>
+        */}
       </div>
 
       <div

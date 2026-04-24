@@ -3,7 +3,6 @@ import "./App.css";
 
 import AdminReserva from "./components/calendario/reservas/AdminReserva";
 import ReservaForm from "./components/calendario/reservas/ReservaForm";
-
 import CalendarioAdminPage from "./pages/CalendarioAdminPage";
 import CalendarioEstudiantePage from "./pages/CalendarioEstudiantePage";
 
@@ -17,23 +16,29 @@ function App() {
   const [vistaActual, setVistaActual] =
     useState<VistaActual>("calendario-admin");
 
+  const estaEnCalendario =
+    vistaActual === "calendario-admin" ||
+    vistaActual === "calendario-estudiante";
+
   return (
     <div className="app-principal">
-      <div className="selector-vistas">
-        <button
-          className={vistaActual === "calendario-admin" ? "activo" : ""}
-          onClick={() => setVistaActual("calendario-admin")}
-        >
-          Admin
-        </button>
+      {estaEnCalendario && (
+        <div className="selector-vistas">
+          <button
+            className={vistaActual === "calendario-admin" ? "activo" : ""}
+            onClick={() => setVistaActual("calendario-admin")}
+          >
+            Admin
+          </button>
 
-        <button
-          className={vistaActual === "calendario-estudiante" ? "activo" : ""}
-          onClick={() => setVistaActual("calendario-estudiante")}
-        >
-          Estudiante
-        </button>
-      </div>
+          <button
+            className={vistaActual === "calendario-estudiante" ? "activo" : ""}
+            onClick={() => setVistaActual("calendario-estudiante")}
+          >
+            Estudiante
+          </button>
+        </div>
+      )}
 
       {vistaActual === "calendario-admin" && (
         <CalendarioAdminPage
@@ -41,17 +46,13 @@ function App() {
         />
       )}
 
-      {vistaActual === "calendario-estudiante" && (
-        <CalendarioEstudiantePage
-          onReservar={() => setVistaActual("formulario-reserva")}
-        />
-      )}
+      {vistaActual === "calendario-estudiante" && <CalendarioEstudiantePage />}
 
       {vistaActual === "ver-reservas" && (
         <div className="vista-envuelta">
-          <div className="barra-volver">
+          <div className="barra-vista-unificada">
             <button onClick={() => setVistaActual("calendario-admin")}>
-              ← Volver al calendario admin
+              ← Volver
             </button>
           </div>
 
@@ -63,15 +64,13 @@ function App() {
 
       {vistaActual === "formulario-reserva" && (
         <div className="vista-envuelta">
-          <div className="barra-volver">
-            <button onClick={() => setVistaActual("calendario-estudiante")}>
-              ← Volver al calendario estudiante
+          <div className="barra-vista-unificada">
+            <button onClick={() => setVistaActual("ver-reservas")}>
+              ← Volver
             </button>
           </div>
 
-          <ReservaForm
-            onVolverAdmin={() => setVistaActual("calendario-estudiante")}
-          />
+          <ReservaForm onVolverAdmin={() => setVistaActual("ver-reservas")} />
         </div>
       )}
     </div>

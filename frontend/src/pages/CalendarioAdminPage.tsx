@@ -1,10 +1,14 @@
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AlertasCalendario from "../components/calendario/AlertasCalendario";
 import EncabezadoCalendario from "../components/calendario/EncabezadoCalendario";
 import GrillaCalendarioSemanal from "../components/calendario/GrillaCalendarioSemanal";
 import LeyendaCalendario from "../components/calendario/LeyendaCalendario";
 import NavegacionSemana from "../components/calendario/NavegacionSemana";
-import { getReservas } from "../services/reservaService";
+import {
+  getEspacios,
+  getReservas,
+  type Espacio,
+} from "../services/reservaService";
 
 type Props = {
   onVerReservas: () => void;
@@ -27,53 +31,132 @@ function sumarDias(fecha: Date, dias: number) {
 function CalendarioAdminPage({ onVerReservas }: Props) {
   const [semanaBase, setSemanaBase] = useState(obtenerLunes(new Date()));
   const [mensaje, setMensaje] = useState("");
-  const [totalReservas, setTotalReservas] = useState(0);
+  const [, setTotalReservas] = useState(0);
+  const [espacios, setEspacios] = useState<Espacio[]>([]);
+  const [espacioSeleccionado, setEspacioSeleccionado] = useState<
+    number | undefined
+  >(undefined);
 
   useEffect(() => {
-    getReservas().then((reservas) => setTotalReservas(reservas.length));
+    getEspacios()
+      .then((data) => {
+        setEspacios(data);
+        // Selecciona el primero por defecto
+        if (data.length > 0) setEspacioSeleccionado(data[0].id);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    getReservas()
+      .then((reservas) => setTotalReservas(reservas.length))
+      .catch(() => setTotalReservas(0));
   }, []);
 
   const etiquetaSemana = useMemo(() => {
-    const finSemana = sumarDias(semanaBase, 6);
+    const finSemana = sumarDias(semanaBase, 5);
     return `${semanaBase.toLocaleDateString()} - ${finSemana.toLocaleDateString()}`;
   }, [semanaBase]);
+
+  const nombreEspacioActual =
+    espacios.find((e) => e.id === espacioSeleccionado)?.nombre ?? "";
 
   return (
     <div className="pagina-calendario">
       <EncabezadoCalendario
         titulo="Calendario Semanal - Administración"
-        subtitulo="Control semanal de reservas y actividades deportivas"
+        subtitulo="Control semanal de reservas, clases y entrenamientos"
         textoBoton="Ver reservas"
         onClickBoton={onVerReservas}
       />
 
       <section className="resumen-calendario">
         <div className="tarjeta-resumen">
-          <span>Reservas registradas</span>
-          <strong>{totalReservas}</strong>
-        </div>
-
-        <div className="tarjeta-resumen">
-          <span>Modo</span>
-          <strong>Administrador</strong>
+          <span>Horario visible</span>
+          <strong>14:00 - 18:00</strong>
         </div>
       </section>
 
-      <NavegacionSemana
-        etiquetaSemana={etiquetaSemana}
-        onSemanaAnterior={() => setSemanaBase((prev) => sumarDias(prev, -7))}
-        onSemanaSiguiente={() => setSemanaBase((prev) => sumarDias(prev, 7))}
-      />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "16px",
+          flexWrap: "wrap",
+        }}
+      >
+        <NavegacionSemana
+          etiquetaSemana={etiquetaSemana}
+          onSemanaAnterior={() => setSemanaBase((prev) => sumarDias(prev, -7))}
+          onSemanaSiguiente={() => setSemanaBase((prev) => sumarDias(prev, 7))}
+        />
+
+        <div className="navegacion-semana">
+          <span
+            style={{
+              fontWeight: 800,
+              color: "var(--azul-oceano)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Cancha:
+          </span>
+          <div style={{ display: "flex", gap: "8px" }}>
+            {espacios.map((espacio) => (
+              <button
+                key={espacio.id}
+                onClick={() => setEspacioSeleccionado(espacio.id)}
+                className={`boton-secundario-chico ${espacioSeleccionado === espacio.id ? "activo" : ""}`}
+                style={{
+                  width: "auto",
+                  padding: "8px 14px",
+                  borderRadius: "999px",
+                  fontWeight: 800,
+                  fontSize: "13px",
+                  whiteSpace: "nowrap",
+                  backgroundColor:
+                    espacioSeleccionado === espacio.id
+                      ? "var(--azul-oceano)"
+                      : "var(--azul-suave)",
+                  color:
+                    espacioSeleccionado === espacio.id
+                      ? "var(--blanco)"
+                      : "var(--azul-oceano)",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                {espacio.nombre}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       <LeyendaCalendario />
 
       <AlertasCalendario mensaje={mensaje} tipo="error" />
 
-      <GrillaCalendarioSemanal
-        modo="admin"
-        semanaBase={semanaBase}
-        onConflicto={(msg) => setMensaje(msg)}
-      />
+      {espacioSeleccionado !== undefined && (
+        <>
+          <h3
+            style={{
+              margin: "0 0 -8px",
+              color: "var(--azul-oceano)",
+              fontWeight: 900,
+              fontSize: "1.1rem",
+            }}
+          >
+            {nombreEspacioActual}
+          </h3>
+          <GrillaCalendarioSemanal
+            modo="admin"
+            semanaBase={semanaBase}
+            espacioId={espacioSeleccionado}
+            onConflicto={(msg) => setMensaje(msg)}
+          />
+        </>
+      )}
     </div>
   );
 }

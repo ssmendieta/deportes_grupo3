@@ -1,14 +1,10 @@
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AlertasCalendario from "../components/calendario/AlertasCalendario";
 import EncabezadoCalendario from "../components/calendario/EncabezadoCalendario";
 import GrillaCalendarioSemanal from "../components/calendario/GrillaCalendarioSemanal";
 import LeyendaCalendario from "../components/calendario/LeyendaCalendario";
 import NavegacionSemana from "../components/calendario/NavegacionSemana";
-import { getDisponibilidad, getEspacios } from "../services/reservaService";
-
-type Props = {
-  onReservar: () => void;
-};
+import { getEspacios, type Espacio } from "../services/reservaService";
 
 function obtenerLunes(fecha: Date) {
   const copia = new Date(fecha);
@@ -24,82 +20,118 @@ function sumarDias(fecha: Date, dias: number) {
   return copia;
 }
 
-function CalendarioEstudiantePage({ onReservar }: Props) {
+function formatearFecha(fecha: Date) {
+  return fecha.toLocaleDateString("es-BO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+function CalendarioEstudiantePage() {
   const [semanaBase, setSemanaBase] = useState(obtenerLunes(new Date()));
   const [mensaje, setMensaje] = useState("");
-  const [seleccion, setSeleccion] = useState("");
-  const [totalBloques, setTotalBloques] = useState(0);
+  const [espacios, setEspacios] = useState<Espacio[]>([]);
+  const [espacioSeleccionado, setEspacioSeleccionado] = useState<
+    number | undefined
+  >(undefined);
 
   useEffect(() => {
-    const cargarTotalBloques = async () => {
-      try {
-        const espacios = await getEspacios();
-        const hoy = new Date().toISOString().split("T")[0];
-        let total = 0;
-        for (const espacio of espacios) {
-          const disponibilidad = await getDisponibilidad(espacio.id, hoy);
-          total += disponibilidad.bloques_ocupados.length;
-        }
-        setTotalBloques(total);
-      } catch (error) {
-        console.error("Error cargando bloques:", error);
-      }
-    };
-    cargarTotalBloques();
+    getEspacios()
+      .then((data) => {
+        setEspacios(data);
+        if (data.length > 0) setEspacioSeleccionado(data[0].id);
+      })
+      .catch(() => {});
   }, []);
 
   const etiquetaSemana = useMemo(() => {
-    const finSemana = sumarDias(semanaBase, 6);
-    return `${semanaBase.toLocaleDateString()} - ${finSemana.toLocaleDateString()}`;
+    const finSemana = sumarDias(semanaBase, 5);
+    return `${formatearFecha(semanaBase)} - ${formatearFecha(finSemana)}`;
   }, [semanaBase]);
 
   return (
     <div className="pagina-calendario">
       <EncabezadoCalendario
         titulo="Calendario Semanal - Estudiante"
-        subtitulo="Consulta disponibilidad y selecciona un horario para reservar"
-        textoBoton="Reservar"
-        onClickBoton={onReservar}
+        subtitulo="Consulta la disponibilidad de canchas. Las reservas se realizan de forma presencial."
       />
 
       <section className="resumen-calendario">
         <div className="tarjeta-resumen">
-          <span>Bloques ocupados hoy</span>
-          <strong>{totalBloques}</strong>
-        </div>
-
-        <div className="tarjeta-resumen">
-          <span>Selección actual</span>
-          <strong>{seleccion || "Ninguna"}</strong>
+          <span>Horario visible</span>
+          <strong>14:00 - 18:00</strong>
         </div>
       </section>
 
-      <NavegacionSemana
-        etiquetaSemana={etiquetaSemana}
-        onSemanaAnterior={() => setSemanaBase((prev) => sumarDias(prev, -7))}
-        onSemanaSiguiente={() => setSemanaBase((prev) => sumarDias(prev, 7))}
-      />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "16px",
+          flexWrap: "wrap",
+        }}
+      >
+        <NavegacionSemana
+          etiquetaSemana={etiquetaSemana}
+          onSemanaAnterior={() => setSemanaBase((prev) => sumarDias(prev, -7))}
+          onSemanaSiguiente={() => setSemanaBase((prev) => sumarDias(prev, 7))}
+        />
+
+        {/* ── Selector de espacio ── */}
+        <div className="navegacion-semana">
+          <span
+            style={{
+              fontWeight: 800,
+              color: "var(--azul-oceano)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Cancha:
+          </span>
+          <div style={{ display: "flex", gap: "8px" }}>
+            {espacios.map((espacio) => (
+              <button
+                key={espacio.id}
+                onClick={() => setEspacioSeleccionado(espacio.id)}
+                style={{
+                  width: "auto",
+                  padding: "8px 14px",
+                  borderRadius: "999px",
+                  fontWeight: 800,
+                  fontSize: "13px",
+                  whiteSpace: "nowrap",
+                  backgroundColor:
+                    espacioSeleccionado === espacio.id
+                      ? "var(--azul-oceano)"
+                      : "var(--azul-suave)",
+                  color:
+                    espacioSeleccionado === espacio.id
+                      ? "var(--blanco)"
+                      : "var(--azul-oceano)",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                {espacio.nombre}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       <LeyendaCalendario />
 
-      <AlertasCalendario
-        mensaje={mensaje}
-        tipo={mensaje.includes("seleccionado") ? "ok" : "error"}
-      />
+      <AlertasCalendario mensaje={mensaje} tipo="error" />
 
-      <GrillaCalendarioSemanal
-        modo="estudiante"
-        semanaBase={semanaBase}
-        onConflicto={(msg) => {
-          setMensaje(msg);
-          setSeleccion("");
-        }}
-        onBloqueLibreClick={(dia, hora) => {
-          const texto = `${dia} ${hora}`;
-          setSeleccion(texto);
-          setMensaje(`Horario seleccionado: ${texto}`);
-        }}
-      />
+      {espacioSeleccionado !== undefined && (
+        <GrillaCalendarioSemanal
+          modo="estudiante"
+          semanaBase={semanaBase}
+          espacioId={espacioSeleccionado}
+          onConflicto={(msg) => setMensaje(msg)}
+        />
+      )}
     </div>
   );
 }

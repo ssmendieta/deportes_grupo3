@@ -386,4 +386,135 @@ select {
     min-width: 0;
     flex: 1;
   }
+
+  .barra-vista-unificada {
+    max-width: 1400px;
+    margin: 0 auto 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .barra-vista-unificada button {
+    border: none;
+    background: var(--blanco);
+    color: var(--azul-oceano);
+    padding: 12px 18px;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: var(--sombra);
+    font-weight: 800;
+  }
+
+  .aviso-carga {
+    background: var(--azul-suave);
+    color: var(--azul-oceano);
+    border-radius: 16px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    font-weight: 700;
+  }
+
+  .grilla-espacio {
+    margin-bottom: 28px;
+  }
+
+  .grilla-espacio h3 {
+    margin: 0 0 14px;
+    color: var(--azul-oceano);
+    font-size: 1.25rem;
+    font-weight: 900;
+  }
+
+  .grilla-calendario {
+    grid-template-columns: 92px repeat(6, minmax(135px, 1fr));
+    min-width: 980px;
+  }
+
+  .celda-hora,
+  .celda-calendario {
+    min-height: 66px;
+  }
+
+  .bloque-reserva {
+    min-height: 100%;
+  }
+
+  .bloque-reserva.coliseo {
+    background: var(--azul-oceano);
+    color: var(--blanco);
+  }
+
+  .bloque-reserva.arquitectura {
+    background: #dbe7f4;
+    color: var(--azul-oceano);
+    border: 1px solid #c0d2e4;
+  }
+
+  .barra-vista-unificada {
+    max-width: 1400px;
+    margin: 0 auto 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .barra-vista-unificada button {
+    border: none;
+    background: var(--blanco);
+    color: var(--azul-oceano);
+    padding: 12px 20px;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: var(--sombra);
+    font-weight: 900;
+  }
+
+  .grilla-calendario {
+    grid-template-columns: 92px repeat(6, minmax(135px, 1fr));
+    min-width: 980px;
+  }
+
+  .celda-hora,
+  .celda-calendario {
+    min-height: 66px;
+  }
+
+  .celda-calendario.continuacion {
+    background: #eef4fb;
+  }
+
+  .bloque-continuacion {
+    opacity: 0.82;
+    justify-content: center;
+  }
+
+  .texto-continuacion {
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-align: center;
+    opacity: 0.75;
+  }
+
+  .aviso-carga {
+    background: var(--azul-suave);
+    color: var(--azul-oceano);
+    border-radius: 16px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    font-weight: 700;
+  }
+
+  .grilla-espacio {
+    margin-bottom: 28px;
+  }
+
+  .grilla-espacio h3 {
+    margin: 0 0 14px;
+    color: var(--azul-oceano);
+    font-size: 1.25rem;
+    font-weight: 900;
+  }
 }

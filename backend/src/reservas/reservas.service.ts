@@ -50,15 +50,11 @@ export class ReservasService {
   }
 
   async create(dto: CreateReservaDto) {
-    console.log("DTO recibido:", dto);
     const fechaDate = new Date(`${dto.fecha}T12:00:00.000Z`);
-    console.log("Fecha procesada:", fechaDate);
 
-    // 1. Verificar que el espacio existe
     const espacio = await this.prisma.espacio.findUnique({
       where: { id: dto.espacio_id },
     });
-    console.log("Espacio encontrado:", espacio);
 
     if (!espacio) {
       throw new NotFoundException(
@@ -66,7 +62,6 @@ export class ReservasService {
       );
     }
 
-    // 2. Verificar que la disciplina existe
     const disciplina = await this.prisma.disciplina.findUnique({
       where: { id: dto.disciplina_id },
     });
@@ -78,7 +73,6 @@ export class ReservasService {
       );
     }
 
-    // 3. Verificar que el horario está dentro del horario del espacio
     if (
       dto.hora_inicio < espacio.horario_apertura ||
       dto.hora_fin > espacio.horario_cierre
@@ -88,7 +82,6 @@ export class ReservasService {
       );
     }
 
-    // 4. Verificar conflicto con clases
     const diaSemana = fechaDate.getDay();
     const claseConflicto = await this.prisma.horarioDisponible.findFirst({
       where: {
@@ -118,7 +111,6 @@ export class ReservasService {
       );
     }
 
-    // 5. Verificar conflicto con otras reservas
     const fechaInicio = new Date(dto.fecha);
     fechaInicio.setUTCHours(0, 0, 0, 0);
     const fechaFin = new Date(dto.fecha);
@@ -151,32 +143,6 @@ export class ReservasService {
         `El horario (${dto.hora_inicio} - ${dto.hora_fin}) ya está reservado`,
       );
     }
-    // Después de encontrar disciplina
-    console.log("Verificando horario del espacio...");
-    console.log(
-      "hora_inicio:",
-      dto.hora_inicio,
-      "apertura:",
-      espacio.horario_apertura,
-    );
-    console.log("hora_fin:", dto.hora_fin, "cierre:", espacio.horario_cierre);
-    console.log(
-      "Comparacion inicio:",
-      dto.hora_inicio < espacio.horario_apertura,
-    );
-    console.log("Comparacion fin:", dto.hora_fin > espacio.horario_cierre);
-    console.log("Verificando conflicto con clases...");
-    // después del claseConflicto
-    console.log("Clase conflicto:", claseConflicto);
-
-    console.log("Verificando conflicto con reservas...");
-    // después del reservaConflicto
-    console.log("Reserva conflicto:", reservaConflicto);
-
-    console.log("Creando reserva...");
-    // después del prisma.reserva.create
-    console.log("Reserva creada exitosamente");
-    console.log("Creando reserva...");
 
     const nuevaReserva = await this.prisma.reserva.create({
       data: {
@@ -205,15 +171,25 @@ export class ReservasService {
   async update(id: number, dto: UpdateReservaDto) {
     const reserva = await this.findOne(id);
 
-    if (reserva.estado === "cancelada") {
-      throw new ConflictException(
-        "No se puede modificar una reserva que ya está cancelada",
-      );
-    }
-
     return this.prisma.reserva.update({
       where: { id },
-      data: { estado: dto.estado },
+      data: {
+        ...(dto.estado !== undefined && { estado: dto.estado }),
+        ...(dto.fecha !== undefined && { fecha: new Date(dto.fecha) }),
+        ...(dto.hora_inicio !== undefined && { hora_inicio: dto.hora_inicio }),
+        ...(dto.hora_fin !== undefined && { hora_fin: dto.hora_fin }),
+        ...(dto.nombre_solicitante !== undefined && {
+          nombre_solicitante: dto.nombre_solicitante,
+        }),
+        ...(dto.carnet !== undefined && { carnet: dto.carnet }),
+        ...(dto.motivo !== undefined && { motivo: dto.motivo }),
+        ...(dto.disciplina_id !== undefined && {
+          disciplina: { connect: { id: dto.disciplina_id } },
+        }),
+        ...(dto.espacio_id !== undefined && {
+          espacio: { connect: { id: dto.espacio_id } },
+        }),
+      },
       include: {
         espacio: true,
         disciplina: true,
@@ -229,8 +205,6 @@ export class ReservasService {
 
       doc.on("data", (chunk: Buffer<ArrayBufferLike>) => chunks.push(chunk));
       doc.on("end", () => resolve(Buffer.concat(chunks)));
-
-      // Diseño del Comprobante UCB
       doc
         .fillColor("#003366")
         .fontSize(20)

@@ -19,15 +19,14 @@ export class HorariosService {
       throw new NotFoundException(`Espacio con id ${espacioId} no encontrado`);
     }
 
-    // Bloques bloqueados por clases (plantilla semanal)
     const fechaDate = new Date(`${fecha}T12:00:00.000Z`);
-    const diaSemana = fechaDate.getUTCDay(); // 0=domingo, 6=sábado
+    const diaSemana = fechaDate.getUTCDay();
 
     const clases = await this.prisma.horarioDisponible.findMany({
       where: {
         espacio_id: espacioId,
         dia_semana: diaSemana,
-        disponible: false, // false = bloqueado por clase
+        disponible: false,
       },
       select: {
         hora_inicio: true,
@@ -35,7 +34,6 @@ export class HorariosService {
       },
     });
 
-    // Bloques ocupados por reservas ese día
     const fechaInicio = new Date(fecha);
     fechaInicio.setUTCHours(0, 0, 0, 0);
     const fechaFin = new Date(fecha);

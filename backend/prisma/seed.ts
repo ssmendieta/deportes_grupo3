@@ -17,8 +17,8 @@ async function main() {
   // 2. CREACIÓN DE ESPACIOS
   const coliseo = await prisma.espacio.create({
     data: {
-      nombre: "Coliseo Polideportivo",
-      ubicacion: "Campus Central - Bloque A",
+      nombre: "Coliseo UCB",
+      ubicacion: "Bloque A",
       capacidad: 150,
       horario_apertura: "07:00",
       horario_cierre: "22:00",
