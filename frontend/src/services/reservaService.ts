@@ -155,8 +155,18 @@ export const cancelarReserva = async (id: number): Promise<Reserva> => {
   return response.json();
 };
 
-export const getComprobanteUrl = (id: number): string => {
-  return `${API_URL}/api/reservas/${id}/comprobante`;
+export const descargarComprobante = async (id: number): Promise<void> => {
+  const response = await fetch(`${API_URL}/api/reservas/${id}/comprobante`, {
+    headers: headersAdmin,
+  });
+
+  if (!response.ok) {
+    throw new Error("Error al generar el comprobante");
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  window.open(url, "_blank");
 };
 
 // ===== HELPERS =====
@@ -191,5 +201,8 @@ export const HORAS_CALENDARIO = [
 export const fechaParaAPI = (semanaBase: Date, indiceDia: number): string => {
   const fecha = new Date(semanaBase);
   fecha.setDate(fecha.getDate() + indiceDia);
-  return fecha.toISOString().split("T")[0];
+  const year = fecha.getFullYear();
+  const month = String(fecha.getMonth() + 1).padStart(2, "0");
+  const day = String(fecha.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };

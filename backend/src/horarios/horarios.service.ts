@@ -20,7 +20,7 @@ export class HorariosService {
     }
 
     // Bloques bloqueados por clases (plantilla semanal)
-    const fechaDate = new Date(fecha);
+    const fechaDate = new Date(`${fecha}T12:00:00.000Z`);
     const diaSemana = fechaDate.getUTCDay(); // 0=domingo, 6=sábado
 
     const clases = await this.prisma.horarioDisponible.findMany({

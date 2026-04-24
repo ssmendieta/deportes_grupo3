@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   getReservas,
   cancelarReserva,
-  getComprobanteUrl,
+  descargarComprobante,
   type Reserva,
 } from "../../../services/reservaService";
 
@@ -48,8 +48,12 @@ const AdminReserva: React.FC<AdminReservaProps> = ({ onCrearReserva }) => {
     }
   };
 
-  const handleVerPDF = (id: number) => {
-    window.open(getComprobanteUrl(id), "_blank");
+  const handleVerPDF = async (id: number) => {
+    try {
+      await descargarComprobante(id);
+    } catch {
+      setError("Error al generar el comprobante");
+    }
   };
 
   const reservasFiltradas = reservas.filter((res) => {
