@@ -1,7 +1,4 @@
-const API_URL = "http://localhost:4000";
-
-// ===== TIPOS =====
-export type TipoEspacio = "coliseo" | "arquitectura";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
 export type BloqueOcupado = {
   hora_inicio: string;
@@ -69,24 +66,45 @@ const headersAdmin = {
   "x-rol": "admin",
 };
 
-// ===== ESPACIOS =====
+export const DIAS_SEMANA = [
+  "Lunes",
+  "Martes",
+  "Miércoles",
+  "Jueves",
+  "Viernes",
+  "Sábado",
+];
+
+export const HORAS_CALENDARIO = [
+  "14:00",
+  "14:30",
+  "15:00",
+  "15:30",
+  "16:00",
+  "16:30",
+  "17:00",
+  "17:30",
+  "18:00",
+];
+
+export const fechaParaAPI = (semanaBase: Date, indiceDia: number): string => {
+  const fecha = new Date(semanaBase);
+  fecha.setDate(fecha.getDate() + indiceDia);
+  return fecha.toISOString().split("T")[0];
+};
+
 export const getEspacios = async (): Promise<Espacio[]> => {
   const response = await fetch(`${API_URL}/api/espacios`);
+  if (!response.ok) throw new Error("No se pudieron cargar espacios");
   return response.json();
 };
 
-export const getEspacio = async (id: number): Promise<Espacio> => {
-  const response = await fetch(`${API_URL}/api/espacios/${id}`);
-  return response.json();
-};
-
-// ===== DISCIPLINAS =====
 export const getDisciplinas = async (): Promise<Disciplina[]> => {
   const response = await fetch(`${API_URL}/api/disciplinas`);
+  if (!response.ok) throw new Error("No se pudieron cargar disciplinas");
   return response.json();
 };
 
-// ===== HORARIOS =====
 export const getDisponibilidad = async (
   espacioId: number,
   fecha: string,
@@ -94,28 +112,29 @@ export const getDisponibilidad = async (
   const response = await fetch(
     `${API_URL}/api/horarios-disponibles/${espacioId}?fecha=${fecha}`,
   );
+
+  if (!response.ok) {
+    throw new Error("No se pudo cargar disponibilidad");
+  }
+
   return response.json();
 };
 
-// ===== RESERVAS (solo admin) =====
 export const getReservas = async (params?: {
   espacioId?: number;
   fecha?: string;
 }): Promise<Reserva[]> => {
   const query = new URLSearchParams();
+
   if (params?.espacioId) query.append("espacioId", String(params.espacioId));
   if (params?.fecha) query.append("fecha", params.fecha);
 
   const response = await fetch(`${API_URL}/api/reservas?${query.toString()}`, {
     headers: headersAdmin,
   });
-  return response.json();
-};
 
-export const getReserva = async (id: number): Promise<Reserva> => {
-  const response = await fetch(`${API_URL}/api/reservas/${id}`, {
-    headers: headersAdmin,
-  });
+  if (!response.ok) throw new Error("No se pudieron cargar reservas");
+
   return response.json();
 };
 
@@ -157,39 +176,4 @@ export const cancelarReserva = async (id: number): Promise<Reserva> => {
 
 export const getComprobanteUrl = (id: number): string => {
   return `${API_URL}/api/reservas/${id}/comprobante`;
-};
-
-// ===== HELPERS =====
-export const DIAS_SEMANA = [
-  "Lunes",
-  "Martes",
-  "Miércoles",
-  "Jueves",
-  "Viernes",
-  "Sábado",
-];
-
-export const HORAS_CALENDARIO = [
-  "07:00",
-  "08:00",
-  "09:00",
-  "10:00",
-  "11:00",
-  "12:00",
-  "13:00",
-  "14:00",
-  "15:00",
-  "16:00",
-  "17:00",
-  "18:00",
-  "19:00",
-  "20:00",
-  "21:00",
-  "22:00",
-];
-
-export const fechaParaAPI = (semanaBase: Date, indiceDia: number): string => {
-  const fecha = new Date(semanaBase);
-  fecha.setDate(fecha.getDate() + indiceDia);
-  return fecha.toISOString().split("T")[0];
 };

@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AlertasCalendario from "../components/calendario/AlertasCalendario";
 import EncabezadoCalendario from "../components/calendario/EncabezadoCalendario";
 import GrillaCalendarioSemanal from "../components/calendario/GrillaCalendarioSemanal";
@@ -30,11 +30,13 @@ function CalendarioAdminPage({ onVerReservas }: Props) {
   const [totalReservas, setTotalReservas] = useState(0);
 
   useEffect(() => {
-    getReservas().then((reservas) => setTotalReservas(reservas.length));
+    getReservas()
+      .then((reservas) => setTotalReservas(reservas.length))
+      .catch(() => setTotalReservas(0));
   }, []);
 
   const etiquetaSemana = useMemo(() => {
-    const finSemana = sumarDias(semanaBase, 6);
+    const finSemana = sumarDias(semanaBase, 5);
     return `${semanaBase.toLocaleDateString()} - ${finSemana.toLocaleDateString()}`;
   }, [semanaBase]);
 
@@ -42,15 +44,20 @@ function CalendarioAdminPage({ onVerReservas }: Props) {
     <div className="pagina-calendario">
       <EncabezadoCalendario
         titulo="Calendario Semanal - Administración"
-        subtitulo="Control semanal de reservas y actividades deportivas"
+        subtitulo="Control semanal de reservas, clases y entrenamientos"
         textoBoton="Ver reservas"
         onClickBoton={onVerReservas}
       />
 
       <section className="resumen-calendario">
         <div className="tarjeta-resumen">
-          <span>Reservas registradas</span>
-          <strong>{totalReservas}</strong>
+          <span>Fuente de datos</span>
+          <strong>{totalReservas > 0 ? totalReservas : "Mock"}</strong>
+        </div>
+
+        <div className="tarjeta-resumen">
+          <span>Horario visible</span>
+          <strong>14:00 - 18:00</strong>
         </div>
 
         <div className="tarjeta-resumen">

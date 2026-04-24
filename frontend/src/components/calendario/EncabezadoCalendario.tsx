@@ -1,8 +1,8 @@
 type Props = {
   titulo: string;
   subtitulo: string;
-  textoBoton: string;
-  onClickBoton: () => void;
+  textoBoton?: string;
+  onClickBoton?: () => void;
 };
 
 function EncabezadoCalendario({
@@ -21,11 +21,13 @@ function EncabezadoCalendario({
         <p className="encabezado-calendario__subtitulo">{subtitulo}</p>
       </div>
 
-      <div className="encabezado-calendario__acciones">
-        <button className="boton-principal" onClick={onClickBoton}>
-          {textoBoton}
-        </button>
-      </div>
+      {textoBoton && onClickBoton && (
+        <div className="encabezado-calendario__acciones">
+          <button className="boton-principal" onClick={onClickBoton}>
+            {textoBoton}
+          </button>
+        </div>
+      )}
     </header>
   );
 }
