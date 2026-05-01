@@ -17,6 +17,7 @@ export class ReservasService {
 
     if (espacioId) where.espacio_id = espacioId;
 
+    // En findAll() — cambiar las dos líneas de fechaInicio y fechaFin
     if (fecha) {
       const fechaInicio = new Date(`${fecha}T00:00:00.000Z`);
       const fechaFin = new Date(`${fecha}T23:59:59.999Z`);
@@ -175,7 +176,10 @@ export class ReservasService {
       where: { id },
       data: {
         ...(dto.estado !== undefined && { estado: dto.estado }),
-        ...(dto.fecha !== undefined && { fecha: new Date(dto.fecha) }),
+        // En update() — cambiar new Date(dto.fecha) por esto
+        ...(dto.fecha !== undefined && {
+          fecha: new Date(`${dto.fecha}T12:00:00.000Z`),
+        }),
         ...(dto.hora_inicio !== undefined && { hora_inicio: dto.hora_inicio }),
         ...(dto.hora_fin !== undefined && { hora_fin: dto.hora_fin }),
         ...(dto.nombre_solicitante !== undefined && {

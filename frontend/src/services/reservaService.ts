@@ -87,12 +87,21 @@ export const HORAS_CALENDARIO = [
   "18:00",
 ];
 
+// En reservaService.ts — reemplaza la función fechaParaAPI completa
 export const fechaParaAPI = (semanaBase: Date, indiceDia: number): string => {
-  const fecha = new Date(semanaBase);
-  fecha.setDate(fecha.getDate() + indiceDia);
-  return fecha.toISOString().split("T")[0];
-};
+  // Extraer año, mes y día en hora LOCAL (no UTC) para evitar desfase
+  const anio = semanaBase.getFullYear();
+  const mes = semanaBase.getMonth();
+  const dia = semanaBase.getDate();
 
+  // Crear fecha local explícita sin conversión UTC
+  const fecha = new Date(anio, mes, dia + indiceDia);
+
+  const y = fecha.getFullYear();
+  const m = String(fecha.getMonth() + 1).padStart(2, "0");
+  const d = String(fecha.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
 export const getEspacios = async (): Promise<Espacio[]> => {
   const response = await fetch(`${API_URL}/api/espacios`);
   if (!response.ok) throw new Error("No se pudieron cargar espacios");
