@@ -10,6 +10,7 @@ import {
   Res,
 } from "@nestjs/common";
 
+import { Response } from "express";
 import { ReservasService } from "./reservas.service";
 import { CreateReservaDto } from "./dto/create-reserva.dto";
 import { UpdateReservaDto } from "./dto/update-reserva.dto";
@@ -45,6 +46,27 @@ export class ReservasController {
   })
   findOne(@Param("id", ParseIntPipe) id: number) {
     return this.reservasService.findOne(id);
+  }
+
+  @Get(":id/comprobante")
+  @ApiOperation({
+    summary: "Generar y descargar comprobante PDF",
+    description:
+      "Genera un documento PDF con los detalles de la reserva para su descarga.",
+  })
+  async descargarComprobante(
+    @Param("id", ParseIntPipe) id: number,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.reservasService.generarComprobante(id);
+
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename=comprobante-reserva-${id}.pdf`,
+      "Content-Length": buffer.length.toString(),
+    });
+
+    res.end(buffer);
   }
 
   @Post()

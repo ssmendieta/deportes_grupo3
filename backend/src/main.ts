@@ -6,7 +6,11 @@ import { AppModule } from "./app.module.js";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.enableCors();
+  app.enableCors({
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "x-rol", "Authorization"],
+  });
 
   const config = new DocumentBuilder()
     .setTitle("API de Gestión de Espacios y Disciplinas")

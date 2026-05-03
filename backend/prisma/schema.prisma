@@ -60,4 +60,102 @@ model Disciplina {
   activo      Boolean   @default(true)
   orden       Int       @default(0)
   reservas    Reserva[]
+
+  conceptoPagos ConceptoPago[]
+
+  inscripcions Inscripcion[]
+}
+
+model Deportista {
+  id                          Int            @id @default(autoincrement())
+  tipo                        String
+  ci                          String         @unique
+  nombre_completo             String
+  fecha_nacimiento            DateTime?
+  genero                      String?
+  telefono                    String?
+  email                       String?
+  direccion                   String?
+  carrera                     String?
+  semestre                    Int?
+  matricula_activa            Boolean        @default(false)
+  ultima_validacion_matricula DateTime?
+  talla_camiseta              String?
+  fecha_ingreso               DateTime       @default(now())
+  activo                      Boolean        @default(true)
+  created_at                  DateTime       @default(now())
+  updated_at                  DateTime       @updatedAt
+  inscripciones               Inscripcion[]
+  pagos                       Pago[]
+  planillas                   PlanillaPagosAcademia[]
+}
+
+model Inscripcion {
+  id               Int        @id @default(autoincrement())
+  deportista_id    Int
+  disciplina_id    Int
+  categoria        String?
+  nivel            String?
+  fecha_inscripcion DateTime  @default(now())
+  fecha_baja       DateTime?
+  motivo_baja      String?
+  estado           String     @default("activo")
+  created_at       DateTime   @default(now())
+  updated_at       DateTime   @updatedAt
+  deportista       Deportista @relation(fields: [deportista_id], references: [id])
+  disciplina       Disciplina @relation(fields: [disciplina_id], references: [id])
+
+  @@unique([deportista_id, disciplina_id, categoria, estado])
+}
+
+model ConceptoPago {
+  id           Int         @id @default(autoincrement())
+  nombre       String
+  monto        Decimal     @db.Decimal(10, 2)
+  periodicidad String?
+  disciplina_id Int?
+  activo       Boolean     @default(true)
+  disciplina   Disciplina? @relation(fields: [disciplina_id], references: [id])
+  pagos        Pago[]
+}
+
+model Pago {
+  id             Int          @id @default(autoincrement())
+  deportista_id  Int
+  concepto_id    Int
+  monto          Decimal      @db.Decimal(10, 2)
+  mes            Int?
+  anio           Int?
+  fecha_pago     DateTime
+  comprobante    String?
+  origen         String       @default("manual")
+  estado         String       @default("confirmado")
+  observaciones  String?
+  registrado_por Int?
+  created_at     DateTime     @default(now())
+  updated_at     DateTime     @updatedAt
+  deportista     Deportista   @relation(fields: [deportista_id], references: [id])
+  concepto       ConceptoPago @relation(fields: [concepto_id], references: [id])
+}
+
+model PlanillaPagosAcademia {
+  id               Int        @id @default(autoincrement())
+  deportista_id    Int
+  anio             Int
+  matricula_pagada Boolean    @default(false)
+  mes_1_pagado     Boolean    @default(false)
+  mes_2_pagado     Boolean    @default(false)
+  mes_3_pagado     Boolean    @default(false)
+  mes_4_pagado     Boolean    @default(false)
+  mes_5_pagado     Boolean    @default(false)
+  mes_6_pagado     Boolean    @default(false)
+  mes_7_pagado     Boolean    @default(false)
+  mes_8_pagado     Boolean    @default(false)
+  mes_9_pagado     Boolean    @default(false)
+  total_pagado     Decimal    @default(0) @db.Decimal(10, 2)
+  saldo_pendiente  Decimal    @default(0) @db.Decimal(10, 2)
+  updated_at       DateTime   @updatedAt
+  deportista       Deportista @relation(fields: [deportista_id], references: [id])
+
+  @@unique([deportista_id, anio])
 }
