@@ -2,6 +2,7 @@ import "dotenv/config";
 import { NestFactory } from "@nestjs/core";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { AppModule } from "./app.module.js";
+import { ValidationPipe } from "@nestjs/common"; 
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -11,6 +12,13 @@ async function bootstrap() {
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "x-rol", "Authorization"],
   });
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true, 
+      transform: true, 
+    }),
+  );
 
   const config = new DocumentBuilder()
     .setTitle("API de Gestión de Espacios y Disciplinas")

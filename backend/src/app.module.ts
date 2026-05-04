@@ -11,6 +11,7 @@ import { DisciplinasModule } from "./disciplinas/disciplinas.module";
 import { ReservasModule } from "./reservas/reserva.module";
 import { PagosModule } from "./pagos/pagos.module";
 import { AuthMiddleware } from "./middleware/auth.middleware";
+import { DeportistasModule } from './deportistas/deportistas.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AuthMiddleware } from "./middleware/auth.middleware";
     DisciplinasModule,
     ReservasModule,
     PagosModule,
+    DeportistasModule,
   ],
 })
 export class AppModule implements NestModule {
