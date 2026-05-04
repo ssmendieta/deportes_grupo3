@@ -10,7 +10,7 @@ import {
   Res,
 } from "@nestjs/common";
 
-import { Response } from "express"; 
+import { Response } from "express";
 import { ReservasService } from "./reservas.service";
 import { CreateReservaDto } from "./dto/create-reserva.dto";
 import { UpdateReservaDto } from "./dto/update-reserva.dto";
@@ -48,7 +48,6 @@ export class ReservasController {
     return this.reservasService.findOne(id);
   }
 
-  // PARA EL PDF
   @Get(":id/comprobante")
   @ApiOperation({
     summary: "Generar y descargar comprobante PDF",
