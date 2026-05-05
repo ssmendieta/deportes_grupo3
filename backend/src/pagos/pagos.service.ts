@@ -10,7 +10,6 @@ import { CreatePagoDto } from "./dto/create-pago.dto";
 export class PagosService {
   constructor(private prisma: PrismaService) {}
 
-  // ─── Obtener todos los conceptos de pago ─────────────────────────────────
   async getConceptos(disciplina_id?: number) {
     return this.prisma.conceptoPago.findMany({
       where: {
@@ -22,9 +21,7 @@ export class PagosService {
     });
   }
 
-  // ─── Obtener planilla de pagos por disciplina y año ───────────────────────
   async getPlanilla(disciplina_id: number, anio: number) {
-    // Traer todos los deportistas inscritos en esa disciplina
     const inscripciones = await this.prisma.inscripcion.findMany({
       where: {
         disciplina_id,
@@ -35,7 +32,6 @@ export class PagosService {
       },
     });
 
-    // Para cada deportista buscar o construir su planilla
     const planilla = await Promise.all(
       inscripciones.map(async (inscripcion) => {
         const registro = await this.prisma.planillaPagosAcademia.findUnique({
@@ -77,7 +73,6 @@ export class PagosService {
     return planilla;
   }
 
-  // ─── Obtener morosos ──────────────────────────────────────────────────────
   async getMorosos(disciplina_id?: number, anio?: number) {
     const anioConsulta = anio ?? new Date().getFullYear();
 
@@ -114,7 +109,6 @@ export class PagosService {
       },
     });
 
-    // Filtrar los que tienen inscripción en la disciplina solicitada
     const resultado = planillas
       .filter((p) => p.deportista.inscripciones.length > 0)
       .map((p) => {
@@ -146,7 +140,6 @@ export class PagosService {
     return resultado;
   }
 
-  // ─── Historial de pagos de un deportista ─────────────────────────────────
   async getPagosDeportista(deportista_id: number) {
     const deportista = await this.prisma.deportista.findUnique({
       where: { id: deportista_id },
@@ -165,9 +158,7 @@ export class PagosService {
     });
   }
 
-  // ─── Registrar un pago ────────────────────────────────────────────────────
   async registrarPago(dto: CreatePagoDto, registrado_por?: number) {
-    // Verificar que el deportista existe
     const deportista = await this.prisma.deportista.findUnique({
       where: { id: dto.deportista_id },
     });
@@ -177,7 +168,6 @@ export class PagosService {
       );
     }
 
-    // Verificar que el concepto existe
     const concepto = await this.prisma.conceptoPago.findUnique({
       where: { id: dto.concepto_id },
     });
@@ -187,7 +177,6 @@ export class PagosService {
       );
     }
 
-    // Verificar que no existe ya un pago confirmado para ese mes/año
     if (dto.mes) {
       const pagoExistente = await this.prisma.pago.findFirst({
         where: {
@@ -205,9 +194,7 @@ export class PagosService {
       }
     }
 
-    // Crear el pago y actualizar la planilla en una transacción
     const resultado = await this.prisma.$transaction(async (tx) => {
-      // 1. Crear el pago
       const pago = await tx.pago.create({
         data: {
           deportista_id: dto.deportista_id,
@@ -225,7 +212,6 @@ export class PagosService {
         include: { concepto: true },
       });
 
-      // 2. Actualizar la planilla
       const campoPlanilla = this.obtenerCampoPlanilla(dto.mes);
 
       if (campoPlanilla) {
@@ -257,7 +243,6 @@ export class PagosService {
     return resultado;
   }
 
-  // ─── Anular un pago ───────────────────────────────────────────────────────
   async anularPago(id: number) {
     const pago = await this.prisma.pago.findUnique({
       where: { id },
@@ -272,14 +257,12 @@ export class PagosService {
     }
 
     const resultado = await this.prisma.$transaction(async (tx) => {
-      // 1. Anular el pago
       const pagoAnulado = await tx.pago.update({
         where: { id },
         data: { estado: "anulado" },
         include: { concepto: true },
       });
 
-      // 2. Revertir en la planilla
       const campoPlanilla = this.obtenerCampoPlanilla(pago.mes ?? undefined);
 
       if (campoPlanilla) {
@@ -302,7 +285,6 @@ export class PagosService {
     return resultado;
   }
 
-  // ─── Helper: obtener campo de planilla según mes ──────────────────────────
   private obtenerCampoPlanilla(mes?: number): string | null {
     const campos: Record<number, string> = {
       1: "mes_1_pagado",

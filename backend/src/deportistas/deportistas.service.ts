@@ -48,7 +48,6 @@ export class DeportistasService {
     const existe = await this.prisma.deportista.findUnique({ where: { ci: dto.ci } });
     if (existe) throw new ConflictException(`El CI ${dto.ci} ya está registrado`);
 
-    // Transacción: Si falla la inscripción, no se crea el deportista a medias
     return this.prisma.$transaction(async (prisma) => {
       const nuevoDeportista = await prisma.deportista.create({
         data: {
@@ -80,7 +79,7 @@ export class DeportistasService {
 
   async update(id: number, dto: any) {
     await this.findOne(id);
-    const { ci, tipo, ...updateData } = dto; // Ignoramos ci y tipo por seguridad
+    const { ci, tipo, ...updateData } = dto; 
     return this.prisma.deportista.update({ where: { id }, data: updateData });
   }
 
@@ -92,7 +91,6 @@ export class DeportistasService {
   async inscribir(deportistaId: number, body: { disciplinaId: number, categoria?: string, nivel?: string }) {
     await this.findOne(deportistaId); 
     
-    // Verificamos que la disciplina exista para lanzar el 404 correcto
     const disciplina = await this.prisma.disciplina.findUnique({
       where: { id: body.disciplinaId }
     });
