@@ -69,3 +69,15 @@ export type CreateReservaDto = {
   nombre_solicitante: string;
   carnet: string;
 };
+
+export type UpdateReservaDto = {
+  estado?: "confirmada" | "cancelada";
+  fecha?: string;
+  hora_inicio?: string;
+  hora_fin?: string;
+  nombre_solicitante?: string;
+  carnet?: string;
+  motivo?: string;
+  disciplina_id?: number;
+  espacio_id?: number;
+};

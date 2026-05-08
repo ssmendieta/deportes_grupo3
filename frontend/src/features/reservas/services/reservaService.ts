@@ -6,6 +6,7 @@ import type {
   DisciplinaBasica,
   Espacio,
   Reserva,
+  UpdateReservaDto,
 } from "../types/reserva.types";
 
 export const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
@@ -57,6 +58,16 @@ function fechaParaAPI(semanaBase: Date, indiceDia: number): string {
 }
 
 export { fechaParaAPI };
+
+function buildReservasQuery(params?: { espacioId?: number; fecha?: string }) {
+  const query = new URLSearchParams();
+
+  if (params?.espacioId) query.append("espacioId", String(params.espacioId));
+  if (params?.fecha) query.append("fecha", params.fecha);
+
+  const queryString = query.toString();
+  return queryString ? `/api/reservas?${queryString}` : "/api/reservas";
+}
 
 export async function getEspacios(): Promise<Espacio[]> {
   try {
@@ -110,12 +121,19 @@ export async function getDisponibilidad(
   }
 }
 
-export async function getReservas(): Promise<Reserva[]> {
+export async function getReservas(params?: {
+  espacioId?: number;
+  fecha?: string;
+}): Promise<Reserva[]> {
   try {
-    return await apiRequest<Reserva[]>("/api/reservas", { requiresAdmin: true });
+    return await apiRequest<Reserva[]>(buildReservasQuery(params), { requiresAdmin: true });
   } catch (error) {
     console.warn("Usando reservas fallback", error);
-    return reservasFallback;
+    return reservasFallback.filter((reserva) => {
+      const coincideFecha = params?.fecha ? reserva.fecha === params.fecha : true;
+      const coincideEspacio = params?.espacioId ? reserva.espacio_id === params.espacioId : true;
+      return coincideFecha && coincideEspacio;
+    });
   }
 }
 
@@ -143,6 +161,25 @@ export async function cancelarReserva(id: number): Promise<Reserva> {
     method: "PATCH",
     requiresAdmin: true,
     body: JSON.stringify({ estado: "cancelada" }),
+  });
+}
+
+export async function habilitarReserva(id: number): Promise<Reserva> {
+  return apiRequest<Reserva>(`/api/reservas/${id}`, {
+    method: "PATCH",
+    requiresAdmin: true,
+    body: JSON.stringify({ estado: "confirmada" }),
+  });
+}
+
+export async function editarReserva(
+  id: number,
+  datos: UpdateReservaDto,
+): Promise<Reserva> {
+  return apiRequest<Reserva>(`/api/reservas/${id}`, {
+    method: "PATCH",
+    requiresAdmin: true,
+    body: JSON.stringify(datos),
   });
 }
 
