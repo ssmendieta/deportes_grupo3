@@ -1,78 +1,38 @@
 import { useState } from "react";
 import "./App.css";
+import AppNavigation from "./shared/components/AppNavigation";
+import type { VistaPrincipal } from "./shared/types/navigation.types";
+import DashboardAdminPage from "./features/dashboard/pages/DashboardAdminPage";
+import CalendarioPage from "./features/calendario/pages/CalendarioPage";
+import RegistroDeportistaPage from "./features/deportistas/pages/RegistroDeportistaPage";
+import PagosAcademiasPage from "./features/pagos/pages/PagosAcademiasPage";
+import GestionDisciplinasPage from "./features/disciplinas/pages/GestionDisciplinasPage";
+import ReservasAdminPage from "./features/reservas/pages/ReservasAdminPage";
+import NuevaReservaPage from "./features/reservas/pages/NuevaReservaPage";
 
-import AdminReserva from "./components/calendario/reservas/AdminReserva";
-import ReservaForm from "./components/calendario/reservas/ReservaForm";
-import CalendarioAdminPage from "./pages/CalendarioAdminPage";
-import CalendarioEstudiantePage from "./pages/CalendarioEstudiantePage";
+type VistaActual = VistaPrincipal | "reservas-admin" | "nueva-reserva";
 
-type VistaActual =
-  | "calendario-admin"
-  | "calendario-estudiante"
-  | "ver-reservas"
-  | "formulario-reserva";
+function vistaPrincipal(vista: VistaActual): VistaPrincipal {
+  if (vista === "reservas-admin" || vista === "nueva-reserva") return "calendario";
+  return vista;
+}
 
 function App() {
-  const [vistaActual, setVistaActual] =
-    useState<VistaActual>("calendario-admin");
-
-  const estaEnCalendario =
-    vistaActual === "calendario-admin" ||
-    vistaActual === "calendario-estudiante";
+  const [vistaActual, setVistaActual] = useState<VistaActual>("dashboard");
 
   return (
-    <div className="app-principal">
-      {estaEnCalendario && (
-        <div className="selector-vistas">
-          <button
-            className={vistaActual === "calendario-admin" ? "activo" : ""}
-            onClick={() => setVistaActual("calendario-admin")}
-          >
-            Admin
-          </button>
+    <div className="app-shell">
+      <AppNavigation vistaActual={vistaPrincipal(vistaActual)} onNavigate={setVistaActual} />
 
-          <button
-            className={vistaActual === "calendario-estudiante" ? "activo" : ""}
-            onClick={() => setVistaActual("calendario-estudiante")}
-          >
-            Estudiante
-          </button>
-        </div>
-      )}
-
-      {vistaActual === "calendario-admin" && (
-        <CalendarioAdminPage
-          onVerReservas={() => setVistaActual("ver-reservas")}
-        />
-      )}
-
-      {vistaActual === "calendario-estudiante" && <CalendarioEstudiantePage />}
-
-      {vistaActual === "ver-reservas" && (
-        <div className="vista-envuelta">
-          <div className="barra-vista-unificada">
-            <button onClick={() => setVistaActual("calendario-admin")}>
-              ← Volver
-            </button>
-          </div>
-
-          <AdminReserva
-            onCrearReserva={() => setVistaActual("formulario-reserva")}
-          />
-        </div>
-      )}
-
-      {vistaActual === "formulario-reserva" && (
-        <div className="vista-envuelta">
-          <div className="barra-vista-unificada">
-            <button onClick={() => setVistaActual("ver-reservas")}>
-              ← Volver
-            </button>
-          </div>
-
-          <ReservaForm onVolverAdmin={() => setVistaActual("ver-reservas")} />
-        </div>
-      )}
+      <main className="app-main">
+        {vistaActual === "dashboard" && <DashboardAdminPage onNavigate={setVistaActual} />}
+        {vistaActual === "calendario" && <CalendarioPage onVerReservas={() => setVistaActual("reservas-admin")} />}
+        {vistaActual === "deportistas" && <RegistroDeportistaPage />}
+        {vistaActual === "pagos" && <PagosAcademiasPage />}
+        {vistaActual === "disciplinas" && <GestionDisciplinasPage />}
+        {vistaActual === "reservas-admin" && <ReservasAdminPage onVolver={() => setVistaActual("calendario")} onCrearReserva={() => setVistaActual("nueva-reserva")} />}
+        {vistaActual === "nueva-reserva" && <NuevaReservaPage onVolver={() => setVistaActual("reservas-admin")} />}
+      </main>
     </div>
   );
 }

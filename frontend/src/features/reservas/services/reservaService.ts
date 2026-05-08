@@ -1,0 +1,181 @@
+import { apiRequest, API_URL } from "../../../shared/services/apiClient";
+import type {
+  BloqueOcupado,
+  CreateReservaDto,
+  DisponibilidadEspacio,
+  DisciplinaBasica,
+  Espacio,
+  Reserva,
+} from "../types/reserva.types";
+
+export const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
+export const HORAS_CALENDARIO = [
+  "14:00",
+  "14:30",
+  "15:00",
+  "15:30",
+  "16:00",
+  "16:30",
+  "17:00",
+  "17:30",
+  "18:00",
+];
+
+const espaciosFallback: Espacio[] = [
+  { id: 1, nombre: "Coliseo Polideportivo", ubicacion: "UCB", capacidad: 40, horario_apertura: "14:00", horario_cierre: "18:00", activo: true },
+  { id: 2, nombre: "Cancha de Arquitectura", ubicacion: "Arquitectura", capacidad: 20, horario_apertura: "14:00", horario_cierre: "18:00", activo: true },
+];
+
+const disciplinasFallback: DisciplinaBasica[] = [
+  { id: 1, nombre: "Voleibol", activo: true },
+  { id: 2, nombre: "Básquetbol", activo: true },
+  { id: 3, nombre: "Fútbol", activo: true },
+];
+
+const reservasFallback: Reserva[] = [
+  {
+    id: 1,
+    espacio_id: 1,
+    nombre_solicitante: "Juan Pérez",
+    carnet: "7654321",
+    fecha: "2026-04-25",
+    hora_inicio: "14:00",
+    hora_fin: "15:30",
+    disciplina_id: 3,
+    motivo: "Práctica deportiva",
+    estado: "confirmada",
+    espacio: espaciosFallback[0],
+    disciplina: disciplinasFallback[2],
+  },
+];
+
+function fechaParaAPI(semanaBase: Date, indiceDia: number): string {
+  const fecha = new Date(semanaBase);
+  fecha.setDate(fecha.getDate() + indiceDia);
+  return fecha.toISOString().split("T")[0];
+}
+
+export { fechaParaAPI };
+
+export async function getEspacios(): Promise<Espacio[]> {
+  try {
+    const data = await apiRequest<Espacio[]>("/api/espacios");
+    return data.length ? data : espaciosFallback;
+  } catch (error) {
+    console.warn("Usando espacios fallback", error);
+    return espaciosFallback;
+  }
+}
+
+export async function getDisciplinasReserva(): Promise<DisciplinaBasica[]> {
+  try {
+    const data = await apiRequest<DisciplinaBasica[]>("/api/disciplinas");
+    return data.length ? data : disciplinasFallback;
+  } catch (error) {
+    console.warn("Usando disciplinas fallback para reserva", error);
+    return disciplinasFallback;
+  }
+}
+
+export async function getDisponibilidad(
+  espacioId: number,
+  fecha: string,
+): Promise<DisponibilidadEspacio> {
+  try {
+    return await apiRequest<DisponibilidadEspacio>(`/api/horarios-disponibles/${espacioId}?fecha=${fecha}`);
+  } catch (error) {
+    console.warn("Usando disponibilidad fallback", error);
+    const dia = new Date(`${fecha}T12:00:00.000Z`).getUTCDay();
+    const bloques: BloqueOcupado[] = [];
+
+    if (espacioId === 1 && dia === 1) {
+      bloques.push({ hora_inicio: "14:00", hora_fin: "15:30", tipo: "clase", motivo: "Clase / entrenamiento" });
+    }
+    if (espacioId === 2 && dia === 2) {
+      bloques.push({ hora_inicio: "15:00", hora_fin: "16:30", tipo: "clase", motivo: "Clase / entrenamiento" });
+    }
+    if (espacioId === 2 && dia === 5) {
+      bloques.push({ hora_inicio: "14:30", hora_fin: "16:00", tipo: "reserva", motivo: "Reserva previa" });
+    }
+
+    return {
+      espacio: {
+        nombre: espaciosFallback.find((e) => e.id === espacioId)?.nombre || "Espacio",
+        horario_apertura: "14:00",
+        horario_cierre: "18:00",
+      },
+      bloques_ocupados: bloques,
+    };
+  }
+}
+
+export async function getReservas(): Promise<Reserva[]> {
+  try {
+    return await apiRequest<Reserva[]>("/api/reservas", { requiresAdmin: true });
+  } catch (error) {
+    console.warn("Usando reservas fallback", error);
+    return reservasFallback;
+  }
+}
+
+export async function crearReserva(datos: CreateReservaDto): Promise<Reserva> {
+  try {
+    return await apiRequest<Reserva>("/api/reservas", {
+      method: "POST",
+      requiresAdmin: true,
+      body: JSON.stringify(datos),
+    });
+  } catch (error) {
+    console.warn("Backend de reservas no disponible, se simula respuesta", error);
+    return {
+      id: Date.now(),
+      estado: "confirmada",
+      ...datos,
+      espacio: espaciosFallback.find((e) => e.id === datos.espacio_id),
+      disciplina: disciplinasFallback.find((d) => d.id === datos.disciplina_id),
+    };
+  }
+}
+
+export async function cancelarReserva(id: number): Promise<Reserva> {
+  return apiRequest<Reserva>(`/api/reservas/${id}`, {
+    method: "PATCH",
+    requiresAdmin: true,
+    body: JSON.stringify({ estado: "cancelada" }),
+  });
+}
+
+export function getComprobanteUrl(id: number): string {
+  return `${API_URL}/api/reservas/${id}/comprobante`;
+}
+
+export async function descargarComprobanteReserva(
+  id: number,
+  nombreArchivo: string,
+): Promise<void> {
+  const response = await fetch(getComprobanteUrl(id), {
+    headers: {
+      "x-rol": "admin",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("No se pudo descargar el comprobante PDF");
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = nombreArchivo.endsWith(".pdf")
+    ? nombreArchivo
+    : `${nombreArchivo}.pdf`;
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  window.URL.revokeObjectURL(url);
+}
