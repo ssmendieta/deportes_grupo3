@@ -6,7 +6,10 @@ import {
   getDisponibilidad,
   getEspacios,
 } from "../../reservas/services/reservaService";
-import type { BloqueOcupado, Espacio } from "../../reservas/types/reserva.types";
+import type {
+  BloqueOcupado,
+  Espacio,
+} from "../../reservas/types/reserva.types";
 
 type Props = {
   modo: "admin" | "estudiante";
@@ -22,7 +25,9 @@ function horaAMinutos(hora: string) {
 }
 
 function clasePorEspacio(nombre: string) {
-  return nombre.toLowerCase().includes("arquitect") ? "arquitectura" : "coliseo";
+  return nombre.toLowerCase().includes("arquitect")
+    ? "arquitectura"
+    : "coliseo";
 }
 
 function normalizarHora(hora: string) {
@@ -48,7 +53,9 @@ function GrillaCalendarioSemanal({
   onConflicto,
 }: Props) {
   const [espacios, setEspacios] = useState<Espacio[]>([]);
-  const [bloquesOcupados, setBloquesOcupados] = useState<Record<string, BloqueOcupado[]>>({});
+  const [bloquesOcupados, setBloquesOcupados] = useState<
+    Record<string, BloqueOcupado[]>
+  >({});
   const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
@@ -64,7 +71,8 @@ function GrillaCalendarioSemanal({
             const fecha = fechaParaAPI(semanaBase, i);
             for (const espacio of espaciosData) {
               const disponibilidad = await getDisponibilidad(espacio.id, fecha);
-              nuevosBloques[`${espacio.id}-${DIAS_SEMANA[i]}`] = disponibilidad.bloques_ocupados || [];
+              nuevosBloques[`${espacio.id}-${DIAS_SEMANA[i]}`] =
+                disponibilidad.bloques_ocupados || [];
             }
           }
           setBloquesOcupados(nuevosBloques);
@@ -80,11 +88,15 @@ function GrillaCalendarioSemanal({
   }, [semanaBase]);
 
   const espaciosMostrados = useMemo(
-    () => (espacioId ? espacios.filter((espacio) => espacio.id === espacioId) : espacios),
+    () =>
+      espacioId
+        ? espacios.filter((espacio) => espacio.id === espacioId)
+        : espacios,
     [espacioId, espacios],
   );
 
-  const obtenerBloquesDeDia = (id: number, dia: string) => bloquesOcupados[`${id}-${dia}`] || [];
+  const obtenerBloquesDeDia = (id: number, dia: string) =>
+    bloquesOcupados[`${id}-${dia}`] || [];
 
   return (
     <section className="calendar-stack">
@@ -99,7 +111,9 @@ function GrillaCalendarioSemanal({
               <div className="calendar-time empty" />
 
               {DIAS_SEMANA.map((dia) => (
-                <div key={dia} className="calendar-day-header">{dia}</div>
+                <div key={dia} className="calendar-day-header">
+                  {dia}
+                </div>
               ))}
 
               {HORAS_CALENDARIO.map((hora) => (
@@ -107,7 +121,10 @@ function GrillaCalendarioSemanal({
                   <div className="calendar-time">{hora}</div>
 
                   {DIAS_SEMANA.map((dia) => {
-                    const bloque = obtenerBloqueEnCelda(obtenerBloquesDeDia(espacio.id, dia), hora);
+                    const bloque = obtenerBloqueEnCelda(
+                      obtenerBloquesDeDia(espacio.id, dia),
+                      hora,
+                    );
 
                     return (
                       <button
@@ -115,20 +132,33 @@ function GrillaCalendarioSemanal({
                         className={`calendar-cell ${bloque ? "busy" : "free"}`}
                         onClick={() => {
                           if (bloque) {
-                            onConflicto?.(`El horario del ${dia} a las ${hora} ya está ocupado.`);
+                            onConflicto?.(
+                              `El horario del ${dia} a las ${hora} ya está ocupado.`,
+                            );
                           } else {
                             onBloqueLibreClick?.(dia, hora);
                           }
                         }}
                       >
                         {bloque ? (
-                          <div className={`booking-block ${clasePorEspacio(espacio.nombre)}`}>
+                          <div
+                            className={`booking-block ${clasePorEspacio(espacio.nombre)}`}
+                          >
                             <strong>{espacio.nombre}</strong>
-                            <span>{bloque.tipo === "clase" ? "Clase / entrenamiento" : bloque.motivo || "Reserva"}</span>
-                            <small>{normalizarHora(bloque.hora_inicio)} - {normalizarHora(bloque.hora_fin)}</small>
+                            <span>
+                              {bloque.tipo === "clase"
+                                ? "Clase / entrenamiento"
+                                : bloque.motivo || "Reserva"}
+                            </span>
+                            <small>
+                              {normalizarHora(bloque.hora_inicio)} -{" "}
+                              {normalizarHora(bloque.hora_fin)}
+                            </small>
                           </div>
                         ) : (
-                          <span className="free-label">{modo === "admin" ? "Libre" : "Disponible"}</span>
+                          <span className="free-label">
+                            {modo === "admin" ? "Libre" : "Disponible"}
+                          </span>
                         )}
                       </button>
                     );

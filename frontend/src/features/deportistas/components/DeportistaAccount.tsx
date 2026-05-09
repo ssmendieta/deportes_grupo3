@@ -28,7 +28,6 @@ function DeportistaAccount({ deportista, onVolver }: Props) {
   const categoriaNombre = inscripcionActiva?.categoria ?? "—";
   const nivelNombre = inscripcionActiva?.nivel ?? "—";
 
-  // estadoCuenta y deuda ya vienen calculados del backend
   const estado: EstadoCuenta = deportista.estadoCuenta ?? "pendiente";
 
   useEffect(() => {

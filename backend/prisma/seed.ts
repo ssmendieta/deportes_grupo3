@@ -8,9 +8,6 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log("🚀 Iniciando Seed...");
 
-  // ─────────────────────────────────────────────────────────────
-  // LIMPIEZA
-  // ─────────────────────────────────────────────────────────────
   await prisma.planillaPagosAcademia.deleteMany({});
   await prisma.pago.deleteMany({});
   await prisma.inscripcion.deleteMany({});
@@ -21,9 +18,6 @@ async function main() {
   await prisma.disciplina.deleteMany({});
   await prisma.espacio.deleteMany({});
 
-  // ─────────────────────────────────────────────────────────────
-  // ESPACIOS
-  // ─────────────────────────────────────────────────────────────
   const coliseo = await prisma.espacio.create({
     data: {
       nombre: "Coliseo UCB",
@@ -48,9 +42,6 @@ async function main() {
 
   console.log("✅ Espacios creados");
 
-  // ─────────────────────────────────────────────────────────────
-  // DISCIPLINAS (solo las 4 originales)
-  // ─────────────────────────────────────────────────────────────
   const futsal = await prisma.disciplina.create({
     data: {
       nombre: "Fútsal",
@@ -94,9 +85,6 @@ async function main() {
 
   console.log("✅ Disciplinas creadas");
 
-  // ─────────────────────────────────────────────────────────────
-  // HORARIOS
-  // ─────────────────────────────────────────────────────────────
   const diasSemana = [1, 2, 3, 4, 5];
   for (const dia of diasSemana) {
     for (const clase of [
@@ -126,9 +114,6 @@ async function main() {
 
   console.log("✅ Horarios creados");
 
-  // ─────────────────────────────────────────────────────────────
-  // RESERVAS
-  // ─────────────────────────────────────────────────────────────
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
 
@@ -161,9 +146,6 @@ async function main() {
 
   console.log("✅ Reservas creadas");
 
-  // ─────────────────────────────────────────────────────────────
-  // CONCEPTOS DE PAGO (solo academia paga)
-  // ─────────────────────────────────────────────────────────────
   const conceptos = await prisma.conceptoPago.createManyAndReturn({
     data: [
       {
@@ -227,13 +209,6 @@ async function main() {
 
   console.log("✅ Conceptos de pago creados");
 
-  // ─────────────────────────────────────────────────────────────
-  // DEPORTISTAS
-  // ─────────────────────────────────────────────────────────────
-
-  // ── ACADEMIA (externos, no tienen carrera/semestre) ──────────
-
-  // AL DÍA — pagó matrícula + mar + abr + may
   const martin = await prisma.deportista.create({
     data: {
       tipo: "academia",
@@ -247,7 +222,6 @@ async function main() {
     },
   });
 
-  // AL DÍA — pagó adelantado hasta jun
   const valeria = await prisma.deportista.create({
     data: {
       tipo: "academia",
@@ -261,7 +235,6 @@ async function main() {
     },
   });
 
-  // PENDIENTE — pagó mar + abr, falta may
   const rodrigo = await prisma.deportista.create({
     data: {
       tipo: "academia",
@@ -275,7 +248,6 @@ async function main() {
     },
   });
 
-  // PENDIENTE — solo pagó matrícula, ningún mes aún
   const camila = await prisma.deportista.create({
     data: {
       tipo: "academia",
@@ -289,7 +261,6 @@ async function main() {
     },
   });
 
-  // MOROSO — pagó matrícula + mar, debe abr + may (2 meses)
   const nelson = await prisma.deportista.create({
     data: {
       tipo: "academia",
@@ -303,7 +274,6 @@ async function main() {
     },
   });
 
-  // MOROSO — solo matrícula, debe mar + abr + may (3 meses)
   const patricia = await prisma.deportista.create({
     data: {
       tipo: "academia",
@@ -317,7 +287,6 @@ async function main() {
     },
   });
 
-  // SIN PLANILLA — nunca pagó nada
   const diego = await prisma.deportista.create({
     data: {
       tipo: "academia",
@@ -330,8 +299,6 @@ async function main() {
       activo: true,
     },
   });
-
-  // ── ESTUDIANTES UCB (tienen carrera y semestre, no pagan) ────
 
   const lucia = await prisma.deportista.create({
     data: {
@@ -381,8 +348,6 @@ async function main() {
     },
   });
 
-  // ── COMPETITIVOS (sin carrera, no pagan) ─────────────────────
-
   const miguel = await prisma.deportista.create({
     data: {
       tipo: "competitivo",
@@ -424,12 +389,8 @@ async function main() {
 
   console.log("✅ Deportistas creados");
 
-  // ─────────────────────────────────────────────────────────────
-  // INSCRIPCIONES
-  // ─────────────────────────────────────────────────────────────
   await prisma.inscripcion.createMany({
     data: [
-      // Academia
       {
         deportista_id: martin.id,
         disciplina_id: voley.id,
@@ -479,7 +440,6 @@ async function main() {
         nivel: "Inicial",
         estado: "activo",
       },
-      // Estudiantes UCB
       {
         deportista_id: lucia.id,
         disciplina_id: basquet.id,
@@ -501,7 +461,6 @@ async function main() {
         nivel: "Principiante",
         estado: "activo",
       },
-      // Competitivos
       {
         deportista_id: miguel.id,
         disciplina_id: basquet.id,
@@ -528,12 +487,6 @@ async function main() {
 
   console.log("✅ Inscripciones creadas");
 
-  // ─────────────────────────────────────────────────────────────
-  // PAGOS Y PLANILLAS (solo academia)
-  // Hoy Mayo 2026 → deben estar pagados: mes_1(Mar), mes_2(Abr), mes_3(May)
-  // ─────────────────────────────────────────────────────────────
-
-  // ── MARTÍN: AL DÍA — matrícula + mes_1 + mes_2 + mes_3
   await prisma.pago.createMany({
     data: [
       {
@@ -590,7 +543,6 @@ async function main() {
     },
   });
 
-  // ── VALERIA: AL DÍA — pagó adelantado hasta mes_4 (Jun)
   await prisma.pago.createMany({
     data: [
       {
@@ -658,7 +610,6 @@ async function main() {
     },
   });
 
-  // ── RODRIGO: PENDIENTE — matrícula + mes_1 + mes_2, falta mes_3 (May)
   await prisma.pago.createMany({
     data: [
       {
@@ -704,7 +655,6 @@ async function main() {
     },
   });
 
-  // ── CAMILA: PENDIENTE — solo matrícula, ningún mes
   await prisma.pago.createMany({
     data: [
       {
@@ -728,7 +678,6 @@ async function main() {
     },
   });
 
-  // ── NELSON: MOROSO — matrícula + mes_1, debe mes_2 + mes_3 (2 meses)
   await prisma.pago.createMany({
     data: [
       {
@@ -750,7 +699,6 @@ async function main() {
         origen: "manual",
         estado: "confirmado",
       },
-      // Pago de abr intentado pero anulado
       {
         deportista_id: nelson.id,
         concepto_id: concepto("Mensualidad Básquetbol").id,
@@ -774,7 +722,6 @@ async function main() {
     },
   });
 
-  // ── PATRICIA: MOROSO — solo matrícula, debe mes_1 + mes_2 + mes_3 (3 meses)
   await prisma.pago.createMany({
     data: [
       {
@@ -797,9 +744,6 @@ async function main() {
       saldo_pendiente: 720,
     },
   });
-
-  // ── DIEGO: SIN PLANILLA — nunca pagó nada → pendiente
-  // No se crea planilla ni pagos intencionalmente
 
   console.log("✅ Pagos y planillas creados");
 

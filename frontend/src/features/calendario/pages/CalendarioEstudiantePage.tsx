@@ -60,7 +60,6 @@ function CalendarioEstudiantePage() {
 
       <section className="stats-grid compact">
         <StatCard label="Horario visible" value="14:00 - 18:00" />
-        <StatCard label="Modo" value="Consulta" />
       </section>
 
       <section className="toolbar-card">

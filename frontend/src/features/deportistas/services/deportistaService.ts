@@ -45,8 +45,6 @@ function mapDeportista(raw: DeportistaRaw): Deportista {
   };
 }
 
-// ─── Listado y búsqueda ───────────────────────────────────────────────────────
-
 export async function listarDeportistas(params?: {
   page?: number;
   limit?: number;
@@ -90,8 +88,6 @@ export async function obtenerDeportista(id: number): Promise<Deportista> {
   });
   return mapDeportista(raw);
 }
-
-// ─── Crear / Editar ───────────────────────────────────────────────────────────
 
 export async function crearDeportista(
   data: DeportistaFormData,
@@ -154,8 +150,6 @@ export async function cambiarEstadoDeportista(
   return mapDeportista(raw);
 }
 
-// ─── Inscripciones ────────────────────────────────────────────────────────────
-
 export async function inscribirDeportista(
   id: number,
   body: { disciplinaId: number; categoria?: string; nivel?: string },
@@ -182,8 +176,6 @@ export async function obtenerInscripciones(id: number): Promise<Inscripcion[]> {
   );
   return rawList.map(mapInscripcion);
 }
-
-// ─── Pagos ────────────────────────────────────────────────────────────────────
 
 const MESES: Record<number, string> = {
   1: "Marzo",

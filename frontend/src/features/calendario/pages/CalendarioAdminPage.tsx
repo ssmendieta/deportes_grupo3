@@ -73,7 +73,6 @@ function CalendarioAdminPage({ onVerReservas }: Props) {
       <section className="stats-grid compact">
         <StatCard label="Reservas registradas" value={totalReservas} />
         <StatCard label="Horario visible" value="14:00 - 18:00" />
-        <StatCard label="Modo" value="Administrador" />
       </section>
 
       <section className="toolbar-card">

@@ -10,8 +10,6 @@ import { CreateDeportistaDto } from "./dto/create-deportista.dto";
 export class DeportistasService {
   constructor(private prisma: PrismaService) {}
 
-  // ─── Helpers ────────────────────────────────────────────────────────────────
-
   private async calcularEstadoCuenta(
     deportistaId: number,
     anio: number,
@@ -59,7 +57,7 @@ export class DeportistasService {
     const { estado_cuenta, deuda } = await this.calcularEstadoCuenta(
       deportista.id,
       anio,
-      deportista.tipo, // 👈 agregar esto
+      deportista.tipo,
     );
     return {
       ...deportista,
@@ -67,8 +65,6 @@ export class DeportistasService {
       deuda: estado_cuenta === "al_dia" ? 0 : deuda,
     };
   }
-
-  // ─── Queries ─────────────────────────────────────────────────────────────────
 
   async findAll(
     page = 1,

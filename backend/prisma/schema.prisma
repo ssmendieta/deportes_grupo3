@@ -1,7 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
   provider = "prisma-client-js"
@@ -46,7 +43,7 @@ model Reserva {
 model HorarioDisponible {
   id         Int     @id @default(autoincrement())
   espacio_id Int
-  dia_semana Int     // 0-6
+  dia_semana Int     
   hora_inicio String
   hora_fin    String
   disponible  Boolean @default(true)
