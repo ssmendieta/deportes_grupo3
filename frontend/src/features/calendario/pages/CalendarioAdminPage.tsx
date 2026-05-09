@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import StatCard from "../../../shared/components/StatCard";
 import { formatFechaBO } from "../../../shared/services/apiClient";
-import { getEspacios, getReservas } from "../../reservas/services/reservaService";
+import {
+  getEspacios,
+  getReservas,
+} from "../../reservas/services/reservaService";
 import type { Espacio } from "../../reservas/types/reserva.types";
 import AlertasCalendario from "../components/AlertasCalendario";
 import EncabezadoCalendario from "../components/EncabezadoCalendario";
@@ -14,7 +17,10 @@ type Props = {
 };
 
 function obtenerLunes(fecha: Date) {
-  const copia = new Date(fecha);
+  const y = fecha.getFullYear();
+  const m = fecha.getMonth();
+  const d = fecha.getDate();
+  const copia = new Date(y, m, d);
   const dia = copia.getDay();
   const ajuste = dia === 0 ? -6 : 1 - dia;
   copia.setDate(copia.getDate() + ajuste);
@@ -22,9 +28,10 @@ function obtenerLunes(fecha: Date) {
 }
 
 function sumarDias(fecha: Date, dias: number) {
-  const copia = new Date(fecha);
-  copia.setDate(copia.getDate() + dias);
-  return copia;
+  const y = fecha.getFullYear();
+  const m = fecha.getMonth();
+  const d = fecha.getDate();
+  return new Date(y, m, d + dias);
 }
 
 function CalendarioAdminPage({ onVerReservas }: Props) {
@@ -32,7 +39,9 @@ function CalendarioAdminPage({ onVerReservas }: Props) {
   const [mensaje, setMensaje] = useState("");
   const [totalReservas, setTotalReservas] = useState(0);
   const [espacios, setEspacios] = useState<Espacio[]>([]);
-  const [espacioSeleccionado, setEspacioSeleccionado] = useState<number | undefined>(undefined);
+  const [espacioSeleccionado, setEspacioSeleccionado] = useState<
+    number | undefined
+  >(undefined);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {

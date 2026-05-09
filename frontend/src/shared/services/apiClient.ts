@@ -18,7 +18,9 @@ export async function apiRequest<T>(
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...rest,
     headers: {
-      ...(requiresAdmin ? ADMIN_HEADERS : { "Content-Type": "application/json" }),
+      ...(requiresAdmin
+        ? ADMIN_HEADERS
+        : { "Content-Type": "application/json" }),
       ...headers,
     },
   });
@@ -27,7 +29,8 @@ export async function apiRequest<T>(
   const data = text ? JSON.parse(text) : null;
 
   if (!response.ok) {
-    const message = data?.message || data?.error || "Error al consultar el servidor";
+    const message =
+      data?.message || data?.error || "Error al consultar el servidor";
     throw new Error(Array.isArray(message) ? message.join(". ") : message);
   }
 
@@ -40,9 +43,8 @@ export function toDateInputValue(date: Date) {
 
 export function formatFechaBO(date: Date | string) {
   const parsed = typeof date === "string" ? new Date(date) : date;
-  return parsed.toLocaleDateString("es-BO", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  const dia = String(parsed.getDate()).padStart(2, "0");
+  const mes = String(parsed.getMonth() + 1).padStart(2, "0");
+  const anio = parsed.getFullYear();
+  return `${dia}/${mes}/${anio}`;
 }

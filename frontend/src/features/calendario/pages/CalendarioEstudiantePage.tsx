@@ -10,7 +10,10 @@ import LeyendaCalendario from "../components/LeyendaCalendario";
 import NavegacionSemana from "../components/NavegacionSemana";
 
 function obtenerLunes(fecha: Date) {
-  const copia = new Date(fecha);
+  const y = fecha.getFullYear();
+  const m = fecha.getMonth();
+  const d = fecha.getDate();
+  const copia = new Date(y, m, d);
   const dia = copia.getDay();
   const ajuste = dia === 0 ? -6 : 1 - dia;
   copia.setDate(copia.getDate() + ajuste);
@@ -18,16 +21,19 @@ function obtenerLunes(fecha: Date) {
 }
 
 function sumarDias(fecha: Date, dias: number) {
-  const copia = new Date(fecha);
-  copia.setDate(copia.getDate() + dias);
-  return copia;
+  const y = fecha.getFullYear();
+  const m = fecha.getMonth();
+  const d = fecha.getDate();
+  return new Date(y, m, d + dias);
 }
 
 function CalendarioEstudiantePage() {
   const [semanaBase, setSemanaBase] = useState(obtenerLunes(new Date()));
   const [mensaje, setMensaje] = useState("");
   const [espacios, setEspacios] = useState<Espacio[]>([]);
-  const [espacioSeleccionado, setEspacioSeleccionado] = useState<number | undefined>(undefined);
+  const [espacioSeleccionado, setEspacioSeleccionado] = useState<
+    number | undefined
+  >(undefined);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {

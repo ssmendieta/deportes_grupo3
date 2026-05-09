@@ -20,7 +20,7 @@ export class CreateDeportistaDto {
     example: "estudiante_ucb",
   })
   @IsString()
-  @IsIn(["estudiante_ucb", "externo"])
+  @IsIn(["academia", "competitivo", "estudiante_ucb"])
   tipo!: string;
 
   @ApiProperty({

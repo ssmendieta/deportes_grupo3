@@ -57,12 +57,12 @@ model Disciplina {
   id          Int       @id @default(autoincrement())
   nombre      String    @unique
   descripcion String?
+  categorias  String?   
+  mensualidad Decimal?  @db.Decimal(10, 2) 
   activo      Boolean   @default(true)
   orden       Int       @default(0)
   reservas    Reserva[]
-
   conceptoPagos ConceptoPago[]
-
   inscripcions Inscripcion[]
 }
 
