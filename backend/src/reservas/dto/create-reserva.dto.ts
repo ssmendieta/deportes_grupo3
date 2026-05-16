@@ -1,6 +1,8 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
+  IsEmail,
   IsInt,
+  IsOptional,
   IsPositive,
   IsString,
   IsDateString,
@@ -57,4 +59,13 @@ export class CreateReservaDto {
   @ApiProperty({ example: "1234567 LP", description: "Documento de identidad" })
   @IsString()
   carnet!: string;
+
+  @ApiProperty({
+    example: "juan.perez@ucb.edu.bo",
+    description: "Correo electrónico del solicitante para envío de comprobante",
+    required: false,
+  })
+  @IsOptional()
+  @IsEmail({}, { message: "email_solicitante debe ser un correo válido" })
+  email_solicitante?: string;
 }
