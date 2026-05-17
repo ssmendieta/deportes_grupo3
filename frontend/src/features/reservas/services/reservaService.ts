@@ -250,9 +250,10 @@ export async function descargarComprobanteReserva(
   id: number,
   nombreArchivo: string,
 ): Promise<void> {
+  const token = localStorage.getItem("ucb_auth_token");
   const response = await fetch(getComprobanteUrl(id), {
     headers: {
-      "x-rol": "admin",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
 

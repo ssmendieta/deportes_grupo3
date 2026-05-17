@@ -25,23 +25,38 @@ function horaAMinutos(hora: string) {
 }
 
 function clasePorEspacio(nombre: string) {
-  return nombre.toLowerCase().includes("arquitect")
-    ? "arquitectura"
-    : "coliseo";
+  return nombre.toLowerCase().includes("arquitect") ? "arquitectura" : "coliseo";
 }
 
 function normalizarHora(hora: string) {
   return hora.slice(0, 5);
 }
 
-function obtenerBloqueEnCelda(bloques: BloqueOcupado[], horaCelda: string) {
-  const inicioCelda = horaAMinutos(horaCelda);
-  const finCelda = inicioCelda + 30;
+type BloqueConFilas = {
+  bloque: BloqueOcupado;
+  startRow: number;
+  spanRows: number;
+};
 
-  return bloques.find((bloque) => {
-    const inicioBloque = horaAMinutos(bloque.hora_inicio);
-    const finBloque = horaAMinutos(bloque.hora_fin);
-    return inicioBloque < finCelda && finBloque > inicioCelda;
+function calcularBloquesConFilas(bloques: BloqueOcupado[]): BloqueConFilas[] {
+  return bloques.flatMap((bloque) => {
+    const inicioB = horaAMinutos(bloque.hora_inicio);
+    const finB = horaAMinutos(bloque.hora_fin);
+
+    let startRow = -1;
+    let endRow = -1;
+
+    HORAS_CALENDARIO.forEach((hora, idx) => {
+      const inicioSlot = horaAMinutos(hora);
+      const finSlot = inicioSlot + 30;
+      if (inicioB < finSlot && finB > inicioSlot) {
+        if (startRow === -1) startRow = idx;
+        endRow = idx;
+      }
+    });
+
+    if (startRow === -1) return [];
+    return [{ bloque, startRow, spanRows: endRow - startRow + 1 }];
   });
 }
 
@@ -53,9 +68,7 @@ function GrillaCalendarioSemanal({
   onConflicto,
 }: Props) {
   const [espacios, setEspacios] = useState<Espacio[]>([]);
-  const [bloquesOcupados, setBloquesOcupados] = useState<
-    Record<string, BloqueOcupado[]>
-  >({});
+  const [bloquesOcupados, setBloquesOcupados] = useState<Record<string, BloqueOcupado[]>>({});
   const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
@@ -80,7 +93,6 @@ function GrillaCalendarioSemanal({
           setCargando(false);
         }
       };
-
       void cargarDatos();
     }, 0);
 
@@ -88,10 +100,7 @@ function GrillaCalendarioSemanal({
   }, [semanaBase]);
 
   const espaciosMostrados = useMemo(
-    () =>
-      espacioId
-        ? espacios.filter((espacio) => espacio.id === espacioId)
-        : espacios,
+    () => (espacioId ? espacios.filter((e) => e.id === espacioId) : espacios),
     [espacioId, espacios],
   );
 
@@ -107,64 +116,91 @@ function GrillaCalendarioSemanal({
           <h3>{espacio.nombre}</h3>
 
           <div className="calendar-scroll">
-            <div className="calendar-grid">
-              <div className="calendar-time empty" />
+            <div className="calendar-grid calendar-grid-explicit">
+              {/* Corner */}
+              <div className="calendar-time empty" style={{ gridColumn: 1, gridRow: 1 }} />
 
-              {DIAS_SEMANA.map((dia) => (
-                <div key={dia} className="calendar-day-header">
+              {/* Day headers — row 1 */}
+              {DIAS_SEMANA.map((dia, colIdx) => (
+                <div
+                  key={dia}
+                  className="calendar-day-header"
+                  style={{ gridColumn: colIdx + 2, gridRow: 1 }}
+                >
                   {dia}
                 </div>
               ))}
 
-              {HORAS_CALENDARIO.map((hora) => (
-                <div key={`${espacio.id}-${hora}`} className="calendar-row">
-                  <div className="calendar-time">{hora}</div>
-
-                  {DIAS_SEMANA.map((dia) => {
-                    const bloque = obtenerBloqueEnCelda(
-                      obtenerBloquesDeDia(espacio.id, dia),
-                      hora,
-                    );
-
-                    return (
-                      <button
-                        key={`${espacio.id}-${dia}-${hora}`}
-                        className={`calendar-cell ${bloque ? "busy" : "free"}`}
-                        onClick={() => {
-                          if (bloque) {
-                            onConflicto?.(
-                              `El horario del ${dia} a las ${hora} ya está ocupado.`,
-                            );
-                          } else {
-                            onBloqueLibreClick?.(dia, hora);
-                          }
-                        }}
-                      >
-                        {bloque ? (
-                          <div
-                            className={`booking-block ${clasePorEspacio(espacio.nombre)}`}
-                          >
-                            <strong>{espacio.nombre}</strong>
-                            <span>
-                              {bloque.tipo === "clase"
-                                ? "Clase / entrenamiento"
-                                : bloque.motivo || "Reserva"}
-                            </span>
-                            <small>
-                              {normalizarHora(bloque.hora_inicio)} -{" "}
-                              {normalizarHora(bloque.hora_fin)}
-                            </small>
-                          </div>
-                        ) : (
-                          <span className="free-label">
-                            {modo === "admin" ? "Libre" : "Disponible"}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
+              {/* Time labels — column 1, rows 2…N+1 */}
+              {HORAS_CALENDARIO.map((hora, rowIdx) => (
+                <div
+                  key={hora}
+                  className="calendar-time"
+                  style={{ gridColumn: 1, gridRow: rowIdx + 2 }}
+                >
+                  {hora}
                 </div>
               ))}
+
+              {/* Day columns: one spanning cell per block, free cells elsewhere */}
+              {DIAS_SEMANA.map((dia, colIdx) => {
+                const bloques = obtenerBloquesDeDia(espacio.id, dia);
+                const bloquesConFilas = calcularBloquesConFilas(bloques);
+                const filasOcupadas = new Set(
+                  bloquesConFilas.flatMap(({ startRow, spanRows }) =>
+                    Array.from({ length: spanRows }, (_, i) => startRow + i),
+                  ),
+                );
+
+                return HORAS_CALENDARIO.map((hora, rowIdx) => {
+                  const col = colIdx + 2;
+                  const row = rowIdx + 2;
+
+                  // Spanning block that starts at this row
+                  const bloqueInfo = bloquesConFilas.find((b) => b.startRow === rowIdx);
+                  if (bloqueInfo) {
+                    const { bloque, spanRows } = bloqueInfo;
+                    return (
+                      <button
+                        key={`${espacio.id}-${dia}-${hora}-bloque`}
+                        className="calendar-cell busy"
+                        style={{ gridColumn: col, gridRow: `${row} / span ${spanRows}` }}
+                        onClick={() =>
+                          onConflicto?.(
+                            `El horario del ${dia} a las ${normalizarHora(bloque.hora_inicio)} ya está ocupado.`,
+                          )
+                        }
+                      >
+                        <div className={`booking-block ${clasePorEspacio(espacio.nombre)}`}>
+                          <strong>
+                            {bloque.tipo === "clase" ? "Clase / entrenamiento" : bloque.motivo || "Reserva"}
+                          </strong>
+                          <small>
+                            {normalizarHora(bloque.hora_inicio)} – {normalizarHora(bloque.hora_fin)}
+                          </small>
+                        </div>
+                      </button>
+                    );
+                  }
+
+                  // Row consumed by a spanning block — skip (no cell rendered)
+                  if (filasOcupadas.has(rowIdx)) return null;
+
+                  // Free cell
+                  return (
+                    <button
+                      key={`${espacio.id}-${dia}-${hora}-libre`}
+                      className="calendar-cell free"
+                      style={{ gridColumn: col, gridRow: row }}
+                      onClick={() => onBloqueLibreClick?.(dia, hora)}
+                    >
+                      <span className="free-label">
+                        {modo === "admin" ? "Libre" : "Disponible"}
+                      </span>
+                    </button>
+                  );
+                });
+              })}
             </div>
           </div>
         </article>

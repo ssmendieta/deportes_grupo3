@@ -1,13 +1,16 @@
 export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
-export const ADMIN_HEADERS = {
-  "Content-Type": "application/json",
-  "x-rol": "admin",
-};
-
 type RequestOptions = RequestInit & {
   requiresAdmin?: boolean;
 };
+
+function authHeaders(requiresAdmin: boolean): Record<string, string> {
+  const base: Record<string, string> = { "Content-Type": "application/json" };
+  if (!requiresAdmin) return base;
+  const token = localStorage.getItem("ucb_auth_token");
+  if (token) base["Authorization"] = `Bearer ${token}`;
+  return base;
+}
 
 export async function apiRequest<T>(
   endpoint: string,
@@ -18,9 +21,7 @@ export async function apiRequest<T>(
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...rest,
     headers: {
-      ...(requiresAdmin
-        ? ADMIN_HEADERS
-        : { "Content-Type": "application/json" }),
+      ...authHeaders(requiresAdmin),
       ...headers,
     },
   });

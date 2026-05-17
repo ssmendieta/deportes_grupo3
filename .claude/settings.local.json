@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prisma *)",
+      "Bash(node -e \"require\\('dotenv'\\).config\\(\\); console.log\\('DATABASE_URL:', process.env.DATABASE_URL\\);\")",
+      "Bash(node -e ' *)",
+      "Bash(docker exec grupo3_postgres *)",
+      "PowerShell(docker exec grupo3_postgres *)",
+      "Bash(docker-compose down *)",
+      "Bash(docker-compose up *)",
+      "PowerShell(Get-Process *)"
+    ]
+  }
+}
