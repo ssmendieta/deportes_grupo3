@@ -16,6 +16,7 @@ type Props = {
 const formInicial: ReservaFormData = {
   nombre_solicitante: "",
   carnet: "",
+  email_solicitante: "",
   motivo: "",
   espacio_id: "",
   disciplina_id: "",
@@ -95,6 +96,7 @@ function ReservaForm({ onVolver, onReservaCreada }: Props) {
         nombre_solicitante: formData.nombre_solicitante.trim(),
         carnet: formData.carnet.trim(),
         motivo: formData.motivo.trim(),
+        ...(formData.email_solicitante.trim() && { email_solicitante: formData.email_solicitante.trim() }),
       });
       onReservaCreada?.();
       onVolver();
@@ -123,6 +125,11 @@ function ReservaForm({ onVolver, onReservaCreada }: Props) {
         <label className="field full">
           <span>Carnet *</span>
           <input value={formData.carnet} onChange={(e) => handleChange("carnet", e.target.value)} placeholder="Ej. 12345678" required />
+        </label>
+
+        <label className="field full">
+          <span>Correo electrónico <small>(opcional — para recibir el comprobante)</small></span>
+          <input type="email" value={formData.email_solicitante} onChange={(e) => handleChange("email_solicitante", e.target.value)} placeholder="Ej. juan.perez@ucb.edu.bo" />
         </label>
 
         <label className="field full">

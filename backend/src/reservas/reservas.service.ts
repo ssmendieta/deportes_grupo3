@@ -157,6 +157,7 @@ export class ReservasService {
         estado: "confirmada",
         nombre_solicitante: dto.nombre_solicitante,
         carnet: dto.carnet,
+        email_solicitante: dto.email_solicitante ?? null,
       },
       include: {
         espacio: true,

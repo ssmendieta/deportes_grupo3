@@ -51,6 +51,7 @@ export type Reserva = {
 export type ReservaFormData = {
   nombre_solicitante: string;
   carnet: string;
+  email_solicitante: string;
   motivo: string;
   espacio_id: string;
   disciplina_id: string;
@@ -68,6 +69,7 @@ export type CreateReservaDto = {
   motivo: string;
   nombre_solicitante: string;
   carnet: string;
+  email_solicitante?: string;
 };
 
 export type UpdateReservaDto = {
