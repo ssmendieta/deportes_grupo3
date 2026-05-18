@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import StatCard from "../../../shared/components/StatCard";
 import { formatFechaBO } from "../../../shared/services/apiClient";
 import {
@@ -11,10 +12,6 @@ import EncabezadoCalendario from "../components/EncabezadoCalendario";
 import GrillaCalendarioSemanal from "../components/GrillaCalendarioSemanal";
 import LeyendaCalendario from "../components/LeyendaCalendario";
 import NavegacionSemana from "../components/NavegacionSemana";
-
-type Props = {
-  onVerReservas: () => void;
-};
 
 function obtenerLunes(fecha: Date) {
   const y = fecha.getFullYear();
@@ -34,7 +31,8 @@ function sumarDias(fecha: Date, dias: number) {
   return new Date(y, m, d + dias);
 }
 
-function CalendarioAdminPage({ onVerReservas }: Props) {
+function CalendarioAdminPage() {
+  const navigate = useNavigate();
   const [semanaBase, setSemanaBase] = useState(obtenerLunes(new Date()));
   const [mensaje, setMensaje] = useState("");
   const [totalReservas, setTotalReservas] = useState(0);
@@ -67,7 +65,7 @@ function CalendarioAdminPage({ onVerReservas }: Props) {
         titulo="Calendario Semanal - Administración"
         subtitulo="Control semanal de reservas, clases y entrenamientos por espacio deportivo."
         textoBoton="Ver reservas"
-        onClickBoton={onVerReservas}
+        onClickBoton={() => navigate("/reservas")}
       />
 
       <section className="stats-grid compact">

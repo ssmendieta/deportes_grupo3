@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import EmptyState from "../../../shared/components/EmptyState";
 import StatusBadge from "../../../shared/components/StatusBadge";
 import { formatFechaBO } from "../../../shared/services/apiClient";
@@ -18,13 +19,10 @@ import type {
   UpdateReservaDto,
 } from "../types/reserva.types";
 
-type Props = {
-  onCrearReserva: () => void;
-};
-
 type TabReservas = "activas" | "canceladas";
 
-function AdminReserva({ onCrearReserva }: Props) {
+function AdminReserva() {
+  const navigate = useNavigate();
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [seleccionadaId, setSeleccionadaId] = useState<number | null>(null);
   const [busqueda, setBusqueda] = useState("");
@@ -237,7 +235,7 @@ function AdminReserva({ onCrearReserva }: Props) {
             <span className="section-label">Filtrar reservas</span>
             <h2>Reservas</h2>
           </div>
-          <button className="btn btn-primary small" onClick={onCrearReserva}>
+          <button className="btn btn-primary small" onClick={() => navigate("/reservas/nueva")}>
             + Crear
           </button>
         </div>

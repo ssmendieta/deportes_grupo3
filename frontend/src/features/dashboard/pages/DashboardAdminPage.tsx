@@ -1,13 +1,9 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import PageHeader from "../../../shared/components/PageHeader";
 import StatCard from "../../../shared/components/StatCard";
-import type { VistaPrincipal } from "../../../shared/types/navigation.types";
 import { apiRequest } from "../../../shared/services/apiClient";
 import { listarDeportistas } from "../../deportistas/services/deportistaService";
-
-type Props = {
-  onNavigate: (vista: VistaPrincipal) => void;
-};
 
 type Stats = {
   totalDeportistas: number;
@@ -16,7 +12,8 @@ type Stats = {
   disciplinasActivas: number;
 };
 
-function DashboardAdminPage({ onNavigate }: Props) {
+function DashboardAdminPage() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<Stats>({
     totalDeportistas: 0,
     pagosPendientes: 0,
@@ -58,30 +55,26 @@ function DashboardAdminPage({ onNavigate }: Props) {
     return () => window.clearTimeout(timeoutId);
   }, []);
 
-  const quickAccess: {
-    label: string;
-    helper: string;
-    vista: VistaPrincipal;
-  }[] = [
+  const quickAccess: { label: string; helper: string; path: string }[] = [
     {
       label: "Registrar deportista",
       helper: "Alta de nuevos deportistas",
-      vista: "deportistas",
+      path: "/deportistas",
     },
     {
       label: "Verificar pagos",
       helper: "Estado de pagos y cuentas",
-      vista: "pagos",
+      path: "/pagos",
     },
     {
       label: "Gestionar disciplinas",
       helper: "CRUD y estados de disciplinas",
-      vista: "disciplinas",
+      path: "/disciplinas",
     },
     {
       label: "Calendario",
       helper: "Vista admin y estudiante",
-      vista: "calendario",
+      path: "/calendario",
     },
   ];
 
@@ -130,7 +123,7 @@ function DashboardAdminPage({ onNavigate }: Props) {
             <button
               key={item.label}
               className="quick-card"
-              onClick={() => onNavigate(item.vista)}
+              onClick={() => navigate(item.path)}
             >
               <strong>{item.label}</strong>
               <span>{item.helper}</span>

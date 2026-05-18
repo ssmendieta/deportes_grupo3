@@ -1,18 +1,16 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { setToken } from "../authStore";
 
 const AUTH_BASE_URL = "https://deportes.62344037.xyz";
 
-interface LoginPageProps {
-  onLogin: () => void;
-}
-
-export default function LoginPage({ onLogin }: LoginPageProps) {
+export default function LoginPage() {
+  const navigate = useNavigate();
   const [tokenInput, setTokenInput] = useState("");
   const [error, setError] = useState("");
 
   function handleLoginRedirect() {
-    const callbackUrl = `${window.location.origin}${window.location.pathname}`;
+    const callbackUrl = `${window.location.origin}/`;
     window.location.href = `${AUTH_BASE_URL}/auth/google?redirect_uri=${encodeURIComponent(callbackUrl)}`;
   }
 
@@ -27,7 +25,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       const parts = trimmed.split(".");
       if (parts.length !== 3) throw new Error("Formato inválido");
       setToken(trimmed);
-      onLogin();
+      navigate("/dashboard");
     } catch {
       setError("El token no es válido. Asegúrate de copiarlo completo.");
     }

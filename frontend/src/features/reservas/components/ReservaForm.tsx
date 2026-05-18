@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import EmptyState from "../../../shared/components/EmptyState";
 import {
   crearReserva,
@@ -9,7 +10,6 @@ import {
 import type { DisciplinaBasica, Espacio, ReservaFormData } from "../types/reserva.types";
 
 type Props = {
-  onVolver: () => void;
   onReservaCreada?: () => void;
 };
 
@@ -32,7 +32,8 @@ function horaAMinutos(hora: string) {
   return h * 60 + m;
 }
 
-function ReservaForm({ onVolver, onReservaCreada }: Props) {
+function ReservaForm({ onReservaCreada }: Props) {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<ReservaFormData>(formInicial);
   const [espacios, setEspacios] = useState<Espacio[]>([]);
   const [disciplinas, setDisciplinas] = useState<DisciplinaBasica[]>([]);
@@ -99,7 +100,7 @@ function ReservaForm({ onVolver, onReservaCreada }: Props) {
         ...(formData.email_solicitante.trim() && { email_solicitante: formData.email_solicitante.trim() }),
       });
       onReservaCreada?.();
-      onVolver();
+      navigate("/reservas");
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo crear la reserva");
     } finally {
@@ -179,7 +180,7 @@ function ReservaForm({ onVolver, onReservaCreada }: Props) {
         {error && <div className="form-error full">{error}</div>}
 
         <div className="form-actions full">
-          <button type="button" className="btn btn-ghost" onClick={onVolver}>Volver</button>
+          <button type="button" className="btn btn-ghost" onClick={() => navigate("/reservas")}>Volver</button>
           <button type="submit" className="btn btn-primary" disabled={!formularioValido || guardando}>{guardando ? "Guardando..." : "Crear reserva"}</button>
         </div>
       </form>

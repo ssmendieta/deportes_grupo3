@@ -1,11 +1,7 @@
 import ReservaForm from "../components/ReservaForm";
 
-type Props = {
-  onVolver: () => void;
-};
-
-function NuevaReservaPage({ onVolver }: Props) {
-  return <ReservaForm onVolver={onVolver} />;
+function NuevaReservaPage() {
+  return <ReservaForm />;
 }
 
 export default NuevaReservaPage;

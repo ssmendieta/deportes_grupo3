@@ -1,34 +1,29 @@
-import type { VistaPrincipal } from "../types/navigation.types";
+import { NavLink } from "react-router-dom";
 
 type NavItem = {
-  id: VistaPrincipal;
+  path: string;
   label: string;
 };
 
-type Props = {
-  vistaActual: VistaPrincipal;
-  onNavigate: (vista: VistaPrincipal) => void;
-};
-
 const navItems: NavItem[] = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "calendario", label: "Calendario" },
-  { id: "deportistas", label: "Deportistas" },
-  { id: "pagos", label: "Pagos" },
-  { id: "disciplinas", label: "Disciplinas" },
+  { path: "/dashboard", label: "Dashboard" },
+  { path: "/calendario", label: "Calendario" },
+  { path: "/deportistas", label: "Deportistas" },
+  { path: "/pagos", label: "Pagos" },
+  { path: "/disciplinas", label: "Disciplinas" },
 ];
 
-function AppNavigation({ vistaActual, onNavigate }: Props) {
+function AppNavigation() {
   return (
     <nav className="app-nav" aria-label="Navegación principal">
       {navItems.map((item) => (
-        <button
-          key={item.id}
-          className={vistaActual === item.id ? "nav-pill active" : "nav-pill"}
-          onClick={() => onNavigate(item.id)}
+        <NavLink
+          key={item.path}
+          to={item.path}
+          className={({ isActive }: { isActive: boolean }) => isActive ? "nav-pill active" : "nav-pill"}
         >
           {item.label}
-        </button>
+        </NavLink>
       ))}
     </nav>
   );
