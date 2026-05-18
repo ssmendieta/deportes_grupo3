@@ -87,7 +87,7 @@ function fechaParaAPI(semanaBase: Date, indiceDia: number): string {
 
 export { fechaParaAPI };
 
-function buildReservasQuery(params?: { espacioId?: number; fecha?: string }) {
+/*function buildReservasQuery(params?: { espacioId?: number; fecha?: string }) {
   const query = new URLSearchParams();
 
   if (params?.espacioId) query.append("espacioId", String(params.espacioId));
@@ -95,7 +95,7 @@ function buildReservasQuery(params?: { espacioId?: number; fecha?: string }) {
 
   const queryString = query.toString();
   return queryString ? `/api/reservas?${queryString}` : "/api/reservas";
-}
+}*/
 
 export async function getEspacios(): Promise<Espacio[]> {
   try {
