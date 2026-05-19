@@ -19,6 +19,9 @@ import type {
   UpdateReservaDto,
 } from "../types/reserva.types";
 
+// IMPORTANTE: Importación del botón compartido de reportes
+import { ExportarReporteButton } from "../../../shared/components/ExportarReporteButton";
+
 type TabReservas = "activas" | "canceladas";
 
 function AdminReserva() {
@@ -109,6 +112,13 @@ function AdminReserva() {
     reservas.find((reserva) => reserva.id === seleccionadaId) ?? null;
 
   const estaCancelada = seleccionada?.estado === "cancelada";
+
+  // Objeto de filtros expuesto reactivamente para la exportación de reportes
+  const filtrosReporte = useMemo(() => ({
+    fecha: filtroFecha || "todas",
+    espacioId: filtroEspacio || "todos",
+    estado: tab
+  }), [filtroFecha, filtroEspacio, tab]);
 
   const limpiarEdicion = () => {
     setModoEdicion(false);
@@ -230,14 +240,21 @@ function AdminReserva() {
   return (
     <section className="two-column-layout">
       <aside className="panel-card side-panel">
-        <div className="side-title-row">
+        <div className="side-title-row" style={{ flexWrap: "wrap", gap: "10px" }}>
           <div>
             <span className="section-label">Filtrar reservas</span>
             <h2>Reservas</h2>
           </div>
-          <button className="btn btn-primary small" onClick={() => navigate("/reservas/nueva")}>
-            + Crear
-          </button>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <ExportarReporteButton
+              endpoint="/reservas/reporte"
+              filtros={filtrosReporte}
+              nombreArchivoBase="Reporte_Reservas_Deportes"
+            />
+            <button className="btn btn-primary small" onClick={() => navigate("/reservas/nueva")}>
+              + Crear
+            </button>
+          </div>
         </div>
 
         <div className="filters-grid reserva-filters">
