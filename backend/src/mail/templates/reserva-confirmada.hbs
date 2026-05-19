@@ -1,0 +1,169 @@
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Confirmación de Reserva</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f4f4f4;
+        margin: 0;
+        padding: 0;
+        color: #333;
+      }
+      .wrapper {
+        max-width: 620px;
+        margin: 30px auto;
+        background: #fff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+      }
+      .header {
+        background: #003366;
+        padding: 24px 32px;
+        text-align: center;
+      }
+      .header img {
+        height: 60px;
+      }
+      .header-text {
+        color: #fff;
+        margin-top: 10px;
+      }
+      .header-text h1 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: 0.5px;
+      }
+      .header-text p {
+        margin: 4px 0 0;
+        font-size: 12px;
+        opacity: 0.85;
+      }
+      .body {
+        padding: 32px;
+      }
+      .body h2 {
+        color: #003366;
+        font-size: 16px;
+        margin: 0 0 8px;
+      }
+      .body p {
+        margin: 0 0 20px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 24px;
+      }
+      th {
+        background: #003366;
+        color: #fff;
+        text-align: left;
+        padding: 10px 14px;
+        font-size: 13px;
+      }
+      td {
+        padding: 9px 14px;
+        font-size: 13px;
+        border-bottom: 1px solid #e8e8e8;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      tr:nth-child(even) td {
+        background: #f9f9f9;
+      }
+      .badge {
+        display: inline-block;
+        background: #28a745;
+        color: #fff;
+        border-radius: 12px;
+        padding: 2px 12px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+      .note {
+        background: #eef4ff;
+        border-left: 4px solid #003366;
+        padding: 12px 16px;
+        font-size: 13px;
+        border-radius: 0 4px 4px 0;
+        margin-bottom: 0;
+      }
+      .footer {
+        background: #f0f0f0;
+        padding: 18px 32px;
+        text-align: center;
+        font-size: 11px;
+        color: #888;
+        border-top: 1px solid #ddd;
+      }
+      .footer strong {
+        color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+
+      <div class="header">
+        <img src="cid:ucb-logo" alt="Logo UCB" />
+        <div class="header-text">
+          <h1>UNIVERSIDAD CATÓLICA BOLIVIANA "SAN PABLO"</h1>
+          <p>Sistema de Gestión Deportiva — Comprobante de Reserva</p>
+        </div>
+      </div>
+
+      <div class="body">
+        <h2>Reserva confirmada</h2>
+        <p>Estimado/a
+          <strong>{{nombre_solicitante}}</strong>,<br />
+          su reserva ha sido registrada y confirmada exitosamente. A
+          continuación encontrará el detalle:</p>
+
+        <table>
+          <thead>
+            <tr><th colspan="2">N° Reserva: {{id}}</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Solicitante</strong></td><td
+              >{{nombre_solicitante}}</td></tr>
+            <tr><td><strong>C.I.</strong></td><td>{{carnet}}</td></tr>
+            <tr><td><strong>Espacio</strong></td><td
+              >{{espacio_nombre}}</td></tr>
+            <tr><td><strong>Ubicación</strong></td><td
+              >{{espacio_ubicacion}}</td></tr>
+            <tr><td><strong>Disciplina</strong></td><td
+              >{{disciplina_nombre}}</td></tr>
+            <tr><td><strong>Fecha</strong></td><td>{{fecha}}</td></tr>
+            <tr><td><strong>Horario</strong></td><td>{{hora_inicio}}
+                –
+                {{hora_fin}}</td></tr>
+            <tr><td><strong>Motivo</strong></td><td>{{motivo}}</td></tr>
+            <tr><td><strong>Estado</strong></td><td><span
+                  class="badge"
+                >{{estado}}</span></td></tr>
+          </tbody>
+        </table>
+
+        <p class="note">
+          Se adjunta el comprobante en formato PDF. Favor presentarse
+          <strong>10 minutos antes</strong>
+          del horario reservado con su carnet de identidad.
+        </p>
+      </div>
+
+      <div class="footer">
+        <strong>Universidad Católica Boliviana "San Pablo"</strong><br />
+        Unidad de Gestión Deportiva · Av. 14 de Septiembre N° 4807, Obrajes · La
+        Paz, Bolivia<br />
+        Este es un mensaje automático, por favor no responda a este correo.
+      </div>
+
+    </div>
+  </body>
+</html>

@@ -1,16 +1,23 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ConflictException,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { MailService } from "../mail/mail.service";
 import { CreateReservaDto } from "./dto/create-reserva.dto";
 import { UpdateReservaDto } from "./dto/update-reserva.dto";
 const PDFDocument = require("pdfkit");
 
 @Injectable()
 export class ReservasService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(ReservasService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private mailService: MailService,
+  ) {}
 
   async findAll(espacioId?: number, fecha?: string) {
     const where: any = {};
@@ -165,7 +172,19 @@ export class ReservasService {
       },
     });
 
-    console.log("Reserva creada:", nuevaReserva.id);
+    this.logger.log(`Reserva creada: #${nuevaReserva.id}`);
+
+    try {
+      const pdfBuffer = await this.generarComprobante(nuevaReserva.id);
+      await this.mailService.sendReservaConfirmada(nuevaReserva, pdfBuffer);
+    } catch (err) {
+      const mensaje = err instanceof Error ? err.message : "Error desconocido";
+
+      this.logger.warn(
+        `No se pudo enviar el correo de confirmación para reserva #${nuevaReserva.id}: ${mensaje}`,
+      );
+    }
+
     return nuevaReserva;
   }
 

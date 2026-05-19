@@ -1,4 +1,11 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+  useNavigate,
+} from "react-router-dom";
 import "./App.css";
 import AppNavigation from "./shared/components/AppNavigation";
 import DashboardAdminPage from "./features/dashboard/pages/DashboardAdminPage";
@@ -9,7 +16,12 @@ import GestionDisciplinasPage from "./features/disciplinas/pages/GestionDiscipli
 import ReservasAdminPage from "./features/reservas/pages/ReservasAdminPage";
 import NuevaReservaPage from "./features/reservas/pages/NuevaReservaPage";
 import LoginPage from "./features/auth/pages/LoginPage";
-import { isAuthenticated, setToken, clearToken, getUserFromToken } from "./features/auth/authStore";
+import {
+  isAuthenticated,
+  setToken,
+  clearToken,
+  getUserFromToken,
+} from "./features/auth/authStore";
 
 function captureTokenFromUrl(): void {
   const params = new URLSearchParams(window.location.search);
@@ -23,7 +35,6 @@ function captureTokenFromUrl(): void {
   window.history.replaceState({}, "", newUrl);
 }
 
-// Capture OAuth token from URL before first render
 captureTokenFromUrl();
 
 function ProtectedLayout() {
@@ -44,8 +55,14 @@ function ProtectedLayout() {
     <div className="app-shell">
       <div className="app-topbar">
         <AppNavigation />
-        <button className="btn btn-ghost btn-logout small" onClick={handleLogout} title="Cerrar sesión">
-          {user?.email ? <span className="user-email">{user.email}</span> : null}
+        <button
+          className="btn btn-ghost btn-logout small"
+          onClick={handleLogout}
+          title="Cerrar sesión"
+        >
+          {user?.email ? (
+            <span className="user-email">{user.email}</span>
+          ) : null}
           Salir
         </button>
       </div>

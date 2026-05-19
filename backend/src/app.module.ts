@@ -12,10 +12,12 @@ import { ReservasModule } from "./reservas/reserva.module";
 import { PagosModule } from "./pagos/pagos.module";
 import { AuthMiddleware } from "./middleware/auth.middleware";
 import { DeportistasModule } from './deportistas/deportistas.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
     PrismaModule,
+    MailModule,
     EspaciosModule,
     HorariosModule,
     DisciplinasModule,
