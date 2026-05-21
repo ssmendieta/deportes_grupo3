@@ -15,6 +15,7 @@ import { AuthMiddleware } from "./middleware/auth.middleware";
 import { AuthModule } from "./auth/auth.module";
 import { DeportistasModule } from './deportistas/deportistas.module';
 import { MailModule } from './mail/mail.module';
+import { ReportesModule } from './reportes/reportes.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { MailModule } from './mail/mail.module';
     ReservasModule,
     PagosModule,
     DeportistasModule,
+    ReportesModule,
   ],
 })
 export class AppModule implements NestModule {
@@ -39,6 +41,10 @@ export class AppModule implements NestModule {
       { path: "api/pagos/*path", method: RequestMethod.ALL },
       { path: "api/deportistas", method: RequestMethod.ALL },
       { path: "api/deportistas/*path", method: RequestMethod.ALL },
+      { path: "api/deportistas/reporte", method: RequestMethod.GET },
+      { path: "api/disciplinas/reporte", method: RequestMethod.GET },
+      { path: "api/reservas/reporte", method: RequestMethod.GET },
+      { path: "api/pagos/reporte", method: RequestMethod.GET },
       { path: "api/disciplinas", method: RequestMethod.POST },
       { path: "api/disciplinas/*path", method: RequestMethod.PATCH },
     );

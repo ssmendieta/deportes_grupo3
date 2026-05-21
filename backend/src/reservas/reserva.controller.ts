@@ -14,13 +14,17 @@ import { Response } from "express";
 import { ReservasService } from "./reservas.service";
 import { CreateReservaDto } from "./dto/create-reserva.dto";
 import { UpdateReservaDto } from "./dto/update-reserva.dto";
-import { ApiOperation, ApiSecurity, ApiTags } from "@nestjs/swagger";
+import { ApiOperation, ApiSecurity, ApiTags, ApiQuery } from "@nestjs/swagger";
+import { ReportesService } from "../reportes/reportes.service";
 
 @ApiTags("reservas")
 @ApiSecurity("permisos-rol")
 @Controller("api/reservas")
 export class ReservasController {
-  constructor(private readonly reservasService: ReservasService) {}
+  constructor(
+    private readonly reservasService: ReservasService,
+    private readonly reportesService: ReportesService // <-- Tu servicio inyectado
+  ) {}
 
   @Get()
   @ApiOperation({
@@ -41,6 +45,79 @@ export class ReservasController {
       limit ? parseInt(limit) : 50,
     );
   }
+
+  // 👇 AQUÍ ESTÁ TU NUEVO ENDPOINT (Punto 9 - Reservas) 👇
+  @Get("reporte")
+  @ApiOperation({
+    summary: "Exportar reporte de reservas",
+    description: "Genera un archivo Excel o PDF con el historial de reservas filtrado.",
+  })
+  @ApiQuery({ name: "formato", required: true, type: String, example: "excel" })
+  @ApiQuery({ name: "espacio_id", required: false, type: String, description: "ID del espacio" })
+  @ApiQuery({ name: "desde", required: false, type: String, description: "Fecha inicio (YYYY-MM-DD)" })
+  @ApiQuery({ name: "hasta", required: false, type: String, description: "Fecha fin (YYYY-MM-DD)" })
+  async descargarReporte(
+    @Query("formato") formato: "pdf" | "excel",
+    @Res() res: Response,
+    @Query("espacio_id") espacio_id?: string,
+    @Query("desde") desde?: string,
+    @Query("hasta") hasta?: string
+  ) {
+    // 1. Obtener datos (filtramos por espacio si existe)
+    let reservas = await this.reservasService.findAll(
+      espacio_id ? parseInt(espacio_id) : undefined
+    );
+
+    // 2. Aplicar filtros de rango de fechas en memoria
+    if (desde) {
+      const fechaDesde = new Date(`${desde}T00:00:00.000Z`);
+      reservas = reservas.filter(r => new Date(r.fecha) >= fechaDesde);
+    }
+    if (hasta) {
+      const fechaHasta = new Date(`${hasta}T23:59:59.999Z`);
+      reservas = reservas.filter(r => new Date(r.fecha) <= fechaHasta);
+    }
+
+    // 3. Formatear los datos para que se vean bien en la tabla
+    const datosFormateados = reservas.map(r => ({
+      id: r.id,
+      solicitante: r.nombre_solicitante || 'N/A',
+      espacio: r.espacio?.nombre || 'Desconocido',
+      fecha: new Date(r.fecha).toLocaleDateString("es-BO"),
+      horario: `${r.hora_inicio} - ${r.hora_fin}`,
+      estado: r.estado.toUpperCase()
+    }));
+
+    // 4. Definir columnas
+    const columnas = [
+      { header: "ID", key: "id" },
+      { header: "Solicitante", key: "solicitante" },
+      { header: "Espacio", key: "espacio" },
+      { header: "Fecha", key: "fecha" },
+      { header: "Horario", key: "horario" },
+      { header: "Estado", key: "estado" }
+    ];
+
+    const titulo = "Reporte de Reservas de Espacios UCB";
+    let buffer: Buffer;
+
+    if (formato === "excel") {
+      buffer = await this.reportesService.generarExcel(titulo, columnas, datosFormateados);
+      res.set({
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": "attachment; filename=reporte_reservas.xlsx",
+      });
+    } else {
+      buffer = await this.reportesService.generarPdfTabla(titulo, columnas, datosFormateados);
+      res.set({
+        "Content-Type": "application/pdf",
+        "Content-Disposition": "attachment; filename=reporte_reservas.pdf",
+      });
+    }
+
+    res.send(buffer);
+  }
+  // 👆 FIN DEL NUEVO ENDPOINT 👆
 
   @Get(":id")
   @ApiOperation({

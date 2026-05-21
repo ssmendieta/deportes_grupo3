@@ -10,7 +10,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { MailService } from "../mail/mail.service";
 import { CreateReservaDto } from "./dto/create-reserva.dto";
 import { UpdateReservaDto } from "./dto/update-reserva.dto";
-const PDFDocument = require("pdfkit");
+import { ComprobanteReservaBuilder } from './pdf/comprobante-reserva.builder';
 
 @Injectable()
 export class ReservasService {
@@ -278,65 +278,28 @@ export class ReservasService {
       });
     });
   }
+  
   async generarComprobante(reservaId: number): Promise<Buffer> {
-    const reserva = await this.findOne(reservaId);
+  const reserva = await this.findOne(reservaId);
 
-    return new Promise((resolve) => {
-      const doc = new PDFDocument({ size: "A4", margin: 50 });
-      const chunks: Buffer[] = [];
+  const builder = new ComprobanteReservaBuilder();
 
-      doc.on("data", (chunk: Buffer<ArrayBufferLike>) => chunks.push(chunk));
-      doc.on("end", () => resolve(Buffer.concat(chunks)));
-      doc
-        .fillColor("#003366")
-        .fontSize(20)
-        .text("UNIVERSIDAD CATÓLICA BOLIVIANA", { align: "center" });
-      doc
-        .fontSize(12)
-        .text("SISTEMA DE GESTIÓN DEPORTIVA", { align: "center" });
-      doc.moveDown();
-      doc.rect(50, doc.y, 500, 2).fill("#003366");
-      doc.moveDown(2);
+  // Ejecutamos los pasos del PDF
+  builder.generarCabecera();           // Punto 2 (Logo)
+  builder.generarNumeracion(reserva.id); // Punto 3 (RES-YYYY-NNNNNN)
+  builder.generarContenido(reserva);    // Datos de la reserva
+  builder.generarPiePagina();          // Punto 4 (Pie de página)
 
-      doc
-        .fillColor("black")
-        .font("Helvetica-Bold")
-        .fontSize(14)
-        .text("COMPROBANTE DE RESERVA", { align: "center" });
-      doc.moveDown();
+  const doc = builder.getStream();
 
-      doc.font("Helvetica").fontSize(11);
-      doc.text(`Nro. Reserva: ${reserva.id}`);
-      doc.text(`Fecha de Emisión: ${new Date().toLocaleDateString("es-BO")}`);
-      doc.moveDown();
-
-      doc.font("Helvetica-Bold").text("DATOS DEL SOLICITANTE:");
-      doc.font("Helvetica").text(`Nombre: ${reserva.nombre_solicitante}`);
-      doc.text(`C.I.: ${reserva.carnet}`);
-      doc.moveDown();
-
-      doc.font("Helvetica-Bold").text("DETALLES DEL ESPACIO:");
-      doc.font("Helvetica").text(`Espacio: ${reserva.espacio.nombre}`);
-      doc.text(`Ubicación: ${reserva.espacio.ubicacion}`);
-      doc.text(`Disciplina: ${reserva.disciplina.nombre}`);
-      doc.text(`Fecha Reserva: ${reserva.fecha.toLocaleDateString("es-BO")}`);
-      doc.text(`Horario: ${reserva.hora_inicio} - ${reserva.hora_fin}`);
-      doc.moveDown();
-
-      doc.font("Helvetica-Bold").text("MOTIVO:");
-      doc.font("Helvetica").text(`${reserva.motivo}`);
-
-      doc.moveDown(4);
-      doc
-        .fontSize(9)
-        .text(
-          "Este documento sirve como respaldo oficial. Favor presentarse 10 minutos antes.",
-          { align: "center", italic: true },
-        );
-
-      doc.end();
-    });
-  }
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    doc.on("data", (chunk) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", (err) => reject(err));
+    doc.end(); // Finalizamos el stream
+  });
+}
 }
 
 function horaAMinutos(hora: string): number {

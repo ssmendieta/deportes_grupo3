@@ -8,7 +8,9 @@ import {
   Query,
   ParseIntPipe,
   HttpStatus,
+  Res,
 } from "@nestjs/common";
+import { Response } from "express";
 import {
   ApiTags,
   ApiOperation,
@@ -21,12 +23,16 @@ import {
 import { DisciplinasService } from "./disciplinas.service";
 import { CreateDisciplinaDto } from "./dto/create-disciplina.dto";
 import { UpdateDisciplinaDto } from "./dto/update-disciplina.dto";
+import { ReportesService } from "../reportes/reportes.service";
 
 @ApiTags("Disciplinas")
 @ApiBearerAuth()
 @Controller("api/disciplinas")
 export class DisciplinasController {
-  constructor(private readonly disciplinasService: DisciplinasService) {}
+  constructor(
+    private readonly disciplinasService: DisciplinasService,
+    private readonly reportesService: ReportesService // <-- Tu servicio inyectado
+  ) {}
 
   @Get()
   @ApiOperation({
@@ -52,6 +58,55 @@ export class DisciplinasController {
   findAll(@Query("activo") activo?: string) {
     return this.disciplinasService.findAll(activo);
   }
+
+  // 👇 AQUÍ ESTÁ TU NUEVO ENDPOINT (Punto 9 - Disciplinas) 👇
+  @Get("reporte")
+  @ApiOperation({
+    summary: "Exportar reporte de disciplinas",
+    description: "Genera un archivo Excel o PDF con la lista de disciplinas.",
+  })
+  @ApiQuery({
+    name: "formato",
+    required: true,
+    type: String,
+    description: "Formato del reporte: 'pdf' o 'excel'",
+    example: "excel",
+  })
+  async descargarReporte(
+    @Query("formato") formato: "pdf" | "excel",
+    @Res() res: Response
+  ) {
+    // 1. Obtener los datos usando el método que ya existía
+    const disciplinas = await this.disciplinasService.findAll();
+
+    // 2. Definir cómo se verán las columnas en el Excel/PDF
+    const columnas = [
+      { header: "ID", key: "id" },
+      { header: "Nombre", key: "nombre" },
+      { header: "Descripción", key: "descripcion" },
+    ];
+
+    const titulo = "Reporte de Disciplinas UCB";
+    let buffer: Buffer;
+
+    // 3. Generar el archivo usando tu motor de reportes
+    if (formato === "excel") {
+      buffer = await this.reportesService.generarExcel(titulo, columnas, disciplinas);
+      res.set({
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": "attachment; filename=reporte_disciplinas.xlsx",
+      });
+    } else {
+      buffer = await this.reportesService.generarPdfTabla(titulo, columnas, disciplinas);
+      res.set({
+        "Content-Type": "application/pdf",
+        "Content-Disposition": "attachment; filename=reporte_disciplinas.pdf",
+      });
+    }
+
+    res.send(buffer);
+  }
+  // 👆 FIN DE TU NUEVO ENDPOINT 👆
 
   @Get(":id")
   @ApiOperation({
