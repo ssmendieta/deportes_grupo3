@@ -8,7 +8,9 @@ import {
   Query,
   ParseIntPipe,
   HttpStatus,
+  Res,
 } from "@nestjs/common";
+import { Response } from "express";
 import {
   ApiTags,
   ApiOperation,
@@ -20,12 +22,16 @@ import {
 } from "@nestjs/swagger";
 import { DeportistasService } from "./deportistas.service";
 import { CreateDeportistaDto } from "./dto/create-deportista.dto";
+import { ReportesService } from "../reportes/reportes.service";
 
 @ApiTags("Deportistas")
 @ApiBearerAuth()
 @Controller("api/deportistas")
 export class DeportistasController {
-  constructor(private readonly deportistasService: DeportistasService) {}
+  constructor(
+    private readonly deportistasService: DeportistasService,
+    private readonly reportesService: ReportesService // <-- Servicio inyectado
+  ) {}
 
   @Get()
   @ApiOperation({
@@ -117,6 +123,64 @@ export class DeportistasController {
   buscarPorCi(@Query("ci") ci: string) {
     return this.deportistasService.buscarPorCi(ci);
   }
+
+  // 👇 AQUÍ ESTÁ TU NUEVO ENDPOINT (Punto 9 - Deportistas) 👇
+  @Get("reporte")
+  @ApiOperation({
+    summary: "Exportar reporte de deportistas",
+    description: "Genera un archivo Excel o PDF con la lista de deportistas.",
+  })
+  @ApiQuery({
+    name: "formato",
+    required: true,
+    type: String,
+    description: "Formato del reporte: 'pdf' o 'excel'",
+    example: "excel",
+  })
+  @ApiQuery({ name: "activo", required: false, type: String, description: "Filtrar por estado" })
+  @ApiQuery({ name: "disciplina_id", required: false, type: String, description: "Filtrar por disciplina" })
+  async descargarReporte(
+    @Query("formato") formato: "pdf" | "excel",
+    @Res() res: Response,
+    @Query("activo") activo?: string,
+    @Query("disciplina_id") disciplina_id?: string
+  ) {
+    // 1. Obtenemos datos (Límite grande para ignorar la paginación en el reporte)
+    const result: any = await this.deportistasService.findAll(1, 10000, undefined, disciplina_id, activo);
+    
+    // Extraer el array dependiendo de si el servicio devuelve { data: [...] } o [...]
+    const deportistas = Array.isArray(result) ? result : (result?.data || []);
+
+    // 2. Definir columnas
+    const columnas = [
+      { header: "Carnet", key: "ci" },
+      { header: "Nombres", key: "nombres" },
+      { header: "Apellidos", key: "apellidos" },
+      { header: "Celular", key: "celular" },
+      { header: "Activo", key: "activo" }
+    ];
+
+    const titulo = "Reporte de Deportistas UCB";
+    let buffer: Buffer;
+
+    // 3. Generar archivo
+    if (formato === "excel") {
+      buffer = await this.reportesService.generarExcel(titulo, columnas, deportistas);
+      res.set({
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": "attachment; filename=reporte_deportistas.xlsx",
+      });
+    } else {
+      buffer = await this.reportesService.generarPdfTabla(titulo, columnas, deportistas);
+      res.set({
+        "Content-Type": "application/pdf",
+        "Content-Disposition": "attachment; filename=reporte_deportistas.pdf",
+      });
+    }
+
+    res.send(buffer);
+  }
+  // 👆 FIN DEL NUEVO ENDPOINT 👆
 
   @Get(":id")
   @ApiOperation({
