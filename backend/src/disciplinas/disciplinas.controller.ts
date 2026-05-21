@@ -72,32 +72,45 @@ export class DisciplinasController {
     description: "Formato del reporte: 'pdf' o 'excel'",
     example: "excel",
   })
+  @ApiQuery({ name: "estado", required: false, type: String, description: "Filtrar: activas, inactivas, todas" })
   async descargarReporte(
     @Query("formato") formato: "pdf" | "excel",
-    @Res() res: Response
+    @Res() res: Response,
+    @Query("estado") estado?: string,
   ) {
-    // 1. Obtener los datos usando el método que ya existía
-    const disciplinas = await this.disciplinasService.findAll();
+    const activo = estado === "activas" ? "true" : estado === "inactivas" ? "false" : undefined;
+    const disciplinas = await this.disciplinasService.findAll(activo);
 
-    // 2. Definir cómo se verán las columnas en el Excel/PDF
+    const datosFormateados = disciplinas.map((d) => ({
+      id: d.id,
+      nombre: d.nombre,
+      descripcion: d.descripcion ?? "",
+      categorias: d.categorias ?? "",
+      mensualidad: Number(d.mensualidad ?? 0),
+      orden: d.orden,
+      estado: d.activo ? "Activa" : "Inactiva",
+    }));
+
     const columnas = [
       { header: "ID", key: "id" },
       { header: "Nombre", key: "nombre" },
       { header: "Descripción", key: "descripcion" },
+      { header: "Categorías", key: "categorias" },
+      { header: "Mensualidad (Bs.)", key: "mensualidad" },
+      { header: "Estado", key: "estado" },
     ];
 
     const titulo = "Reporte de Disciplinas UCB";
     let buffer: Buffer;
 
-    // 3. Generar el archivo usando tu motor de reportes
     if (formato === "excel") {
-      buffer = await this.reportesService.generarExcel(titulo, columnas, disciplinas);
+      buffer = await this.reportesService.generarExcel(titulo, columnas, datosFormateados);
       res.set({
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "Content-Disposition": "attachment; filename=reporte_disciplinas.xlsx",
       });
     } else {
-      buffer = await this.reportesService.generarPdfTabla(titulo, columnas, disciplinas);
+      buffer = await this.reportesService.generarPdfTabla(titulo, columnas, datosFormateados);
       res.set({
         "Content-Type": "application/pdf",
         "Content-Disposition": "attachment; filename=reporte_disciplinas.pdf",

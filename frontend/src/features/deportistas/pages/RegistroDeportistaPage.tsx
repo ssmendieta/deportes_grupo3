@@ -94,8 +94,17 @@ function RegistroDeportistaPage() {
         <div style={{ marginTop: "10px" }}>
           <ExportarReporteButton 
             endpoint="/deportistas/reporte" 
-            filtros={{ tipo: tipoFiltro, busqueda }} 
+            filtrosActuales={{ tipo: tipoFiltro }} 
             nombreArchivoBase="Reporte_Deportistas_Registrados" 
+            filtrosConfig={[
+              { name: "tipo", label: "Tipo", type: "select", options: [
+                { value: "todos", label: "Todos" },
+                { value: "estudiante_ucb", label: "Estudiante UCB" },
+                { value: "academia", label: "Academia" },
+                { value: "competitivo", label: "Competitivo" },
+                { value: "externo", label: "Externo" },
+              ]},
+            ]}
           />
         </div>
       </div>

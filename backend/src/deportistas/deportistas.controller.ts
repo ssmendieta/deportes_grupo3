@@ -138,41 +138,58 @@ export class DeportistasController {
     description: "Formato del reporte: 'pdf' o 'excel'",
     example: "excel",
   })
-  @ApiQuery({ name: "activo", required: false, type: String, description: "Filtrar por estado" })
-  @ApiQuery({ name: "disciplina_id", required: false, type: String, description: "Filtrar por disciplina" })
+  @ApiQuery({ name: "tipo", required: false, type: String, description: "Filtrar por tipo (estudiante_ucb, academia, competitivo)" })
+  @ApiQuery({ name: "busqueda", required: false, type: String, description: "Buscar por nombre o CI" })
   async descargarReporte(
     @Query("formato") formato: "pdf" | "excel",
     @Res() res: Response,
-    @Query("activo") activo?: string,
-    @Query("disciplina_id") disciplina_id?: string
+    @Query("tipo") tipo?: string,
+    @Query("busqueda") busqueda?: string,
   ) {
-    // 1. Obtenemos datos (Límite grande para ignorar la paginación en el reporte)
-    const result: any = await this.deportistasService.findAll(1, 10000, undefined, disciplina_id, activo);
-    
-    // Extraer el array dependiendo de si el servicio devuelve { data: [...] } o [...]
-    const deportistas = Array.isArray(result) ? result : (result?.data || []);
+    const tipoFiltro = tipo && tipo !== "todos" ? tipo : undefined;
+    const result: any = await this.deportistasService.findAll(1, 10000, tipoFiltro);
+    let deportistas: any[] = Array.isArray(result) ? result : (result?.data || []);
 
-    // 2. Definir columnas
+    if (busqueda) {
+      const q = busqueda.toLowerCase();
+      deportistas = deportistas.filter(
+        (d) =>
+          d.nombre_completo?.toLowerCase().includes(q) ||
+          d.ci?.toLowerCase().includes(q),
+      );
+    }
+
+    const datosFormateados = deportistas.map((d) => ({
+      ci: d.ci,
+      nombre_completo: d.nombre_completo,
+      tipo: d.tipo,
+      email: d.email ?? "",
+      telefono: d.telefono ?? "",
+      carrera: d.carrera ?? "",
+      activo: d.activo ? "Sí" : "No",
+    }));
+
     const columnas = [
       { header: "Carnet", key: "ci" },
-      { header: "Nombres", key: "nombres" },
-      { header: "Apellidos", key: "apellidos" },
-      { header: "Celular", key: "celular" },
-      { header: "Activo", key: "activo" }
+      { header: "Nombre Completo", key: "nombre_completo" },
+      { header: "Tipo", key: "tipo" },
+      { header: "Email", key: "email" },
+      { header: "Teléfono", key: "telefono" },
+      { header: "Carrera", key: "carrera" },
+      { header: "Activo", key: "activo" },
     ];
 
     const titulo = "Reporte de Deportistas UCB";
     let buffer: Buffer;
 
-    // 3. Generar archivo
     if (formato === "excel") {
-      buffer = await this.reportesService.generarExcel(titulo, columnas, deportistas);
+      buffer = await this.reportesService.generarExcel(titulo, columnas, datosFormateados);
       res.set({
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "Content-Disposition": "attachment; filename=reporte_deportistas.xlsx",
       });
     } else {
-      buffer = await this.reportesService.generarPdfTabla(titulo, columnas, deportistas);
+      buffer = await this.reportesService.generarPdfTabla(titulo, columnas, datosFormateados);
       res.set({
         "Content-Type": "application/pdf",
         "Content-Disposition": "attachment; filename=reporte_deportistas.pdf",

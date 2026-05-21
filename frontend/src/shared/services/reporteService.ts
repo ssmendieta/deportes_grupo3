@@ -1,24 +1,41 @@
-// ESTO ES SOLO PARA PROBAR TU LOGICA DE DESCARGA LOCALMENTE SIN BACKEND
+import { API_URL } from "./apiClient";
+
+const TOKEN_KEY = "ucb_auth_token";
+
+function authHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return headers;
+}
+
 export const descargarReporte = async (
   endpoint: string,
-  formato: 'pdf' | 'excel',
-  filtros: any = {},
-  nombreArchivo: string
+  formato: "pdf" | "excel",
+  filtros: Record<string, unknown> = {},
+  nombreArchivo: string,
 ): Promise<void> => {
-  // Simulamos un retraso de 1.5 segundos para ver el estado "Generando..."
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+  const params = new URLSearchParams({ formato });
+  for (const [key, value] of Object.entries(filtros)) {
+    if (value !== undefined && value !== null && value !== "") {
+      params.set(key, String(value));
+    }
+  }
 
-  // Creamos un archivo de texto de prueba simulando el reporte
-  const contenidoPrueba = `Reporte UCB\nEndpoint: ${endpoint}\nFiltros: ${JSON.stringify(filtros)}`;
-  const blob = new Blob([contenidoPrueba], { type: 'text/plain' });
+  const url = `${API_URL}/api${endpoint}?${params.toString()}`;
+  const response = await fetch(url, { headers: authHeaders() });
 
-  // Forzamos la descarga en el navegador
-  const urlDescarga = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = urlDescarga;
-  link.download = `${nombreArchivo}.${formato === 'pdf' ? 'pdf' : 'xlsx'}`;
+  if (!response.ok) {
+    throw new Error("Error al descargar el reporte");
+  }
+
+  const blob = await response.blob();
+  const blobUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = `${nombreArchivo}.${formato === "pdf" ? "pdf" : "xlsx"}`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  window.URL.revokeObjectURL(urlDescarga);
+  window.URL.revokeObjectURL(blobUrl);
 };

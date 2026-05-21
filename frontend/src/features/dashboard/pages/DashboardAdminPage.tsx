@@ -124,8 +124,17 @@ function DashboardAdminPage() {
             <span style={{ fontSize: "12px", color: "gray", fontWeight: "600" }}>MÓDULO DEPORTISTAS</span>
             <ExportarReporteButton 
               endpoint="/deportistas/reporte" 
-              filtros={{ tipo: "todos" }} 
+              filtrosActuales={{ tipo: "todos" }} 
               nombreArchivoBase="Reporte_General_Deportistas_UCB" 
+              filtrosConfig={[
+                { name: "tipo", label: "Tipo", type: "select", options: [
+                  { value: "todos", label: "Todos" },
+                  { value: "estudiante_ucb", label: "Estudiante UCB" },
+                  { value: "academia", label: "Academia" },
+                  { value: "competitivo", label: "Competitivo" },
+                  { value: "externo", label: "Externo" },
+                ]},
+              ]}
             />
           </div>
 
@@ -133,8 +142,32 @@ function DashboardAdminPage() {
             <span style={{ fontSize: "12px", color: "gray", fontWeight: "600" }}>MÓDULO PAGOS</span>
             <ExportarReporteButton 
               endpoint="/pagos/reporte" 
-              filtros={{ disciplinaId: "todas", estado: "todos" }} 
+              filtrosActuales={{ mes: "", anio: "" }} 
               nombreArchivoBase="Reporte_General_Pagos_Academias" 
+              filtrosConfig={[
+                { name: "mes", label: "Mes", type: "select", options: [
+                  { value: "", label: "Todos" },
+                  { value: "enero", label: "Enero" },
+                  { value: "febrero", label: "Febrero" },
+                  { value: "marzo", label: "Marzo" },
+                  { value: "abril", label: "Abril" },
+                  { value: "mayo", label: "Mayo" },
+                  { value: "junio", label: "Junio" },
+                  { value: "julio", label: "Julio" },
+                  { value: "agosto", label: "Agosto" },
+                  { value: "septiembre", label: "Septiembre" },
+                  { value: "octubre", label: "Octubre" },
+                  { value: "noviembre", label: "Noviembre" },
+                  { value: "diciembre", label: "Diciembre" },
+                ]},
+                { name: "anio", label: "Año", type: "select", options: [
+                  { value: "", label: "Todos" },
+                  { value: "2024", label: "2024" },
+                  { value: "2025", label: "2025" },
+                  { value: "2026", label: "2026" },
+                  { value: "2027", label: "2027" },
+                ]},
+              ]}
             />
           </div>
 
@@ -142,8 +175,17 @@ function DashboardAdminPage() {
             <span style={{ fontSize: "12px", color: "gray", fontWeight: "600" }}>MÓDULO RESERVAS</span>
             <ExportarReporteButton 
               endpoint="/reservas/reporte" 
-              filtros={{ fecha: "todas", espacioId: "todos", estado: "activas" }} 
+              filtrosActuales={{ desde: "", hasta: "", estado: "todos" }} 
               nombreArchivoBase="Reporte_General_Reservas_Espacios" 
+              filtrosConfig={[
+                { name: "desde", label: "Fecha inicio", type: "date" },
+                { name: "hasta", label: "Fecha fin", type: "date" },
+                { name: "estado", label: "Estado", type: "select", options: [
+                  { value: "todos", label: "Todos" },
+                  { value: "confirmada", label: "Confirmada" },
+                  { value: "cancelada", label: "Cancelada" },
+                ]},
+              ]}
             />
           </div>
 
@@ -151,8 +193,15 @@ function DashboardAdminPage() {
             <span style={{ fontSize: "12px", color: "gray", fontWeight: "600" }}>MÓDULO DISCIPLINAS</span>
             <ExportarReporteButton 
               endpoint="/disciplinas/reporte" 
-              filtros={{ estado: "todas" }} 
+              filtrosActuales={{ estado: "todas" }} 
               nombreArchivoBase="Reporte_General_Disciplinas_Deportivas" 
+              filtrosConfig={[
+                { name: "estado", label: "Estado", type: "select", options: [
+                  { value: "todas", label: "Todas" },
+                  { value: "activas", label: "Activas" },
+                  { value: "inactivas", label: "Inactivas" },
+                ]},
+              ]}
             />
           </div>
         </div>

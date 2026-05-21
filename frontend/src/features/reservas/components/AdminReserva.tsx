@@ -119,10 +119,10 @@ function AdminReserva() {
 
   // Objeto de filtros expuesto reactivamente para la exportación de reportes
   const filtrosReporte = useMemo(() => ({
-    fecha: filtroFecha || "todas",
-    espacioId: filtroEspacio || "todos",
+    desde: "",
+    hasta: "",
     estado: tab
-  }), [filtroFecha, filtroEspacio, tab]);
+  }), [tab]);
 
   const limpiarEdicion = () => {
     setModoEdicion(false);
@@ -275,8 +275,17 @@ function AdminReserva() {
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
             <ExportarReporteButton
               endpoint="/reservas/reporte"
-              filtros={filtrosReporte}
+              filtrosActuales={filtrosReporte}
               nombreArchivoBase="Reporte_Reservas_Deportes"
+              filtrosConfig={[
+                { name: "desde", label: "Fecha inicio", type: "date" },
+                { name: "hasta", label: "Fecha fin", type: "date" },
+                { name: "estado", label: "Estado", type: "select", options: [
+                  { value: "todos", label: "Todos" },
+                  { value: "confirmada", label: "Confirmada" },
+                  { value: "cancelada", label: "Cancelada" },
+                ]},
+              ]}
             />
             <button className="btn btn-primary small" onClick={() => navigate("/reservas/nueva")}>
               + Crear

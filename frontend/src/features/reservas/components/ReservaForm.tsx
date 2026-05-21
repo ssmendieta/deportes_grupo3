@@ -72,10 +72,51 @@ function ReservaForm({ onReservaCreada }: Props) {
     });
   }, []);
 
+  const espacioSeleccionado = useMemo(
+    () => espacios.find((e) => String(e.id) === formData.espacio_id),
+    [espacios, formData.espacio_id],
+  );
+
+  const disciplinasPermitidas = useMemo(() => {
+    if (!espacioSeleccionado) return disciplinas;
+    const nombre = espacioSeleccionado.nombre.toLowerCase();
+    if (nombre.includes("ucb")) {
+      return disciplinas.filter((d) =>
+        ["voleibol", "básquetbol"].includes(d.nombre.toLowerCase()),
+      );
+    }
+    if (nombre.includes("arquitectura")) {
+      return disciplinas.filter((d) =>
+        d.nombre.toLowerCase() === "fútsal",
+      );
+    }
+    return disciplinas;
+  }, [espacioSeleccionado, disciplinas]);
+
+  useEffect(() => {
+    const idsPermitidos = disciplinasPermitidas.map((d) => String(d.id));
+    if (
+      formData.disciplina_id &&
+      !idsPermitidos.includes(formData.disciplina_id)
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        disciplina_id: idsPermitidos[0] || "",
+      }));
+    }
+  }, [disciplinasPermitidas]);
+
   const duracionHoras = useMemo(() => {
     if (!formData.hora_inicio || !formData.hora_fin) return 0;
     return (horaAMinutos(formData.hora_fin) - horaAMinutos(formData.hora_inicio)) / 60;
   }, [formData.hora_fin, formData.hora_inicio]);
+
+  const horasFinDisponibles = useMemo(() => {
+    if (!formData.hora_inicio) return horasDisponibles;
+    return horasDisponibles.filter(
+      (h) => horaAMinutos(h) > horaAMinutos(formData.hora_inicio),
+    );
+  }, [formData.hora_inicio]);
 
   const handleChange = (campo: keyof ReservaFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [campo]: value }));
@@ -193,7 +234,7 @@ function ReservaForm({ onReservaCreada }: Props) {
         <label className="field">
           <span>Disciplina *</span>
           <select id="res-disciplina" value={formData.disciplina_id} onChange={(e) => { handleChange("disciplina_id", e.target.value); setErrores((p) => ({ ...p, disciplina_id: null })); }} onBlur={() => handleBlur("disciplina_id")} required aria-describedby={tocado.disciplina_id && mostrarError(errores, "disciplina_id") ? "error-res-disciplina" : undefined}>
-            {disciplinas.map((disciplina) => <option key={disciplina.id} value={disciplina.id}>{disciplina.nombre}</option>)}
+            {disciplinasPermitidas.map((disciplina) => <option key={disciplina.id} value={disciplina.id}>{disciplina.nombre}</option>)}
           </select>
           {tocado.disciplina_id && mostrarError(errores, "disciplina_id") && <small id="error-res-disciplina" className="field-error">{mostrarError(errores, "disciplina_id")}</small>}
         </label>
@@ -217,14 +258,14 @@ function ReservaForm({ onReservaCreada }: Props) {
           <span>Hasta *</span>
           <select id="res-hora-fin" value={formData.hora_fin} onChange={(e) => { handleChange("hora_fin", e.target.value); setErrores((p) => ({ ...p, hora_fin: null })); }} onBlur={() => handleBlur("hora_fin")} required aria-describedby={tocado.hora_fin && mostrarError(errores, "hora_fin") ? "error-res-hora-fin" : undefined}>
             <option value="">Seleccionar hora</option>
-            {horasDisponibles.slice(1).map((hora) => <option key={hora} value={hora}>{hora}</option>)}
+            {horasFinDisponibles.map((hora) => <option key={hora} value={hora}>{hora}</option>)}
           </select>
           {tocado.hora_fin && mostrarError(errores, "hora_fin") && <small id="error-res-hora-fin" className="field-error">{mostrarError(errores, "hora_fin")}</small>}
         </label>
 
-        <div className="form-hint full">
-          Duración calculada: <strong>{duracionHoras > 0 ? `${duracionHoras} h` : "sin definir"}</strong>. Máximo permitido: 3 horas.
-        </div>
+        {duracionHoras > 3 && (
+          <div className="form-error full">La reserva no puede durar más de 3 horas.</div>
+        )}
 
         {error && <div className="form-error full">{error}</div>}
 

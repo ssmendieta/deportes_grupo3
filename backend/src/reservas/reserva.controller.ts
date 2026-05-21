@@ -53,50 +53,52 @@ export class ReservasController {
     description: "Genera un archivo Excel o PDF con el historial de reservas filtrado.",
   })
   @ApiQuery({ name: "formato", required: true, type: String, example: "excel" })
-  @ApiQuery({ name: "espacio_id", required: false, type: String, description: "ID del espacio" })
   @ApiQuery({ name: "desde", required: false, type: String, description: "Fecha inicio (YYYY-MM-DD)" })
   @ApiQuery({ name: "hasta", required: false, type: String, description: "Fecha fin (YYYY-MM-DD)" })
+  @ApiQuery({ name: "estado", required: false, type: String, description: "Estado: confirmada, cancelada, todas" })
   async descargarReporte(
     @Query("formato") formato: "pdf" | "excel",
     @Res() res: Response,
-    @Query("espacio_id") espacio_id?: string,
     @Query("desde") desde?: string,
-    @Query("hasta") hasta?: string
+    @Query("hasta") hasta?: string,
+    @Query("estado") estado?: string,
   ) {
-    // 1. Obtener datos (filtramos por espacio si existe)
-    const result = await this.reservasService.findAll(
-      espacio_id ? parseInt(espacio_id) : undefined
-    );
+    const result = await this.reservasService.findAll();
     let reservas = result.data;
 
-    // 2. Aplicar filtros de rango de fechas en memoria
     if (desde) {
       const fechaDesde = new Date(`${desde}T00:00:00.000Z`);
-      reservas = reservas.filter(r => new Date(r.fecha) >= fechaDesde);
+      reservas = reservas.filter((r) => new Date(r.fecha) >= fechaDesde);
     }
     if (hasta) {
       const fechaHasta = new Date(`${hasta}T23:59:59.999Z`);
-      reservas = reservas.filter(r => new Date(r.fecha) <= fechaHasta);
+      reservas = reservas.filter((r) => new Date(r.fecha) <= fechaHasta);
     }
 
-    // 3. Formatear los datos para que se vean bien en la tabla
-    const datosFormateados = reservas.map(r => ({
+    if (estado && estado !== "todos" && estado !== "activas") {
+      reservas = reservas.filter((r) => r.estado === estado);
+    }
+
+    const datosFormateados = reservas.map((r) => ({
       id: r.id,
-      solicitante: r.nombre_solicitante || 'N/A',
-      espacio: r.espacio?.nombre || 'Desconocido',
+      solicitante: r.nombre_solicitante || "N/A",
+      espacio: r.espacio?.nombre || "Desconocido",
+      disciplina: r.disciplina?.nombre || "N/A",
       fecha: new Date(r.fecha).toLocaleDateString("es-BO"),
       horario: `${r.hora_inicio} - ${r.hora_fin}`,
-      estado: r.estado.toUpperCase()
+      motivo: r.motivo || "",
+      estado: r.estado.toUpperCase(),
     }));
 
-    // 4. Definir columnas
     const columnas = [
       { header: "ID", key: "id" },
       { header: "Solicitante", key: "solicitante" },
       { header: "Espacio", key: "espacio" },
+      { header: "Disciplina", key: "disciplina" },
       { header: "Fecha", key: "fecha" },
       { header: "Horario", key: "horario" },
-      { header: "Estado", key: "estado" }
+      { header: "Motivo", key: "motivo" },
+      { header: "Estado", key: "estado" },
     ];
 
     const titulo = "Reporte de Reservas de Espacios UCB";

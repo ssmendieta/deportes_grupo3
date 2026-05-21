@@ -60,7 +60,7 @@ export class PagosController {
     description: "Genera un archivo Excel o PDF con el historial de ingresos financieros.",
   })
   @ApiQuery({ name: "formato", required: true, type: String, example: "excel" })
-  @ApiQuery({ name: "mes", required: false, type: String, description: "Mes del pago (1-12)" })
+  @ApiQuery({ name: "mes", required: false, type: String, description: "Mes (nombre: enero, febrero… o número 1-12)" })
   @ApiQuery({ name: "anio", required: false, type: String, description: "Año del pago" })
   async descargarReporte(
     @Query("formato") formato: "pdf" | "excel",
@@ -68,42 +68,43 @@ export class PagosController {
     @Query("mes") mes?: string,
     @Query("anio") anio?: string
   ) {
-    // 1. Obtener todos los pagos (usamos 'as any' por si Sergio no tipó el findAll aquí)
-    let pagos = await (this.pagosService as any).findAll();
+    let pagos: any[] = await this.pagosService.findAll();
 
-    // 2. Filtrar por mes y año si se enviaron los parámetros
-    if (mes || anio) {
-      pagos = pagos.filter((p: any) => {
+    const MESES: Record<string, number> = {
+      enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6,
+      julio: 7, agosto: 8, septiembre: 9, octubre: 10, noviembre: 11, diciembre: 12,
+    };
+    const numeroMes = mes ? (MESES[mes.toLowerCase()] ?? parseInt(mes)) : undefined;
+
+    if (numeroMes !== undefined || anio) {
+      pagos = pagos.filter((p) => {
         if (!p.fecha_pago) return false;
-        const fechaPago = new Date(p.fecha_pago);
-        const coincideMes = mes ? (fechaPago.getUTCMonth() + 1) === parseInt(mes) : true;
-        const coincideAnio = anio ? fechaPago.getUTCFullYear() === parseInt(anio) : true;
+        const f = new Date(p.fecha_pago);
+        const coincideMes = numeroMes !== undefined ? (f.getUTCMonth() + 1) === numeroMes : true;
+        const coincideAnio = anio ? f.getUTCFullYear() === parseInt(anio) : true;
         return coincideMes && coincideAnio;
       });
     }
 
-    // 3. Formatear los datos para la tabla del reporte
-    const datosFormateados = pagos.map((p: any) => ({
+    const datosFormateados = pagos.map((p) => ({
       id: p.id,
       monto: `${p.monto} Bs.`,
-      concepto: p.concepto || 'Mensualidad',
+      concepto: p.concepto?.nombre || "Mensualidad",
       fecha: new Date(p.fecha_pago).toLocaleDateString("es-BO"),
-      estado: p.estado ? p.estado.toUpperCase() : 'COMPLETADO'
+      estado: p.estado ? p.estado.toUpperCase() : "COMPLETADO",
     }));
 
-    // 4. Definir columnas
     const columnas = [
       { header: "ID Pago", key: "id" },
       { header: "Monto", key: "monto" },
       { header: "Concepto", key: "concepto" },
       { header: "Fecha de Pago", key: "fecha" },
-      { header: "Estado", key: "estado" }
+      { header: "Estado", key: "estado" },
     ];
 
     const titulo = "Reporte de Ingresos - Academias Deportivas UCB";
     let buffer: Buffer;
 
-    // 5. Generar archivo
     if (formato === "excel") {
       buffer = await this.reportesService.generarExcel(titulo, columnas, datosFormateados);
       res.set({

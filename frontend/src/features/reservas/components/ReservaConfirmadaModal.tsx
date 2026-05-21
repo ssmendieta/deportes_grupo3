@@ -55,7 +55,7 @@ function ReservaConfirmadaModal({ reserva, abierto, onCerrar }: Props) {
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true">
-      <section className="modal-card reserva-confirmada-modal">
+      <section className="modal-card reserva-confirmada-modal" style={{ backgroundColor: "#fff" }}>
         <button
           type="button"
           className="modal-close"

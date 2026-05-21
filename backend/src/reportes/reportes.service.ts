@@ -28,40 +28,85 @@ export class ReportesService {
     const doc = new PDFDocument({ size: 'A4', margin: 30 });
     const chunks: Buffer[] = [];
 
+    const FONT_SIZE = 8;
+    const marginX = 30;
+    const pageWidth = 530;
+    const colWidth = pageWidth / columnas.length;
+    const headerHeight = 24;
+    const padding = 4;
+    const lineHeight = FONT_SIZE + 2;
+
+    function drawHeader(y: number): number {
+      doc.rect(marginX, y, pageWidth, headerHeight).fill('#003366');
+      doc.fillColor('white').fontSize(FONT_SIZE + 1);
+      columnas.forEach((col, i) => {
+        const x = marginX + i * colWidth;
+        doc.text(col.header, x + padding, y + 6, {
+          width: colWidth - padding * 2,
+          align: 'left',
+        });
+      });
+      doc.fillColor('black').fontSize(FONT_SIZE);
+      return y + headerHeight;
+    }
+
+    function rowHeight(fila: any): number {
+      let maxH = lineHeight;
+      for (const col of columnas) {
+        const texto = String(fila[col.key] ?? '');
+        if (!texto) continue;
+        const h = doc.heightOfString(texto, {
+          width: colWidth - padding * 2,
+        });
+        maxH = Math.max(maxH, h);
+      }
+      return maxH + padding * 2;
+    }
+
     return new Promise((resolve) => {
-      doc.on('data', chunk => chunks.push(chunk));
+      doc.on('data', (chunk) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
 
-      // Título del Reporte
-      doc.fillColor('#003366').fontSize(16).text(titulo, { align: 'center' });
-      doc.moveDown();
+      // Título
+      doc.fontSize(14).fillColor('#003366').text(titulo, { align: 'center' });
+      doc.moveDown(1.2);
 
-      // Dibujar Encabezado de Tabla
-      let currentY = doc.y;
-      const startX = 30;
-      const colWidth = 530 / columnas.length;
+      let y = drawHeader(doc.y);
 
-      doc.rect(startX, currentY, 530, 20).fill('#003366');
-      doc.fillColor('white').fontSize(10);
-      
-      columnas.forEach((col, i) => {
-        doc.text(col.header, startX + (i * colWidth), currentY + 5, { width: colWidth, align: 'center' });
-      });
+      for (const fila of filas) {
+        const rh = rowHeight(fila);
 
-      // Dibujar Filas
-      doc.fillColor('black');
-      currentY += 20;
+        // Línea horizontal
+        doc.strokeColor('#cccccc').lineWidth(0.5)
+          .moveTo(marginX, y)
+          .lineTo(marginX + pageWidth, y)
+          .stroke();
 
-      filas.forEach((fila) => {
+        // Dibujar celdas
         columnas.forEach((col, i) => {
-          const texto = String(fila[col.key] || '');
-          doc.text(texto, startX + (i * colWidth), currentY + 5, { width: colWidth, align: 'center' });
+          const x = marginX + i * colWidth;
+          const texto = String(fila[col.key] ?? '');
+          doc.text(texto, x + padding, y + padding, {
+            width: colWidth - padding * 2,
+            align: 'left',
+            lineBreak: true,
+          });
         });
-        currentY += 20;
-        
-        // Línea divisoria
-        doc.moveTo(startX, currentY).lineTo(startX + 530, currentY).strokeColor('#eeeeee').stroke();
-      });
+
+        y += rh;
+
+        // Salto de página con repetición de encabezado
+        if (y > 720) {
+          doc.addPage();
+          y = drawHeader(30);
+        }
+      }
+
+      // Línea de cierre
+      doc.strokeColor('#cccccc').lineWidth(0.5)
+        .moveTo(marginX, y)
+        .lineTo(marginX + pageWidth, y)
+        .stroke();
 
       doc.end();
     });

@@ -14,6 +14,13 @@ export class PagosService {
 
   constructor(private prisma: PrismaService) {}
 
+  async findAll() {
+    return this.prisma.pago.findMany({
+      include: { concepto: true },
+      orderBy: { fecha_pago: "desc" },
+    });
+  }
+
   async getConceptos(disciplina_id?: number) {
     return this.prisma.conceptoPago.findMany({
       where: {

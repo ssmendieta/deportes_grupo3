@@ -109,8 +109,15 @@ function GestionDisciplinasPage() {
         <div style={{ marginTop: "10px" }}>
           <ExportarReporteButton 
             endpoint="/disciplinas/reporte" 
-            filtros={{ estado: filtroEstado, busqueda }} 
+            filtrosActuales={{ estado: filtroEstado }} 
             nombreArchivoBase="Reporte_Disciplinas_Deportivas" 
+            filtrosConfig={[
+              { name: "estado", label: "Estado", type: "select", options: [
+                { value: "todas", label: "Todas" },
+                { value: "activas", label: "Activas" },
+                { value: "inactivas", label: "Inactivas" },
+              ]},
+            ]}
           />
         </div>
       </div>
