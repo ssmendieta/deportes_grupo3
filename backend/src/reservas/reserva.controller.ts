@@ -64,9 +64,10 @@ export class ReservasController {
     @Query("hasta") hasta?: string
   ) {
     // 1. Obtener datos (filtramos por espacio si existe)
-    let reservas = await this.reservasService.findAll(
+    const result = await this.reservasService.findAll(
       espacio_id ? parseInt(espacio_id) : undefined
     );
+    let reservas = result.data;
 
     // 2. Aplicar filtros de rango de fechas en memoria
     if (desde) {

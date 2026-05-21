@@ -14,7 +14,7 @@ export class ReportesService {
     worksheet.addRows(filas);
 
     // Estilo al encabezado (Azul UCB)
-    worksheet.getRow(1).eachCell((cell) => {
+    worksheet.getRow(1).eachCell((cell: ExcelJS.Cell) => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF003366' } };
     });
