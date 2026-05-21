@@ -8,6 +8,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import "./App.css";
+
 import AppNavigation from "./shared/components/AppNavigation";
 import { ErrorBoundary } from "./shared/components/ErrorBoundary";
 import DashboardAdminPage from "./features/dashboard/pages/DashboardAdminPage";
@@ -15,8 +16,8 @@ import CalendarioPage from "./features/calendario/pages/CalendarioPage";
 import RegistroDeportistaPage from "./features/deportistas/pages/RegistroDeportistaPage";
 import PagosAcademiasPage from "./features/pagos/pages/PagosAcademiasPage";
 import GestionDisciplinasPage from "./features/disciplinas/pages/GestionDisciplinasPage";
-import ReservasAdminPage from "./features/reservas/pages/ReservasAdminPage";
-import NuevaReservaPage from "./features/reservas/pages/NuevaReservaPage";
+import AdminReserva from "./features/reservas/components/AdminReserva";
+import ReservaForm from "./features/reservas/components/ReservaForm";
 import LoginPage from "./features/auth/pages/LoginPage";
 import {
   isAuthenticated,
@@ -44,12 +45,8 @@ function captureTokenFromUrl(): void {
 captureTokenFromUrl();
 
 const ADMIN_ROUTES = [
-  "/dashboard",
-  "/deportistas",
-  "/pagos",
-  "/disciplinas",
-  "/reservas",
-  "/reservas/nueva",
+  "/dashboard", "/deportistas", "/pagos", "/disciplinas",
+  "/reservas", "/reservas/nueva",
 ];
 
 function ProtectedLayout() {
@@ -75,7 +72,7 @@ function ProtectedLayout() {
           headers: { Authorization: `Bearer ${token}` },
         });
       } catch {
-        // Si el backend no responde, igual cerramos sesión local
+        // cerrar sesión local si backend no responde
       }
     }
     clearToken();
@@ -91,16 +88,12 @@ function ProtectedLayout() {
           onClick={handleLogout}
           title="Cerrar sesión"
         >
-          {user?.email ? (
-            <span className="user-email">{user.email}</span>
-          ) : null}
+          {user?.email ? <span className="user-email">{user.email}</span> : null}
           Salir
         </button>
       </div>
       <main className="app-main">
-        <ErrorBoundary>
-          <Outlet />
-        </ErrorBoundary>
+        <ErrorBoundary><Outlet /></ErrorBoundary>
       </main>
     </div>
   );
@@ -112,14 +105,14 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route element={<ProtectedLayout />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route index element={<Navigate to="/pagos" replace />} />
           <Route path="/dashboard" element={<DashboardAdminPage />} />
           <Route path="/calendario" element={<CalendarioPage />} />
           <Route path="/deportistas" element={<RegistroDeportistaPage />} />
           <Route path="/pagos" element={<PagosAcademiasPage />} />
           <Route path="/disciplinas" element={<GestionDisciplinasPage />} />
-          <Route path="/reservas" element={<ReservasAdminPage />} />
-          <Route path="/reservas/nueva" element={<NuevaReservaPage />} />
+          <Route path="/reservas" element={<AdminReserva />} />
+          <Route path="/reservas/nueva" element={<ReservaForm />} />
         </Route>
       </Routes>
     </BrowserRouter>

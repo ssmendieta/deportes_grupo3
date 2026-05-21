@@ -15,6 +15,9 @@ import type {
   FiltroEstadoDisciplina,
 } from "../types/disciplina.types";
 
+// IMPORTANTE: Importación del botón de reportes
+import { ExportarReporteButton } from "../../../shared/components/ExportarReporteButton";
+
 function GestionDisciplinasPage() {
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [busqueda, setBusqueda] = useState("");
@@ -82,12 +85,22 @@ function GestionDisciplinasPage() {
 
   return (
     <div className="page-stack">
-      <PageHeader
-        title="Gestión de disciplinas deportivas"
-        description="Crear, editar y activar/desactivar disciplinas deportivas."
-        actionLabel="+ Nueva disciplina"
-        onAction={abrirCrear}
-      />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
+        <PageHeader
+          title="Gestión de disciplinas deportivas"
+          description="Crear, editar y activar/desactivar disciplinas deportivas."
+          actionLabel="+ Nueva disciplina"
+          onAction={abrirCrear}
+        />
+        
+        <div style={{ marginTop: "10px" }}>
+          <ExportarReporteButton 
+            endpoint="/disciplinas/reporte" 
+            filtros={{ estado: filtroEstado, busqueda }} 
+            nombreArchivoBase="Reporte_Disciplinas_Deportivas" 
+          />
+        </div>
+      </div>
 
       <section className="panel-card">
         <p>

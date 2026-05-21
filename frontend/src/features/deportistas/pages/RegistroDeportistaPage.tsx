@@ -13,6 +13,9 @@ import DeportistaAccount from "../components/DeportistaAccount";
 import DeportistaForm from "../components/DeportistaForm";
 import DeportistaTable from "../components/DeportistaTable";
 
+// IMPORTANTE: Importación del botón de reportes
+import { ExportarReporteButton } from "../../../shared/components/ExportarReporteButton";
+
 const TIPOS: { valor: TipoDeportista | "todos"; label: string }[] = [
   { valor: "todos", label: "Todos" },
   { valor: "academia", label: "Academia" },
@@ -69,14 +72,25 @@ function RegistroDeportistaPage() {
 
   return (
     <div className="page-stack">
-      <PageHeader
-        title="Registro de nuevo deportista"
-        description="Alta y consulta de deportistas para academias, clases libres y equipos competitivos."
-        actionLabel={
-          formularioAbierto ? "Cerrar formulario" : "+ Nuevo deportista"
-        }
-        onAction={() => setFormularioAbierto((prev) => !prev)}
-      />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
+        <PageHeader
+          title="Registro de nuevo deportista"
+          description="Alta y consulta de deportistas para academias, clases libres y equipos competitivos."
+          actionLabel={
+            formularioAbierto ? "Cerrar formulario" : "+ Nuevo deportista"
+          }
+          onAction={() => setFormularioAbierto((prev) => !prev)}
+        />
+        
+        {/* Botón integrado respetando los filtros de la tabla */}
+        <div style={{ marginTop: "10px" }}>
+          <ExportarReporteButton 
+            endpoint="/deportistas/reporte" 
+            filtros={{ tipo: tipoFiltro, busqueda }} 
+            nombreArchivoBase="Reporte_Deportistas_Registrados" 
+          />
+        </div>
+      </div>
 
       {formularioAbierto && (
         <DeportistaForm
