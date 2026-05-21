@@ -6,7 +6,7 @@ import {
   getDisciplinasReserva,
   getEspacios,
 } from "../services/reservaService";
-import type { DisciplinaBasica, Espacio, ReservaFormData } from "../types/reserva.types";
+import type { DisciplinaBasica, Espacio, Reserva, ReservaFormData } from "../types/reserva.types";
 import {
   validarCI,
   validarEmail,
@@ -16,6 +16,7 @@ import {
   mostrarError,
 } from "../../../shared/utils/validators";
 import Spinner from "../../../shared/components/Spinner";
+import ReservaConfirmadaModal from "./ReservaConfirmadaModal";
 
 function formatearCI(v: string) {
   return v.replace(/[^0-9A-Za-z-]/g, "").slice(0, 13);
@@ -26,7 +27,7 @@ function hoyString() {
 }
 
 type Props = {
-  onReservaCreada?: () => void;
+  onReservaCreada?: (reserva: Reserva) => void;
 };
 
 const formInicial: ReservaFormData = {
@@ -57,6 +58,7 @@ function ReservaForm({ onReservaCreada }: Props) {
   const [guardando, setGuardando] = useState(false);
   const [errores, setErrores] = useState<ErroresForm>({});
   const [tocado, setTocado] = useState<Record<string, boolean>>({});
+  const [reservaCreada, setReservaCreada] = useState<Reserva | null>(null);
 
   useEffect(() => {
     Promise.all([getEspacios(), getDisciplinasReserva()]).then(([espaciosData, disciplinasData]) => {
@@ -125,7 +127,7 @@ function ReservaForm({ onReservaCreada }: Props) {
 
     setGuardando(true);
     try {
-      await crearReserva({
+      const reserva = await crearReserva({
         espacio_id: Number(formData.espacio_id),
         disciplina_id: Number(formData.disciplina_id),
         fecha: formData.fecha,
@@ -136,8 +138,9 @@ function ReservaForm({ onReservaCreada }: Props) {
         motivo: formData.motivo.trim(),
         ...(formData.email_solicitante.trim() && { email_solicitante: formData.email_solicitante.trim() }),
       });
-      onReservaCreada?.();
-      navigate("/reservas");
+      setReservaCreada(reserva);
+      onReservaCreada?.(reserva);
+      setFormData(formInicial);
     } catch (err) {
       setError("No se pudo crear la reserva. Verifica los datos e intenta de nuevo.");
     } finally {
@@ -230,6 +233,11 @@ function ReservaForm({ onReservaCreada }: Props) {
           <button type="submit" className="btn btn-primary" disabled={guardando}>{guardando ? "Guardando..." : "Crear reserva"}</button>
         </div>
       </form>
+      <ReservaConfirmadaModal
+        abierto={!!reservaCreada}
+        reserva={reservaCreada}
+        onCerrar={() => setReservaCreada(null)}
+      />
     </section>
   );
 }

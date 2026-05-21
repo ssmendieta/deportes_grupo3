@@ -19,7 +19,7 @@ import RegistroDeportistaPage from "./features/deportistas/pages/RegistroDeporti
 import PagosAcademiasPage from "./features/pagos/pages/PagosAcademiasPage";
 import GestionDisciplinasPage from "./features/disciplinas/pages/GestionDisciplinasPage";
 import AdminReserva from "./features/reservas/components/AdminReserva";
-import ReservaForm from "./features/reservas/components/ReservaForm";
+import NuevaReservaPage from "./features/reservas/pages/NuevaReservaPage";
 import LoginPage from "./features/auth/pages/LoginPage";
 import PerfilPage from "./features/auth/pages/PerfilPage";
 import {
@@ -118,7 +118,7 @@ function App() {
             <Route path="/pagos" element={<PagosAcademiasPage />} />
             <Route path="/disciplinas" element={<GestionDisciplinasPage />} />
             <Route path="/reservas" element={<AdminReserva />} />
-            <Route path="/reservas/nueva" element={<ReservaForm />} />
+            <Route path="/reservas/nueva" element={<NuevaReservaPage />} />
             <Route path="/perfil" element={<PerfilPage />} />
           </Route>
         </Routes>
