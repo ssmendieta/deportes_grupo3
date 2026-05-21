@@ -15,6 +15,7 @@ import DeportistaTable from "../components/DeportistaTable";
 
 // IMPORTANTE: Importación del botón de reportes
 import { ExportarReporteButton } from "../../../shared/components/ExportarReporteButton";
+import { useToast } from "../../../shared/contexts/ToastContext";
 
 const TIPOS: { valor: TipoDeportista | "todos"; label: string }[] = [
   { valor: "todos", label: "Todos" },
@@ -24,7 +25,9 @@ const TIPOS: { valor: TipoDeportista | "todos"; label: string }[] = [
 ];
 
 function RegistroDeportistaPage() {
+  const toast = useToast();
   const [deportistas, setDeportistas] = useState<Deportista[]>([]);
+  const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState<TipoDeportista | "todos">(
     "todos",
@@ -34,15 +37,19 @@ function RegistroDeportistaPage() {
     useState<Deportista | null>(null);
 
   const cargarDatos = async () => {
-    const data = await listarDeportistas();
-    setDeportistas(data);
+    setCargando(true);
+    try {
+      const data = await listarDeportistas();
+      setDeportistas(data);
+    } catch {
+      // Error silencioso — la tabla mostrará vacío
+    } finally {
+      setCargando(false);
+    }
   };
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void cargarDatos();
-    }, 0);
-    return () => window.clearTimeout(timeoutId);
+    void cargarDatos();
   }, []);
 
   const deportistasFiltrados = useMemo(() => {
@@ -58,6 +65,7 @@ function RegistroDeportistaPage() {
   const handleGuardar = async (data: DeportistaFormData) => {
     await crearDeportista(data);
     setFormularioAbierto(false);
+    toast.success("Deportista registrado correctamente.");
     await cargarDatos();
   };
 
@@ -129,6 +137,7 @@ function RegistroDeportistaPage() {
 
       <DeportistaTable
         deportistas={deportistasFiltrados}
+        cargando={cargando}
         onVerCuenta={setCuentaSeleccionada}
       />
     </div>

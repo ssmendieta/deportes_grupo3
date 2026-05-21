@@ -1,8 +1,10 @@
 import StatusBadge from "../../../shared/components/StatusBadge";
+import Spinner from "../../../shared/components/Spinner";
 import type { Deportista, EstadoCuenta } from "../types/deportista.types";
 
 type Props = {
   deportistas: Deportista[];
+  cargando?: boolean;
   onVerCuenta: (deportista: Deportista) => void;
 };
 
@@ -18,7 +20,15 @@ const estadoTone: Record<EstadoCuenta, "success" | "warning" | "info"> = {
   no_aplica: "info",
 };
 
-function DeportistaTable({ deportistas, onVerCuenta }: Props) {
+function DeportistaTable({ deportistas, cargando, onVerCuenta }: Props) {
+  if (cargando) {
+    return <Spinner texto="Cargando deportistas..." tamanio="lg" />;
+  }
+
+  if (deportistas.length === 0) {
+    return <div className="panel-card" style={{ textAlign: "center", padding: "2rem" }}>No se encontraron deportistas.</div>;
+  }
+
   return (
     <div className="table-card">
       <table className="data-table">

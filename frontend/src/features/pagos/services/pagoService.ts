@@ -12,6 +12,9 @@ export function calcularResumenPagos(deportistas: Deportista[]): PagoResumen {
     alDia: deportistas.filter((d) => d.estadoCuenta === "al_dia").length,
     pendientes: deportistas.filter((d) => d.estadoCuenta === "pendiente")
       .length,
-    recaudacionRegistrada: 0,
+    recaudacionRegistrada: deportistas.reduce(
+      (total, d) => total + (d.deuda ?? 0),
+      0,
+    ),
   };
 }

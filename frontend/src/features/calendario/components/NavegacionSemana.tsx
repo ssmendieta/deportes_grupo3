@@ -7,9 +7,9 @@ type Props = {
 function NavegacionSemana({ etiquetaSemana, onSemanaAnterior, onSemanaSiguiente }: Props) {
   return (
     <section className="week-nav">
-      <button className="icon-button" onClick={onSemanaAnterior}>←</button>
+      <button className="icon-button" onClick={onSemanaAnterior} aria-label="Semana anterior">←</button>
       <strong>{etiquetaSemana}</strong>
-      <button className="icon-button" onClick={onSemanaSiguiente}>→</button>
+      <button className="icon-button" onClick={onSemanaSiguiente} aria-label="Semana siguiente">→</button>
     </section>
   );
 }

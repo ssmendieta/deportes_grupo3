@@ -21,11 +21,21 @@ import type {
 
 // IMPORTANTE: Importación del botón compartido de reportes
 import { ExportarReporteButton } from "../../../shared/components/ExportarReporteButton";
+import Spinner from "../../../shared/components/Spinner";
+import { useToast } from "../../../shared/contexts/ToastContext";
+import {
+  validarCI,
+  validarNombreCompleto,
+  validarRequerido,
+  type ErroresForm,
+  mostrarError,
+} from "../../../shared/utils/validators";
 
 type TabReservas = "activas" | "canceladas";
 
 function AdminReserva() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [seleccionadaId, setSeleccionadaId] = useState<number | null>(null);
   const [busqueda, setBusqueda] = useState("");
@@ -38,45 +48,39 @@ function AdminReserva() {
   const [modoEdicion, setModoEdicion] = useState(false);
   const [formEdicion, setFormEdicion] = useState<UpdateReservaDto>({});
   const [guardando, setGuardando] = useState(false);
+  const [confirmandoCancelacion, setConfirmandoCancelacion] = useState<number | null>(null);
+  const [erroresEdicion, setErroresEdicion] = useState<ErroresForm>({});
 
   const [espacios, setEspacios] = useState<Espacio[]>([]);
   const [disciplinas, setDisciplinas] = useState<DisciplinaBasica[]>([]);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setCargando(true);
-      setError("");
+    setCargando(true);
+    setError("");
 
-      void getReservas({ fecha: filtroFecha || undefined })
-        .then((data) => {
-          setReservas(data);
-          setSeleccionadaId((actual) => {
-            if (actual && data.some((reserva) => reserva.id === actual)) {
-              return actual;
-            }
-            return data[0]?.id ?? null;
-          });
-        })
-        .catch((err: unknown) => {
-          setError(
-            err instanceof Error ? err.message : "Error al cargar reservas",
-          );
-        })
-        .finally(() => setCargando(false));
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
+    getReservas({ fecha: filtroFecha || undefined })
+      .then((data) => {
+        setReservas(data);
+        setSeleccionadaId((actual) => {
+          if (actual && data.some((reserva) => reserva.id === actual)) {
+            return actual;
+          }
+          return data[0]?.id ?? null;
+        });
+      })
+      .catch((err: unknown) => {
+        setError(
+          err instanceof Error ? err.message : "Error al cargar reservas",
+        );
+      })
+      .finally(() => setCargando(false));
   }, [filtroFecha]);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void getEspacios().then(setEspacios).catch(() => setEspacios([]));
-      void getDisciplinasReserva()
-        .then(setDisciplinas)
-        .catch(() => setDisciplinas([]));
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
+    getEspacios().then(setEspacios).catch(() => setEspacios([]));
+    getDisciplinasReserva()
+      .then(setDisciplinas)
+      .catch(() => setDisciplinas([]));
   }, []);
 
   const reservasFiltradas = useMemo(() => {
@@ -159,8 +163,45 @@ function AdminReserva() {
     setSeleccionadaId(actualizada.id);
   };
 
+  const validarCampoEdicion = (campo: string, valor: unknown): string | null => {
+    switch (campo) {
+      case "nombre_solicitante": return validarNombreCompleto(valor as string, "El nombre");
+      case "carnet": return validarCI(valor as string);
+      case "espacio_id": return valor ? null : "Debes seleccionar un espacio.";
+      case "disciplina_id": return valor ? null : "Debes seleccionar una disciplina.";
+      case "fecha": return valor ? null : "La fecha es obligatoria.";
+      case "hora_inicio": return valor ? null : "La hora de inicio es obligatoria.";
+      case "hora_fin": return valor ? null : "La hora de fin es obligatoria.";
+      case "motivo": return (valor as string)?.trim() ? null : "El motivo es obligatorio.";
+      default: return null;
+    }
+  };
+
+  const handleBlurEdicion = (campo: string) => {
+    setErroresEdicion((prev) => ({ ...prev, [campo]: validarCampoEdicion(campo, formEdicion[campo as keyof UpdateReservaDto]) }));
+  };
+
   const handleGuardarEdicion = async () => {
     if (!seleccionada) return;
+
+    const nuevosErrores: ErroresForm = {
+      nombre_solicitante: formEdicion.nombre_solicitante !== undefined
+        ? validarNombreCompleto(formEdicion.nombre_solicitante, "El nombre")
+        : null,
+      carnet: formEdicion.carnet !== undefined
+        ? validarCI(formEdicion.carnet)
+        : null,
+      motivo: formEdicion.motivo !== undefined
+        ? (formEdicion.motivo.trim() ? null : "El motivo es obligatorio.")
+        : null,
+      espacio_id: !formEdicion.espacio_id ? "Debes seleccionar un espacio." : null,
+      disciplina_id: !formEdicion.disciplina_id ? "Debes seleccionar una disciplina." : null,
+      fecha: !formEdicion.fecha ? "La fecha es obligatoria." : null,
+      hora_inicio: !formEdicion.hora_inicio ? "La hora de inicio es obligatoria." : null,
+      hora_fin: !formEdicion.hora_fin ? "La hora de fin es obligatoria." : null,
+    };
+    setErroresEdicion(nuevosErrores);
+    if (Object.values(nuevosErrores).some(Boolean)) return;
 
     setGuardando(true);
     setError("");
@@ -169,21 +210,16 @@ function AdminReserva() {
       const actualizada = await editarReserva(seleccionada.id, formEdicion);
       reemplazarReserva(actualizada);
       limpiarEdicion();
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "No se pudo editar la reserva",
-      );
+      toast.success("Cambios guardados correctamente.");
+    } catch {
+      setError("No se pudieron guardar los cambios. Verifica los datos e intenta de nuevo.");
     } finally {
       setGuardando(false);
     }
   };
 
   const handleCancelarReserva = async () => {
-    if (!seleccionada) return;
-    const confirmar = window.confirm(
-      "¿Seguro que deseas cancelar esta reserva? Se mantendrá en el historial.",
-    );
-    if (!confirmar) return;
+    if (!seleccionada || confirmandoCancelacion !== seleccionada.id) return;
 
     setError("");
 
@@ -192,10 +228,11 @@ function AdminReserva() {
       reemplazarReserva(actualizada);
       setTab("canceladas");
       limpiarEdicion();
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "No se pudo cancelar la reserva",
-      );
+      toast.success("Reserva cancelada correctamente.");
+    } catch {
+      setError("No se pudo cancelar la reserva. Intenta de nuevo.");
+    } finally {
+      setConfirmandoCancelacion(null);
     }
   };
 
@@ -209,31 +246,21 @@ function AdminReserva() {
       reemplazarReserva(actualizada);
       setTab("activas");
       limpiarEdicion();
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "No se pudo habilitar la reserva",
-      );
+      toast.success("Reserva habilitada correctamente.");
+    } catch {
+      setError("No se pudo habilitar la reserva. Intenta de nuevo.");
     }
   };
 
   const handleDescargarPdf = async (reserva: Reserva) => {
-    const nombreSugerido = `comprobante-${reserva.nombre_solicitante
+    const nombreArchivo = `comprobante-${reserva.nombre_solicitante
       .toLowerCase()
       .replaceAll(" ", "-")}-${reserva.id}.pdf`;
 
-    const nombreArchivo = window.prompt(
-      "Nombre para guardar el comprobante:",
-      nombreSugerido,
-    );
-
-    if (!nombreArchivo) return;
-
     try {
       await descargarComprobanteReserva(reserva.id, nombreArchivo);
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "No se pudo descargar el PDF",
-      );
+    } catch {
+      setError("No se pudo descargar el comprobante. Verifica tu conexión.");
     }
   };
 
@@ -327,7 +354,7 @@ function AdminReserva() {
         </div>
 
         {error && <p className="form-error">{error}</p>}
-        {cargando && <p>Cargando reservas...</p>}
+        {cargando && <Spinner texto="Cargando reservas..." />}
         {!cargando && reservasFiltradas.length === 0 && (
           <EmptyState
             title={
@@ -399,28 +426,42 @@ function AdminReserva() {
                   <label className="field">
                     <span>Nombre completo</span>
                     <input
+                      id="edit-nombre"
                       value={formEdicion.nombre_solicitante ?? ""}
-                      onChange={(e) =>
-                        actualizarCampo("nombre_solicitante", e.target.value)
-                      }
+                      onChange={(e) => {
+                        actualizarCampo("nombre_solicitante", e.target.value);
+                        setErroresEdicion((p) => ({ ...p, nombre_solicitante: null }));
+                      }}
+                      aria-describedby={mostrarError(erroresEdicion, "nombre_solicitante") ? "error-edit-nombre" : undefined}
                     />
+                    {mostrarError(erroresEdicion, "nombre_solicitante") && <small id="error-edit-nombre" className="field-error">{mostrarError(erroresEdicion, "nombre_solicitante")}</small>}
                   </label>
 
                   <label className="field">
                     <span>Carnet</span>
                     <input
+                      id="edit-carnet"
                       value={formEdicion.carnet ?? ""}
-                      onChange={(e) => actualizarCampo("carnet", e.target.value)}
+                      onChange={(e) => {
+                        actualizarCampo("carnet", e.target.value);
+                        setErroresEdicion((p) => ({ ...p, carnet: null }));
+                      }}
+                      aria-describedby={mostrarError(erroresEdicion, "carnet") ? "error-edit-carnet" : undefined}
                     />
+                    {mostrarError(erroresEdicion, "carnet") && <small id="error-edit-carnet" className="field-error">{mostrarError(erroresEdicion, "carnet")}</small>}
                   </label>
 
                   <label className="field">
                     <span>Espacio</span>
                     <select
+                      id="edit-espacio"
                       value={formEdicion.espacio_id ?? ""}
-                      onChange={(e) =>
-                        actualizarCampo("espacio_id", Number(e.target.value))
-                      }
+                      onChange={(e) => {
+                        actualizarCampo("espacio_id", Number(e.target.value));
+                        setErroresEdicion((p) => ({ ...p, espacio_id: null }));
+                      }}
+                      onBlur={() => handleBlurEdicion("espacio_id")}
+                      aria-describedby={mostrarError(erroresEdicion, "espacio_id") ? "error-edit-espacio" : undefined}
                     >
                       <option value="">Selecciona un espacio</option>
                       {espacios.map((espacio) => (
@@ -429,15 +470,20 @@ function AdminReserva() {
                         </option>
                       ))}
                     </select>
+                    {mostrarError(erroresEdicion, "espacio_id") && <small id="error-edit-espacio" className="field-error">{mostrarError(erroresEdicion, "espacio_id")}</small>}
                   </label>
 
                   <label className="field">
                     <span>Disciplina</span>
                     <select
+                      id="edit-disciplina"
                       value={formEdicion.disciplina_id ?? ""}
-                      onChange={(e) =>
-                        actualizarCampo("disciplina_id", Number(e.target.value))
-                      }
+                      onChange={(e) => {
+                        actualizarCampo("disciplina_id", Number(e.target.value));
+                        setErroresEdicion((p) => ({ ...p, disciplina_id: null }));
+                      }}
+                      onBlur={() => handleBlurEdicion("disciplina_id")}
+                      aria-describedby={mostrarError(erroresEdicion, "disciplina_id") ? "error-edit-disciplina" : undefined}
                     >
                       <option value="">Selecciona una disciplina</option>
                       {disciplinas.map((disciplina) => (
@@ -446,45 +492,72 @@ function AdminReserva() {
                         </option>
                       ))}
                     </select>
+                    {mostrarError(erroresEdicion, "disciplina_id") && <small id="error-edit-disciplina" className="field-error">{mostrarError(erroresEdicion, "disciplina_id")}</small>}
                   </label>
 
                   <label className="field">
                     <span>Fecha</span>
                     <input
+                      id="edit-fecha"
                       type="date"
                       value={formEdicion.fecha ?? ""}
-                      onChange={(e) => actualizarCampo("fecha", e.target.value)}
+                      onChange={(e) => {
+                        actualizarCampo("fecha", e.target.value);
+                        setErroresEdicion((p) => ({ ...p, fecha: null }));
+                      }}
+                      onBlur={() => handleBlurEdicion("fecha")}
+                      aria-describedby={mostrarError(erroresEdicion, "fecha") ? "error-edit-fecha" : undefined}
                     />
+                    {mostrarError(erroresEdicion, "fecha") && <small id="error-edit-fecha" className="field-error">{mostrarError(erroresEdicion, "fecha")}</small>}
                   </label>
 
                   <label className="field">
                     <span>Hora inicio</span>
                     <input
+                      id="edit-hora-inicio"
                       type="time"
                       step="1800"
                       value={formEdicion.hora_inicio ?? ""}
-                      onChange={(e) =>
-                        actualizarCampo("hora_inicio", e.target.value)
-                      }
+                      onChange={(e) => {
+                        actualizarCampo("hora_inicio", e.target.value);
+                        setErroresEdicion((p) => ({ ...p, hora_inicio: null }));
+                      }}
+                      onBlur={() => handleBlurEdicion("hora_inicio")}
+                      aria-describedby={mostrarError(erroresEdicion, "hora_inicio") ? "error-edit-hora-inicio" : undefined}
                     />
+                    {mostrarError(erroresEdicion, "hora_inicio") && <small id="error-edit-hora-inicio" className="field-error">{mostrarError(erroresEdicion, "hora_inicio")}</small>}
                   </label>
 
                   <label className="field">
                     <span>Hora fin</span>
                     <input
+                      id="edit-hora-fin"
                       type="time"
                       step="1800"
                       value={formEdicion.hora_fin ?? ""}
-                      onChange={(e) => actualizarCampo("hora_fin", e.target.value)}
+                      onChange={(e) => {
+                        actualizarCampo("hora_fin", e.target.value);
+                        setErroresEdicion((p) => ({ ...p, hora_fin: null }));
+                      }}
+                      onBlur={() => handleBlurEdicion("hora_fin")}
+                      aria-describedby={mostrarError(erroresEdicion, "hora_fin") ? "error-edit-hora-fin" : undefined}
                     />
+                    {mostrarError(erroresEdicion, "hora_fin") && <small id="error-edit-hora-fin" className="field-error">{mostrarError(erroresEdicion, "hora_fin")}</small>}
                   </label>
 
                   <label className="field full">
                     <span>Motivo</span>
                     <textarea
+                      id="edit-motivo"
                       value={formEdicion.motivo ?? ""}
-                      onChange={(e) => actualizarCampo("motivo", e.target.value)}
+                      onChange={(e) => {
+                        actualizarCampo("motivo", e.target.value);
+                        setErroresEdicion((p) => ({ ...p, motivo: null }));
+                      }}
+                      onBlur={() => handleBlurEdicion("motivo")}
+                      aria-describedby={mostrarError(erroresEdicion, "motivo") ? "error-edit-motivo" : undefined}
                     />
+                    {mostrarError(erroresEdicion, "motivo") && <small id="error-edit-motivo" className="field-error">{mostrarError(erroresEdicion, "motivo")}</small>}
                   </label>
                 </div>
 
@@ -559,13 +632,35 @@ function AdminReserva() {
                       Habilitar
                     </button>
                   ) : (
-                    <button
-                      type="button"
-                      className="btn btn-ghost"
-                      onClick={handleCancelarReserva}
-                    >
-                      Cancelar reserva
-                    </button>
+                    <>
+                      {confirmandoCancelacion === seleccionada.id ? (
+                        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                          <span style={{ fontSize: "14px" }}>¿Cancelar?</span>
+                          <button
+                            type="button"
+                            className="btn btn-ghost small"
+                            onClick={handleCancelarReserva}
+                          >
+                            Sí, cancelar
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline small"
+                            onClick={() => setConfirmandoCancelacion(null)}
+                          >
+                            No
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          onClick={() => setConfirmandoCancelacion(seleccionada.id)}
+                        >
+                          Cancelar reserva
+                        </button>
+                      )}
+                    </>
                   )}
 
                   <button

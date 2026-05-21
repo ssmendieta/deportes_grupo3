@@ -3,6 +3,7 @@ import {
   Logger,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
@@ -72,6 +73,18 @@ export class ReservasService {
 
   async create(dto: CreateReservaDto) {
     const fechaDate = new Date(`${dto.fecha}T12:00:00.000Z`);
+
+    const durMin = horaAMinutos(dto.hora_fin) - horaAMinutos(dto.hora_inicio);
+    if (durMin <= 0) {
+      throw new BadRequestException(
+        "La hora de fin debe ser mayor a la hora de inicio",
+      );
+    }
+    if (durMin > 180) {
+      throw new BadRequestException(
+        "La reserva no puede durar más de 3 horas",
+      );
+    }
 
     const espacio = await this.prisma.espacio.findUnique({
       where: { id: dto.espacio_id },
@@ -202,6 +215,20 @@ export class ReservasService {
   }
 
   async update(id: number, dto: UpdateReservaDto) {
+    const hInicio = dto.hora_inicio ?? (await this.findOne(id)).hora_inicio;
+    const hFin = dto.hora_fin ?? (await this.findOne(id)).hora_fin;
+    const durMin = horaAMinutos(hFin) - horaAMinutos(hInicio);
+    if (durMin <= 0) {
+      throw new BadRequestException(
+        "La hora de fin debe ser mayor a la hora de inicio",
+      );
+    }
+    if (durMin > 180) {
+      throw new BadRequestException(
+        "La reserva no puede durar más de 3 horas",
+      );
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const reserva = await tx.reserva.findUnique({
         where: { id },
@@ -310,4 +337,9 @@ export class ReservasService {
       doc.end();
     });
   }
+}
+
+function horaAMinutos(hora: string): number {
+  const [h, m] = hora.split(":").map(Number);
+  return h * 60 + m;
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import Spinner from "../../../shared/components/Spinner";
 import {
   DIAS_SEMANA,
   HORAS_CALENDARIO,
@@ -109,7 +110,7 @@ function GrillaCalendarioSemanal({
 
   return (
     <section className="calendar-stack">
-      {cargando && <div className="soft-alert">Cargando disponibilidad...</div>}
+      {cargando && <Spinner texto="Cargando disponibilidad..." />}
 
       {espaciosMostrados.map((espacio) => (
         <article key={espacio.id} className="calendar-space-card">

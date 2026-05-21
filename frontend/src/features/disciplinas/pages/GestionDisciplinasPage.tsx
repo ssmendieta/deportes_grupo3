@@ -17,8 +17,10 @@ import type {
 
 // IMPORTANTE: Importación del botón de reportes
 import { ExportarReporteButton } from "../../../shared/components/ExportarReporteButton";
+import { useToast } from "../../../shared/contexts/ToastContext";
 
 function GestionDisciplinasPage() {
+  const toast = useToast();
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] =
@@ -30,16 +32,18 @@ function GestionDisciplinasPage() {
 
   const cargarDatos = async () => {
     setCargando(true);
-    const disciplinasData = await listarDisciplinas();
-    setDisciplinas(disciplinasData);
-    setCargando(false);
+    try {
+      const disciplinasData = await listarDisciplinas();
+      setDisciplinas(disciplinasData);
+    } catch {
+      // Error silencioso — la tabla mostrará vacío
+    } finally {
+      setCargando(false);
+    }
   };
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void cargarDatos();
-    }, 0);
-    return () => window.clearTimeout(timeoutId);
+    void cargarDatos();
   }, []);
 
   const disciplinasFiltradas = useMemo(() => {
@@ -66,21 +70,30 @@ function GestionDisciplinasPage() {
   };
 
   const guardarDisciplina = async (data: DisciplinaFormData) => {
-    if (disciplinaEditando) {
-      await actualizarDisciplina(disciplinaEditando.id, data);
-    } else {
-      await crearDisciplina(data);
+    try {
+      if (disciplinaEditando) {
+        await actualizarDisciplina(disciplinaEditando.id, data);
+        toast.success("Disciplina actualizada correctamente.");
+      } else {
+        await crearDisciplina(data);
+        toast.success("Disciplina creada correctamente.");
+      }
+      setModalAbierto(false);
+      await cargarDatos();
+    } catch {
+      // Error manejado por el modal
     }
-    setModalAbierto(false);
-    await cargarDatos();
   };
 
   const handleCambiarEstado = async (disciplina: Disciplina) => {
-    await cambiarEstadoDisciplina(
-      disciplina.id,
-      disciplina.estado === "activa" ? "inactiva" : "activa",
-    );
-    await cargarDatos();
+    try {
+      const nuevoEstado = disciplina.estado === "activa" ? "inactiva" : "activa";
+      await cambiarEstadoDisciplina(disciplina.id, nuevoEstado);
+      await cargarDatos();
+      toast.success(`Disciplina ${nuevoEstado === "activa" ? "activada" : "desactivada"} correctamente.`);
+    } catch {
+      // Error silencioso
+    }
   };
 
   return (

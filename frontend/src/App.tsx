@@ -6,11 +6,13 @@ import {
   Outlet,
   useNavigate,
   useLocation,
+  Link,
 } from "react-router-dom";
 import "./App.css";
 
 import AppNavigation from "./shared/components/AppNavigation";
 import { ErrorBoundary } from "./shared/components/ErrorBoundary";
+import { ToastProvider } from "./shared/contexts/ToastContext";
 import DashboardAdminPage from "./features/dashboard/pages/DashboardAdminPage";
 import CalendarioPage from "./features/calendario/pages/CalendarioPage";
 import RegistroDeportistaPage from "./features/deportistas/pages/RegistroDeportistaPage";
@@ -19,6 +21,7 @@ import GestionDisciplinasPage from "./features/disciplinas/pages/GestionDiscipli
 import AdminReserva from "./features/reservas/components/AdminReserva";
 import ReservaForm from "./features/reservas/components/ReservaForm";
 import LoginPage from "./features/auth/pages/LoginPage";
+import PerfilPage from "./features/auth/pages/PerfilPage";
 import {
   isAuthenticated,
   setToken,
@@ -88,7 +91,9 @@ function ProtectedLayout() {
           onClick={handleLogout}
           title="Cerrar sesión"
         >
-          {user?.email ? <span className="user-email">{user.email}</span> : null}
+          {user?.email ? (
+            <Link to="/perfil" className="user-email">{user.email}</Link>
+          ) : null}
           Salir
         </button>
       </div>
@@ -102,19 +107,22 @@ function ProtectedLayout() {
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route element={<ProtectedLayout />}>
-          <Route index element={<Navigate to="/pagos" replace />} />
-          <Route path="/dashboard" element={<DashboardAdminPage />} />
-          <Route path="/calendario" element={<CalendarioPage />} />
-          <Route path="/deportistas" element={<RegistroDeportistaPage />} />
-          <Route path="/pagos" element={<PagosAcademiasPage />} />
-          <Route path="/disciplinas" element={<GestionDisciplinasPage />} />
-          <Route path="/reservas" element={<AdminReserva />} />
-          <Route path="/reservas/nueva" element={<ReservaForm />} />
-        </Route>
-      </Routes>
+      <ToastProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route element={<ProtectedLayout />}>
+            <Route index element={<Navigate to="/pagos" replace />} />
+            <Route path="/dashboard" element={<DashboardAdminPage />} />
+            <Route path="/calendario" element={<CalendarioPage />} />
+            <Route path="/deportistas" element={<RegistroDeportistaPage />} />
+            <Route path="/pagos" element={<PagosAcademiasPage />} />
+            <Route path="/disciplinas" element={<GestionDisciplinasPage />} />
+            <Route path="/reservas" element={<AdminReserva />} />
+            <Route path="/reservas/nueva" element={<ReservaForm />} />
+            <Route path="/perfil" element={<PerfilPage />} />
+          </Route>
+        </Routes>
+      </ToastProvider>
     </BrowserRouter>
   );
 }

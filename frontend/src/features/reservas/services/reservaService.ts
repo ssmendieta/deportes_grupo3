@@ -52,9 +52,9 @@ const espaciosFallback: Espacio[] = [
 ];
 
 const disciplinasFallback: DisciplinaBasica[] = [
-  { id: 1, nombre: "Voleibol", activo: true },
-  { id: 2, nombre: "Básquetbol", activo: true },
-  { id: 3, nombre: "Fútbol", activo: true },
+  { id: 1, nombre: "Voleibol", categorias: "Mayores, Sub-17", mensualidad: 130, activo: true },
+  { id: 2, nombre: "Básquetbol", categorias: "Mayores", mensualidad: 150, activo: true },
+  { id: 3, nombre: "Fútbol", categorias: "Juvenil", mensualidad: 100, activo: true },
 ];
 
 const reservasFallback: Reserva[] = [
@@ -261,11 +261,16 @@ export async function editarReserva(
   id: number,
   datos: UpdateReservaDto,
 ): Promise<Reserva> {
-  return apiRequest<Reserva>(`/api/reservas/${id}`, {
-    method: "PATCH",
-    requiresAdmin: true,
-    body: JSON.stringify(datos),
-  });
+  try {
+    return await apiRequest<Reserva>(`/api/reservas/${id}`, {
+      method: "PATCH",
+      requiresAdmin: true,
+      body: JSON.stringify(datos),
+    });
+  } catch (error) {
+    if (error instanceof Error) throw error;
+    throw new Error("Error al editar la reserva");
+  }
 }
 
 export function getComprobanteUrl(id: number): string {
@@ -276,14 +281,22 @@ export async function descargarComprobanteReserva(
   id: number,
   nombreArchivo: string,
 ): Promise<void> {
-  const token = localStorage.getItem("ucb_auth_token");
+  const token = sessionStorage.getItem("ucb_auth_token");
+  if (!token) {
+    window.location.href = "/login";
+    return;
+  }
+
   const response = await fetch(getComprobanteUrl(id), {
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    headers: { Authorization: `Bearer ${token}` },
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      sessionStorage.removeItem("ucb_auth_token");
+      window.location.href = "/login";
+      return;
+    }
     throw new Error("No se pudo descargar el comprobante PDF");
   }
 

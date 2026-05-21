@@ -26,10 +26,10 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="error-boundary">
+        <div className="error-boundary" style={{ padding: "2rem", textAlign: "center" }}>
           <h2>Algo sali\u00f3 mal</h2>
-          <p>{this.state.error?.message}</p>
-          <button onClick={() => window.location.reload()}>
+          <p>Ocurri\u00f3 un error inesperado. Intenta recargar la p\u00e1gina.</p>
+          <button className="btn btn-primary" onClick={() => window.location.reload()}>
             Recargar p\u00e1gina
           </button>
         </div>

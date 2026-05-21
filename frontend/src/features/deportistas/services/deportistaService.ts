@@ -130,9 +130,23 @@ export async function actualizarDeportista(
   id: number,
   data: Partial<DeportistaFormData>,
 ): Promise<Deportista> {
+  const body: Record<string, unknown> = {};
+  if (data.nombreCompleto !== undefined) body.nombre_completo = data.nombreCompleto;
+  if (data.ci !== undefined) body.ci = data.ci;
+  if (data.fechaNacimiento !== undefined) body.fecha_nacimiento = data.fechaNacimiento;
+  if (data.genero !== undefined) body.genero = data.genero;
+  if (data.telefono !== undefined) body.telefono = data.telefono;
+  if (data.email !== undefined) body.email = data.email;
+  if (data.direccion !== undefined) body.direccion = data.direccion;
+  if (data.carrera !== undefined) body.carrera = data.carrera;
+  if (data.semestre !== undefined) body.semestre = data.semestre ? Number(data.semestre) : undefined;
+  if (data.tallaCamiseta !== undefined) body.talla_camiseta = data.tallaCamiseta;
+  if (data.matriculaActiva !== undefined) body.matricula_activa = data.matriculaActiva;
+  if (data.activo !== undefined) body.activo = data.activo;
+
   const raw = await apiRequest<DeportistaRaw>(`/api/deportistas/${id}`, {
     method: "PATCH",
-    body: JSON.stringify(data),
+    body: JSON.stringify(body),
     requiresAdmin: true,
   });
   return mapDeportista(raw);

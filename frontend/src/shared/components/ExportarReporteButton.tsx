@@ -48,40 +48,15 @@ export const ExportarReporteButton: React.FC<ExportarReporteButtonProps> = ({
   };
 
   return (
-    <div style={{ position: 'relative', display: 'inline-block' }} ref={dropdownRef}>
-      {/* Botón Principal */}
+    <div className="exportar-btn-container" ref={dropdownRef}>
       <button
         onClick={() => !cargando && setIsOpen(!isOpen)}
         disabled={cargando}
-        style={{
-          backgroundColor: '#004b7c', // Color azul oscuro acorde a la UCB
-          color: '#ffffff',
-          padding: '10px 20px',
-          border: 'none',
-          borderRadius: '20px', // Bordes redondeados del estilo de tu UI
-          fontSize: '14px',
-          fontWeight: 'bold',
-          cursor: cargando ? 'not-allowed' : 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-          transition: 'background-color 0.2s',
-        }}
+        className="exportar-btn"
       >
         {cargando ? (
           <>
-            {/* Spinner de carga inline */}
-            <span style={{
-              display: 'inline-block',
-              width: '14px',
-              height: '14px',
-              border: '2px solid #ffffff',
-              borderTop: '2px solid transparent',
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite'
-            }} />
-            <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+            <span className="exportar-spinner" />
             Generando...
           </>
         ) : (
@@ -92,71 +67,25 @@ export const ExportarReporteButton: React.FC<ExportarReporteButtonProps> = ({
         )}
       </button>
 
-      {/* Menú Desplegable (Dropdown) */}
       {isOpen && (
-        <ul
-          style={{
-            position: 'absolute',
-            top: '105%',
-            right: 0,
-            backgroundColor: '#ffffff',
-            minWidth: '160px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            borderRadius: '8px',
-            padding: '6px 0',
-            margin: 0,
-            listStyle: 'none',
-            zIndex: 100,
-            border: '1px solid #e0e0e0',
-          }}
-        >
+        <ul className="exportar-dropdown">
           <li
             onClick={() => handleExportar('pdf')}
-            style={{
-              padding: '10px 16px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'background-color 0.2s',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f5f5f5')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+            className="exportar-dropdown-item"
           >
             📄 Exportar PDF
           </li>
           <li
             onClick={() => handleExportar('excel')}
-            style={{
-              padding: '10px 16px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'background-color 0.2s',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f5f5f5')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+            className="exportar-dropdown-item"
           >
             📊 Exportar Excel
           </li>
         </ul>
       )}
 
-      {/* Mensaje de Error Inline */}
       {error && (
-        <div
-          style={{
-            color: '#d32f2f',
-            fontSize: '12px',
-            marginTop: '6px',
-            position: 'absolute',
-            whiteSpace: 'nowrap',
-            left: '5px'
-          }}
-        >
+        <div className="exportar-error">
           ⚠️ {error}
         </div>
       )}

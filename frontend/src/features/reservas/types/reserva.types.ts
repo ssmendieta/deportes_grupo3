@@ -12,6 +12,8 @@ export type DisciplinaBasica = {
   id: number;
   nombre: string;
   descripcion?: string | null;
+  categorias?: string | null;
+  mensualidad?: number | null;
   activo?: boolean;
   orden?: number;
 };

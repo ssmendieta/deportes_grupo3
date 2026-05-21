@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import StatusBadge from "../../../shared/components/StatusBadge";
+import Spinner from "../../../shared/components/Spinner";
 import { formatFechaBO } from "../../../shared/services/apiClient";
 import { obtenerPagosDeportista } from "../services/deportistaService";
 import type {
@@ -118,7 +119,7 @@ function DeportistaAccount({ deportista, onVolver }: Props) {
         </div>
 
         {cargandoPagos ? (
-          <p style={{ padding: "1rem" }}>Cargando historial...</p>
+          <Spinner texto="Cargando historial de pagos..." />
         ) : pagos.length === 0 ? (
           <p style={{ padding: "1rem" }}>Sin pagos registrados.</p>
         ) : (

@@ -27,10 +27,10 @@ function mapDisciplina(raw: DisciplinaRaw): Disciplina {
 }
 
 export async function listarDisciplinas(): Promise<Disciplina[]> {
-  const data = await apiRequest<DisciplinaRaw[]>("/api/disciplinas", {
-    requiresAdmin: true,
+  const raw = await apiRequest<DisciplinaRaw[]>("/api/disciplinas", {
+    requiresAdmin: false,
   });
-  return data.map(mapDisciplina);
+  return raw.map(mapDisciplina);
 }
 
 export async function crearDisciplina(

@@ -26,6 +26,7 @@ import {
 import type { PagoFiltro } from "../types/pago.types";
 
 import { ExportarReporteButton } from "../../../shared/components/ExportarReporteButton";
+import Spinner from "../../../shared/components/Spinner";
 
 const filtrosIniciales: PagoFiltro = {
   busqueda: "",
@@ -42,6 +43,8 @@ anio: "2026",
 function PagosAcademiasPage() {
   const [cuentas, setCuentas] =
     useState<Deportista[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [filtros, setFiltros] =
     useState<PagoFiltro>(
@@ -57,17 +60,11 @@ function PagosAcademiasPage() {
     );
 
   useEffect(() => {
-    const timeoutId =
-      window.setTimeout(() => {
-        void listarCuentasAcademia().then(
-          setCuentas
-        );
-      }, 0);
-
-    return () =>
-      window.clearTimeout(
-        timeoutId
-      );
+    setCargando(true);
+    listarCuentasAcademia()
+      .then(setCuentas)
+      .catch(() => setError("Error al cargar los datos de pagos"))
+      .finally(() => setCargando(false));
   }, []);
 
   const resumen = useMemo(
@@ -108,11 +105,10 @@ function PagosAcademiasPage() {
             item.estadoCuenta ===
               filtros.estado;
 
-          // TEMPORAL
-          const coincideMes = true;
-
+          const coincideMes =
+            filtros.mes === "enero" || (item.estadoCuenta === "pendiente" && (item.deuda ?? 0) > 0);
           const coincideAnio =
-            true;
+            filtros.anio === "2026" || (item.estadoCuenta === "pendiente" && (item.deuda ?? 0) > 0);
 
           return (
             coincideBusqueda &&
@@ -178,7 +174,16 @@ function PagosAcademiasPage() {
         </div>
       </div>
 
-      {/* STATS */}
+      {cargando && <Spinner texto="Cargando datos de pagos..." tamanio="lg" />}
+
+      {error && (
+        <section className="panel-card" style={{ textAlign: "center", padding: "2rem" }}>
+          <p className="form-error">{error}</p>
+        </section>
+      )}
+
+      {!cargando && !error && (
+        <>
       <section className="stats-grid">
         <StatCard
           label="Al día"
@@ -200,24 +205,24 @@ function PagosAcademiasPage() {
         />
       </section>
 
-      {/* FILTROS */}
       <PagosFilters
         filtros={filtros}
         onChange={setFiltros}
       />
 
-      {/* LEYENDA */}
       <PagosLegend />
 
-      {/* TABLA */}
       <DeportistaTable
         deportistas={
           cuentasFiltradas
         }
+        cargando={cargando}
         onVerCuenta={
           setCuentaSeleccionada
         }
       />
+        </>
+      )}
     </div>
   );
 }

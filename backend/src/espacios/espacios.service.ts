@@ -13,7 +13,7 @@ export class EspaciosService {
 
   findOne(id: number) {
     return this.prisma.espacio.findUnique({
-      where: { id },
+      where: { id, activo: true },
     });
   }
 }

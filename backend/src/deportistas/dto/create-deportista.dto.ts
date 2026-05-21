@@ -16,7 +16,7 @@ export class CreateDeportistaDto {
   @ApiProperty({
     description:
       "Tipo de deportista. Determina qué campos adicionales son requeridos.",
-    enum: ["estudiante_ucb", "externo"],
+    enum: ["academia", "competitivo", "estudiante_ucb"],
     example: "estudiante_ucb",
   })
   @IsString()

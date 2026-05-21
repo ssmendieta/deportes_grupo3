@@ -52,10 +52,7 @@ function DashboardAdminPage() {
       }
     };
 
-    const timeoutId = window.setTimeout(() => {
-      void cargarStats();
-    }, 0);
-    return () => window.clearTimeout(timeoutId);
+    void cargarStats();
   }, []);
 
   const quickAccess: { label: string; helper: string; path: string }[] = [

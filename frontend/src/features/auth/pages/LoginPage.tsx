@@ -54,7 +54,7 @@ export default function LoginPage() {
           <span>o pega tu token JWT si ya iniciaste sesión</span>
         </div>
 
-        <form onSubmit={handleTokenSubmit} className="token-form">
+        <form onSubmit={handleTokenSubmit} className="token-form" noValidate>
           <div className="field">
             <span>Token JWT</span>
             <textarea

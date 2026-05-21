@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import type { Disciplina, DisciplinaFormData } from "../types/disciplina.types";
+import {
+  validarNombreCompleto,
+  validarRequerido,
+  type ErroresForm,
+  mostrarError,
+} from "../../../shared/utils/validators";
 
 type Props = {
   abierto: boolean;
@@ -26,24 +32,23 @@ function DisciplinaFormModal({
   const [formData, setFormData] = useState<DisciplinaFormData>(formInicial);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
+  const [errores, setErrores] = useState<ErroresForm>({});
 
   useEffect(() => {
     if (!abierto) return;
-    const timeoutId = window.setTimeout(() => {
-      setFormData(
-        disciplinaEditando
-          ? {
-              nombre: disciplinaEditando.nombre,
-              descripcion: disciplinaEditando.descripcion,
-              categorias: disciplinaEditando.categorias,
-              mensualidad: String(disciplinaEditando.mensualidad),
-              estado: disciplinaEditando.estado,
-            }
-          : formInicial,
-      );
-      setError("");
-    }, 0);
-    return () => window.clearTimeout(timeoutId);
+    setFormData(
+      disciplinaEditando
+        ? {
+            nombre: disciplinaEditando.nombre,
+            descripcion: disciplinaEditando.descripcion,
+            categorias: disciplinaEditando.categorias,
+            mensualidad: String(disciplinaEditando.mensualidad),
+            estado: disciplinaEditando.estado,
+          }
+        : formInicial,
+    );
+    setError("");
+    setErrores({});
   }, [abierto, disciplinaEditando]);
 
   if (!abierto) return null;
@@ -58,19 +63,19 @@ function DisciplinaFormModal({
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
-    if (!formData.nombre.trim()) {
-      setError("El nombre es obligatorio.");
-      return;
-    }
+
+    const nuevosErrores: ErroresForm = {
+      nombre: validarNombreCompleto(formData.nombre, "El nombre"),
+      mensualidad: formData.mensualidad && Number(formData.mensualidad) < 0 ? "La mensualidad no puede ser negativa." : null,
+    };
+    setErrores(nuevosErrores);
+    if (Object.values(nuevosErrores).some(Boolean)) return;
+
     setGuardando(true);
     try {
       await onGuardar(formData);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "No se pudo guardar la disciplina.",
-      );
+    } catch {
+      setError("No se pudo guardar la disciplina. Verifica los datos.");
     } finally {
       setGuardando(false);
     }
@@ -84,15 +89,20 @@ function DisciplinaFormModal({
         </button>
         <h2>{disciplinaEditando ? "Editar disciplina" : "Nueva disciplina"}</h2>
 
-        <form className="form-grid" onSubmit={handleSubmit}>
+        <form className="form-grid" onSubmit={handleSubmit} noValidate>
           <label className="field">
             <span>Nombre *</span>
             <input
+              id="disc-nombre"
               value={formData.nombre}
-              onChange={(e) => handleChange("nombre", e.target.value)}
+              onChange={(e) => { const v = e.target.value; handleChange("nombre", v.charAt(0).toUpperCase() + v.slice(1)); setErrores((p) => ({ ...p, nombre: null })); }}
+              onBlur={() => { if (!formData.nombre.trim()) setErrores((p) => ({ ...p, nombre: validarNombreCompleto(formData.nombre, "El nombre") })); }}
               placeholder="Ej. Voleibol"
-              disabled={!!disciplinaEditando} // no se puede cambiar el nombre
+              required
+              maxLength={80}
+              aria-describedby={mostrarError(errores, "nombre") ? "error-disc-nombre" : undefined}
             />
+            {mostrarError(errores, "nombre") && <small id="error-disc-nombre" className="field-error">{mostrarError(errores, "nombre")}</small>}
           </label>
 
           <label className="field">
@@ -132,12 +142,16 @@ function DisciplinaFormModal({
           <label className="field">
             <span>Mensualidad (Bs.)</span>
             <input
+              id="disc-mensualidad"
               type="number"
               min="0"
               value={formData.mensualidad}
-              onChange={(e) => handleChange("mensualidad", e.target.value)}
+              onChange={(e) => { handleChange("mensualidad", e.target.value); setErrores((p) => ({ ...p, mensualidad: null })); }}
+              onBlur={() => { if (formData.mensualidad && Number(formData.mensualidad) < 0) setErrores((p) => ({ ...p, mensualidad: "La mensualidad no puede ser negativa." })); }}
               placeholder="Ej. 120"
+              aria-describedby={mostrarError(errores, "mensualidad") ? "error-disc-mensualidad" : undefined}
             />
+            {mostrarError(errores, "mensualidad") && <small id="error-disc-mensualidad" className="field-error">{mostrarError(errores, "mensualidad")}</small>}
           </label>
 
           <div className="form-hint full">
@@ -148,7 +162,7 @@ function DisciplinaFormModal({
           {error && <div className="form-error full">{error}</div>}
 
           <div className="form-actions full">
-            <button className="btn btn-ghost" type="button" onClick={onCerrar}>
+            <button className="btn btn-ghost" type="button" onClick={onCerrar} disabled={guardando}>
               Cancelar
             </button>
             <button

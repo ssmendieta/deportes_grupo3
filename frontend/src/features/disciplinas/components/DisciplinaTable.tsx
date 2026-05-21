@@ -1,5 +1,6 @@
 import type { Disciplina } from "../types/disciplina.types";
 import EstadoDisciplinaBadge from "./EstadoDisciplinaBadge";
+import Spinner from "../../../shared/components/Spinner";
 
 type Props = {
   disciplinas: Disciplina[];
@@ -15,7 +16,10 @@ function DisciplinaTable({
   onCambiarEstado,
 }: Props) {
   if (cargando)
-    return <div className="panel-card">Cargando disciplinas...</div>;
+    return <Spinner texto="Cargando disciplinas..." tamanio="lg" />;
+
+  if (disciplinas.length === 0)
+    return <div className="panel-card" style={{ textAlign: "center", padding: "2rem" }}>No se encontraron disciplinas.</div>;
 
   return (
     <div className="table-card">
