@@ -5,9 +5,11 @@ import {
   Navigate,
   Outlet,
   useNavigate,
+  useLocation,
 } from "react-router-dom";
 import "./App.css";
 import AppNavigation from "./shared/components/AppNavigation";
+import { ErrorBoundary } from "./shared/components/ErrorBoundary";
 import DashboardAdminPage from "./features/dashboard/pages/DashboardAdminPage";
 import CalendarioPage from "./features/calendario/pages/CalendarioPage";
 import RegistroDeportistaPage from "./features/deportistas/pages/RegistroDeportistaPage";
@@ -20,25 +22,39 @@ import {
   isAuthenticated,
   setToken,
   clearToken,
+  getToken,
   getUserFromToken,
 } from "./features/auth/authStore";
+import { API_URL } from "./shared/services/apiClient";
 
 function captureTokenFromUrl(): void {
   const params = new URLSearchParams(window.location.search);
-  const token = params.get("token") ?? params.get("jwt");
+  let token = params.get("token") ?? params.get("jwt");
+
+  if (!token && window.location.hash) {
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    token = hashParams.get("token") ?? hashParams.get("jwt");
+  }
+
   if (!token) return;
   setToken(token);
-  params.delete("token");
-  params.delete("jwt");
-  const newSearch = params.toString();
-  const newUrl = window.location.pathname + (newSearch ? `?${newSearch}` : "");
-  window.history.replaceState({}, "", newUrl);
+  window.history.replaceState({}, "", window.location.pathname);
 }
 
 captureTokenFromUrl();
 
+const ADMIN_ROUTES = [
+  "/dashboard",
+  "/deportistas",
+  "/pagos",
+  "/disciplinas",
+  "/reservas",
+  "/reservas/nueva",
+];
+
 function ProtectedLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
@@ -46,7 +62,22 @@ function ProtectedLayout() {
 
   const user = getUserFromToken();
 
-  function handleLogout() {
+  if (ADMIN_ROUTES.includes(location.pathname) && user?.rol !== "admin") {
+    return <Navigate to="/" replace />;
+  }
+
+  async function handleLogout() {
+    const token = getToken();
+    if (token) {
+      try {
+        await fetch(`${API_URL}/api/auth/logout`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch {
+        // Si el backend no responde, igual cerramos sesión local
+      }
+    }
     clearToken();
     navigate("/login");
   }
@@ -67,7 +98,9 @@ function ProtectedLayout() {
         </button>
       </div>
       <main className="app-main">
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </main>
     </div>
   );

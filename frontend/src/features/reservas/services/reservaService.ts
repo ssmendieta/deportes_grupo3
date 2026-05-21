@@ -172,9 +172,19 @@ export async function getReservas(params?: {
   fecha?: string;
 }): Promise<Reserva[]> {
   try {
-    return await apiRequest<Reserva[]>("/api/reservas", {
-      requiresAdmin: true,
-    });
+    const query = new URLSearchParams();
+    if (params?.fecha) query.append("fecha", params.fecha);
+    if (params?.espacioId) query.append("espacioId", String(params.espacioId));
+    query.append("limit", "200");
+    const qs = query.toString();
+    const endpoint = qs ? `/api/reservas?${qs}` : "/api/reservas";
+    const response = await apiRequest<{
+      data: Reserva[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(endpoint, { requiresAdmin: true });
+    return response.data;
   } catch (error) {
     console.warn("Usando reservas fallback", error);
     return reservasFallback.filter((reserva) => {
@@ -216,19 +226,35 @@ export async function crearReserva(datos: CreateReservaDto): Promise<Reserva> {
 }
 
 export async function cancelarReserva(id: number): Promise<Reserva> {
-  return apiRequest<Reserva>(`/api/reservas/${id}`, {
-    method: "PATCH",
-    requiresAdmin: true,
-    body: JSON.stringify({ estado: "cancelada" }),
-  });
+  try {
+    return await apiRequest<Reserva>(`/api/reservas/${id}`, {
+      method: "PATCH",
+      requiresAdmin: true,
+      body: JSON.stringify({ estado: "cancelada" }),
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message) {
+      throw error;
+    }
+    console.warn("No se pudo cancelar la reserva", error);
+    throw new Error("No se pudo cancelar la reserva");
+  }
 }
 
 export async function habilitarReserva(id: number): Promise<Reserva> {
-  return apiRequest<Reserva>(`/api/reservas/${id}`, {
-    method: "PATCH",
-    requiresAdmin: true,
-    body: JSON.stringify({ estado: "confirmada" }),
-  });
+  try {
+    return await apiRequest<Reserva>(`/api/reservas/${id}`, {
+      method: "PATCH",
+      requiresAdmin: true,
+      body: JSON.stringify({ estado: "confirmada" }),
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message) {
+      throw error;
+    }
+    console.warn("No se pudo habilitar la reserva", error);
+    throw new Error("No se pudo habilitar la reserva");
+  }
 }
 
 export async function editarReserva(

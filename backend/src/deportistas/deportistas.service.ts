@@ -3,45 +3,39 @@ import {
   NotFoundException,
   ConflictException,
 } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateDeportistaDto } from "./dto/create-deportista.dto";
+
+type PlanillaMap = Map<number, { matricula_pagada: boolean; saldo_pendiente: number; [key: string]: unknown }>;
 
 @Injectable()
 export class DeportistasService {
   constructor(private prisma: PrismaService) {}
 
-  private async calcularEstadoCuenta(
+  private calcularEstadoCuenta(
     deportistaId: number,
-    anio: number,
     tipo: string,
-  ): Promise<{ estado_cuenta: string; deuda: number }> {
+    planillaMap: PlanillaMap,
+  ): { estado_cuenta: string; deuda: number } {
+    const anio = new Date().getFullYear();
     const tiposNoAplica = ["estudiante_ucb", "competitivo", "curso_gratuito"];
     if (tiposNoAplica.includes(tipo)) {
       return { estado_cuenta: "no_aplica", deuda: 0 };
     }
 
-    const planilla = await this.prisma.planillaPagosAcademia.findUnique({
-      where: { deportista_id_anio: { deportista_id: deportistaId, anio } },
-    });
-
+    const planilla = planillaMap.get(deportistaId);
     if (!planilla) return { estado_cuenta: "pendiente", deuda: 0 };
 
     const mesActual = new Date().getMonth();
     const indiceMesAcademico = mesActual - 2;
+    const camposMes = [
+      "mes_1_pagado", "mes_2_pagado", "mes_3_pagado",
+      "mes_4_pagado", "mes_5_pagado", "mes_6_pagado",
+      "mes_7_pagado", "mes_8_pagado", "mes_9_pagado",
+    ] as const;
 
-    const camposMes: (keyof typeof planilla)[] = [
-      "mes_1_pagado",
-      "mes_2_pagado",
-      "mes_3_pagado",
-      "mes_4_pagado",
-      "mes_5_pagado",
-      "mes_6_pagado",
-      "mes_7_pagado",
-      "mes_8_pagado",
-      "mes_9_pagado",
-    ];
-
-    const mesesDebidos = camposMes.slice(0, indiceMesAcademico + 1);
+    const mesesDebidos = camposMes.slice(0, Math.max(0, indiceMesAcademico + 1));
     const mesesPendientes = mesesDebidos.filter((campo) => !planilla[campo]);
     const deuda = Number(planilla.saldo_pendiente);
 
@@ -52,12 +46,24 @@ export class DeportistasService {
     return { estado_cuenta: "pendiente", deuda };
   }
 
-  private async enriquecerDeportista(deportista: any) {
+  private async cargarPlanillas(deportistaIds: number[]): Promise<PlanillaMap> {
+    if (deportistaIds.length === 0) return new Map();
     const anio = new Date().getFullYear();
-    const { estado_cuenta, deuda } = await this.calcularEstadoCuenta(
+    const planillas = await this.prisma.planillaPagosAcademia.findMany({
+      where: { deportista_id: { in: deportistaIds }, anio },
+    });
+    const map: PlanillaMap = new Map();
+    for (const p of planillas) {
+      map.set(p.deportista_id, p as unknown as PlanillaMap extends Map<number, infer V> ? V : never);
+    }
+    return map;
+  }
+
+  private enriquecerDeportista(deportista: any, planillaMap: PlanillaMap) {
+    const { estado_cuenta, deuda } = this.calcularEstadoCuenta(
       deportista.id,
-      anio,
       deportista.tipo,
+      planillaMap,
     );
     return {
       ...deportista,
@@ -74,7 +80,7 @@ export class DeportistasService {
     activo?: string,
   ) {
     const skip = (page - 1) * limit;
-    const where: any = {};
+    const where: Prisma.DeportistaWhereInput = {};
 
     if (tipo) where.tipo = tipo;
     if (activo === "true") where.activo = true;
@@ -94,9 +100,10 @@ export class DeportistasService {
       this.prisma.deportista.count({ where }),
     ]);
 
-    const data = await Promise.all(
-      rawData.map((d) => this.enriquecerDeportista(d)),
-    );
+    const deportistaIds = rawData.map((d) => d.id);
+    const planillaMap = await this.cargarPlanillas(deportistaIds);
+
+    const data = rawData.map((d) => this.enriquecerDeportista(d, planillaMap));
 
     return { data, total, page: Number(page), limit: Number(limit) };
   }
@@ -113,7 +120,8 @@ export class DeportistasService {
     });
     if (!deportista)
       throw new NotFoundException(`Deportista #${id} no encontrado`);
-    return this.enriquecerDeportista(deportista);
+    const planillaMap = await this.cargarPlanillas([id]);
+    return this.enriquecerDeportista(deportista, planillaMap);
   }
 
   async buscarPorCi(ci: string) {
@@ -122,7 +130,8 @@ export class DeportistasService {
     });
     if (!deportista)
       throw new NotFoundException(`Deportista con CI ${ci} no encontrado`);
-    return this.enriquecerDeportista(deportista);
+    const planillaMap = await this.cargarPlanillas([deportista.id]);
+    return this.enriquecerDeportista(deportista, planillaMap);
   }
 
   async create(dto: CreateDeportistaDto) {

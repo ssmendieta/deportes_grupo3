@@ -10,8 +10,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
 
   function handleLoginRedirect() {
-    const callbackUrl = `${window.location.origin}/`;
-    window.location.href = `${AUTH_BASE_URL}/auth/google?redirect_uri=${encodeURIComponent(callbackUrl)}`;
+    const callbackUrl = `${window.location.origin}/#token=`;
+    window.open(`${AUTH_BASE_URL}/auth/google?redirect_uri=${encodeURIComponent(callbackUrl)}`, '_blank');
   }
 
   function handleTokenSubmit(e: React.FormEvent) {

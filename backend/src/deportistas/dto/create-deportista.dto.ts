@@ -91,7 +91,7 @@ export class CreateDeportistaDto {
     example: "juan.mamani@ucb.edu.bo",
   })
   @IsOptional()
-  @IsString()
+  @IsEmail()
   email?: string;
 
   @ApiPropertyOptional({

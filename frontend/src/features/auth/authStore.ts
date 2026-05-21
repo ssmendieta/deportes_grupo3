@@ -1,15 +1,15 @@
 const TOKEN_KEY = "ucb_auth_token";
 
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  return sessionStorage.getItem(TOKEN_KEY);
 }
 
 export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
+  sessionStorage.setItem(TOKEN_KEY, token);
 }
 
 export function clearToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
 }
 
 export function isAuthenticated(): boolean {
@@ -17,7 +17,7 @@ export function isAuthenticated(): boolean {
   if (!token) return false;
   try {
     const payload = parsePayload(token);
-    if (payload.exp && payload.exp * 1000 < Date.now()) {
+    if (payload.exp && Number(payload.exp) * 1000 < Date.now()) {
       clearToken();
       return false;
     }

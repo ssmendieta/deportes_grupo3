@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
   IsInt,
   IsPositive,
-  IsDecimal,
+  IsNumber,
   IsOptional,
   IsString,
   IsDateString,
@@ -22,6 +22,7 @@ export class CreatePagoDto {
   concepto_id!: number;
 
   @ApiProperty({ example: 120.0, description: "Monto del pago" })
+  @IsNumber()
   monto!: number;
 
   @ApiPropertyOptional({ example: 3, description: "Mes del pago (1-9)" })

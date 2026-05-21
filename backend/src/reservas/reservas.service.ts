@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ConflictException,
 } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { MailService } from "../mail/mail.service";
 import { CreateReservaDto } from "./dto/create-reserva.dto";
@@ -19,8 +20,14 @@ export class ReservasService {
     private mailService: MailService,
   ) {}
 
-  async findAll(espacioId?: number, fecha?: string) {
-    const where: any = {};
+  async findAll(
+    espacioId?: number,
+    fecha?: string,
+    page = 1,
+    limit = 50,
+  ) {
+    const where: Prisma.ReservaWhereInput = {};
+    const skip = (page - 1) * limit;
 
     if (espacioId) where.espacio_id = espacioId;
 
@@ -30,14 +37,21 @@ export class ReservasService {
       where.fecha = { gte: fechaInicio, lte: fechaFin };
     }
 
-    return this.prisma.reserva.findMany({
-      where,
-      include: {
-        espacio: true,
-        disciplina: true,
-      },
-      orderBy: { fecha: "asc" },
-    });
+    const [data, total] = await Promise.all([
+      this.prisma.reserva.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          espacio: true,
+          disciplina: true,
+        },
+        orderBy: { fecha: "asc" },
+      }),
+      this.prisma.reserva.count({ where }),
+    ]);
+
+    return { data, total, page: Number(page), limit: Number(limit) };
   }
 
   async findOne(id: number) {
@@ -72,7 +86,6 @@ export class ReservasService {
     const disciplina = await this.prisma.disciplina.findUnique({
       where: { id: dto.disciplina_id },
     });
-    console.log("Disciplina encontrada:", disciplina);
 
     if (!disciplina) {
       throw new NotFoundException(
@@ -123,53 +136,53 @@ export class ReservasService {
     const fechaFin = new Date(dto.fecha);
     fechaFin.setUTCHours(23, 59, 59, 999);
 
-    const reservaConflicto = await this.prisma.reserva.findFirst({
-      where: {
-        espacio_id: dto.espacio_id,
-        fecha: { gte: fechaInicio, lte: fechaFin },
-        estado: "confirmada",
-        OR: [
-          {
-            hora_inicio: { lte: dto.hora_inicio },
-            hora_fin: { gt: dto.hora_inicio },
-          },
-          {
-            hora_inicio: { lt: dto.hora_fin },
-            hora_fin: { gte: dto.hora_fin },
-          },
-          {
-            hora_inicio: { gte: dto.hora_inicio },
-            hora_fin: { lte: dto.hora_fin },
-          },
-        ],
-      },
-    });
+    const nuevaReserva = await this.prisma.$transaction(async (tx) => {
+      const reservaConflicto = await tx.reserva.findFirst({
+        where: {
+          espacio_id: dto.espacio_id,
+          fecha: { gte: fechaInicio, lte: fechaFin },
+          estado: "confirmada",
+          OR: [
+            {
+              hora_inicio: { lte: dto.hora_inicio },
+              hora_fin: { gt: dto.hora_inicio },
+            },
+            {
+              hora_inicio: { lt: dto.hora_fin },
+              hora_fin: { gte: dto.hora_fin },
+            },
+            {
+              hora_inicio: { gte: dto.hora_inicio },
+              hora_fin: { lte: dto.hora_fin },
+            },
+          ],
+        },
+      });
 
-    if (reservaConflicto) {
-      throw new ConflictException(
-        `El horario (${dto.hora_inicio} - ${dto.hora_fin}) ya está reservado`,
-      );
-    }
+      if (reservaConflicto) {
+        throw new ConflictException(
+          `El horario (${dto.hora_inicio} - ${dto.hora_fin}) ya está reservado`,
+        );
+      }
 
-    const nuevaReserva = await this.prisma.reserva.create({
-      data: {
-        espacio_id: dto.espacio_id,
-        solicitante_id: 0,
-        deportista_id: 0,
-        fecha: fechaDate,
-        hora_inicio: dto.hora_inicio,
-        hora_fin: dto.hora_fin,
-        disciplina_id: dto.disciplina_id,
-        motivo: dto.motivo,
-        estado: "confirmada",
-        nombre_solicitante: dto.nombre_solicitante,
-        carnet: dto.carnet,
-        email_solicitante: dto.email_solicitante ?? null,
-      },
-      include: {
-        espacio: true,
-        disciplina: true,
-      },
+      return tx.reserva.create({
+        data: {
+          espacio_id: dto.espacio_id,
+          fecha: fechaDate,
+          hora_inicio: dto.hora_inicio,
+          hora_fin: dto.hora_fin,
+          disciplina_id: dto.disciplina_id,
+          motivo: dto.motivo,
+          estado: "confirmada",
+          nombre_solicitante: dto.nombre_solicitante,
+          carnet: dto.carnet,
+          email_solicitante: dto.email_solicitante ?? null,
+        },
+        include: {
+          espacio: true,
+          disciplina: true,
+        },
+      });
     });
 
     this.logger.log(`Reserva creada: #${nuevaReserva.id}`);
@@ -189,33 +202,53 @@ export class ReservasService {
   }
 
   async update(id: number, dto: UpdateReservaDto) {
-    const reserva = await this.findOne(id);
+    return this.prisma.$transaction(async (tx) => {
+      const reserva = await tx.reserva.findUnique({
+        where: { id },
+        include: { espacio: true, disciplina: true },
+      });
 
-    return this.prisma.reserva.update({
-      where: { id },
-      data: {
-        ...(dto.estado !== undefined && { estado: dto.estado }),
-        ...(dto.fecha !== undefined && {
-          fecha: new Date(`${dto.fecha}T12:00:00.000Z`),
-        }),
-        ...(dto.hora_inicio !== undefined && { hora_inicio: dto.hora_inicio }),
-        ...(dto.hora_fin !== undefined && { hora_fin: dto.hora_fin }),
-        ...(dto.nombre_solicitante !== undefined && {
-          nombre_solicitante: dto.nombre_solicitante,
-        }),
-        ...(dto.carnet !== undefined && { carnet: dto.carnet }),
-        ...(dto.motivo !== undefined && { motivo: dto.motivo }),
-        ...(dto.disciplina_id !== undefined && {
-          disciplina: { connect: { id: dto.disciplina_id } },
-        }),
-        ...(dto.espacio_id !== undefined && {
-          espacio: { connect: { id: dto.espacio_id } },
-        }),
-      },
-      include: {
-        espacio: true,
-        disciplina: true,
-      },
+      if (!reserva) {
+        throw new NotFoundException(`Reserva con id ${id} no encontrada`);
+      }
+
+      if (dto.estado !== undefined) {
+        if (reserva.estado === "cancelada" && dto.estado === "cancelada") {
+          throw new ConflictException(
+            `La reserva #${id} ya se encuentra cancelada`,
+          );
+        }
+        if (reserva.estado === "confirmada" && dto.estado === "confirmada") {
+          return reserva;
+        }
+      }
+
+      return tx.reserva.update({
+        where: { id },
+        data: {
+          ...(dto.estado !== undefined && { estado: dto.estado }),
+          ...(dto.fecha !== undefined && {
+            fecha: new Date(`${dto.fecha}T12:00:00.000Z`),
+          }),
+          ...(dto.hora_inicio !== undefined && { hora_inicio: dto.hora_inicio }),
+          ...(dto.hora_fin !== undefined && { hora_fin: dto.hora_fin }),
+          ...(dto.nombre_solicitante !== undefined && {
+            nombre_solicitante: dto.nombre_solicitante,
+          }),
+          ...(dto.carnet !== undefined && { carnet: dto.carnet }),
+          ...(dto.motivo !== undefined && { motivo: dto.motivo }),
+          ...(dto.disciplina_id !== undefined && {
+            disciplina: { connect: { id: dto.disciplina_id } },
+          }),
+          ...(dto.espacio_id !== undefined && {
+            espacio: { connect: { id: dto.espacio_id } },
+          }),
+        },
+        include: {
+          espacio: true,
+          disciplina: true,
+        },
+      });
     });
   }
   async generarComprobante(reservaId: number): Promise<Buffer> {

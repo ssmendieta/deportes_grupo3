@@ -20,6 +20,7 @@ import {
 } from "@nestjs/swagger";
 import { DeportistasService } from "./deportistas.service";
 import { CreateDeportistaDto } from "./dto/create-deportista.dto";
+import { UpdateDeportistaDto } from "./dto/update-deportista.dto";
 
 @ApiTags("Deportistas")
 @ApiBearerAuth()
@@ -192,7 +193,7 @@ export class DeportistasController {
     status: HttpStatus.UNAUTHORIZED,
     description: "Token de autenticación inválido o ausente.",
   })
-  update(@Param("id", ParseIntPipe) id: number, @Body() updateDto: any) {
+  update(@Param("id", ParseIntPipe) id: number, @Body() updateDto: UpdateDeportistaDto) {
     return this.deportistasService.update(id, updateDto);
   }
 

@@ -20,6 +20,7 @@ import {
 } from "@nestjs/swagger";
 import { DisciplinasService } from "./disciplinas.service";
 import { CreateDisciplinaDto } from "./dto/create-disciplina.dto";
+import { UpdateDisciplinaDto } from "./dto/update-disciplina.dto";
 
 @ApiTags("Disciplinas")
 @ApiBearerAuth()
@@ -125,7 +126,7 @@ export class DisciplinasController {
     status: HttpStatus.UNAUTHORIZED,
     description: "Token de autenticación inválido o ausente.",
   })
-  update(@Param("id", ParseIntPipe) id: number, @Body() updateDto: any) {
+  update(@Param("id", ParseIntPipe) id: number, @Body() updateDto: UpdateDisciplinaDto) {
     return this.disciplinasService.update(id, updateDto);
   }
 

@@ -1,13 +1,17 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ConflictException,
 } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreatePagoDto } from "./dto/create-pago.dto";
 
 @Injectable()
 export class PagosService {
+  private readonly logger = new Logger(PagosService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async getConceptos(disciplina_id?: number) {
@@ -32,43 +36,43 @@ export class PagosService {
       },
     });
 
-    const planilla = await Promise.all(
-      inscripciones.map(async (inscripcion) => {
-        const registro = await this.prisma.planillaPagosAcademia.findUnique({
-          where: {
-            deportista_id_anio: {
-              deportista_id: inscripcion.deportista_id,
-              anio,
-            },
-          },
-        });
+    const deportistaIds = inscripciones.map((i) => i.deportista_id);
+    const registros = await this.prisma.planillaPagosAcademia.findMany({
+      where: { deportista_id: { in: deportistaIds }, anio },
+    });
 
-        return {
-          deportista: {
-            id: inscripcion.deportista.id,
-            nombre_completo: inscripcion.deportista.nombre_completo,
-            ci: inscripcion.deportista.ci,
-            tipo: inscripcion.deportista.tipo,
-          },
-          planilla: registro ?? {
-            deportista_id: inscripcion.deportista_id,
-            anio,
-            matricula_pagada: false,
-            mes_1_pagado: false,
-            mes_2_pagado: false,
-            mes_3_pagado: false,
-            mes_4_pagado: false,
-            mes_5_pagado: false,
-            mes_6_pagado: false,
-            mes_7_pagado: false,
-            mes_8_pagado: false,
-            mes_9_pagado: false,
-            total_pagado: 0,
-            saldo_pendiente: 0,
-          },
-        };
-      }),
+    const registrosMap = new Map(
+      registros.map((r) => [r.deportista_id, r]),
     );
+
+    const planilla = inscripciones.map((inscripcion) => {
+      const registro = registrosMap.get(inscripcion.deportista_id);
+
+      return {
+        deportista: {
+          id: inscripcion.deportista.id,
+          nombre_completo: inscripcion.deportista.nombre_completo,
+          ci: inscripcion.deportista.ci,
+          tipo: inscripcion.deportista.tipo,
+        },
+        planilla: registro ?? {
+          deportista_id: inscripcion.deportista_id,
+          anio,
+          matricula_pagada: false,
+          mes_1_pagado: false,
+          mes_2_pagado: false,
+          mes_3_pagado: false,
+          mes_4_pagado: false,
+          mes_5_pagado: false,
+          mes_6_pagado: false,
+          mes_7_pagado: false,
+          mes_8_pagado: false,
+          mes_9_pagado: false,
+          total_pagado: 0,
+          saldo_pendiente: 0,
+        },
+      };
+    });
 
     return planilla;
   }
@@ -76,7 +80,7 @@ export class PagosService {
   async getMorosos(disciplina_id?: number, anio?: number) {
     const anioConsulta = anio ?? new Date().getFullYear();
 
-    const where: any = {
+    const where: Prisma.PlanillaPagosAcademiaWhereInput = {
       anio: anioConsulta,
       OR: [
         { matricula_pagada: false },
@@ -194,6 +198,8 @@ export class PagosService {
       }
     }
 
+    this.logger.log(`Registrando pago: deportista #${dto.deportista_id}, concepto #${dto.concepto_id}, monto ${dto.monto}`);
+
     const resultado = await this.prisma.$transaction(async (tx) => {
       const pago = await tx.pago.create({
         data: {
@@ -240,6 +246,8 @@ export class PagosService {
       return pago;
     });
 
+    this.logger.log(`Pago registrado: #${resultado.id}`);
+
     return resultado;
   }
 
@@ -281,6 +289,8 @@ export class PagosService {
 
       return pagoAnulado;
     });
+
+    this.logger.log(`Pago anulado: #${id}`);
 
     return resultado;
   }

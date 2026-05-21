@@ -23,8 +23,8 @@ model Espacio {
 model Reserva {
   id                  Int        @id @default(autoincrement())
   espacio_id          Int
-  solicitante_id      Int        @default(0)
-  deportista_id       Int        @default(0)
+  solicitante_id      Int?
+  deportista_id       Int?
   nombre_solicitante  String
   carnet              String
   fecha               DateTime

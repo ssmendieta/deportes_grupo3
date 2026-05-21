@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateDisciplinaDto } from "./dto/create-disciplina.dto";
+import { UpdateDisciplinaDto } from "./dto/update-disciplina.dto";
 
 @Injectable()
 export class DisciplinasService {
@@ -46,14 +47,13 @@ export class DisciplinasService {
     });
   }
 
-  async update(id: number, dto: any) {
+  async update(id: number, dto: UpdateDisciplinaDto) {
     await this.findOne(id);
 
-    const dataLimpia: any = {};
+    const dataLimpia: Record<string, unknown> = {};
     if (dto.descripcion !== undefined) dataLimpia.descripcion = dto.descripcion;
     if (dto.categorias !== undefined) dataLimpia.categorias = dto.categorias;
     if (dto.mensualidad !== undefined) dataLimpia.mensualidad = dto.mensualidad;
-    if (dto.activo !== undefined) dataLimpia.activo = dto.activo;
     if (dto.orden !== undefined) dataLimpia.orden = dto.orden;
 
     return this.prisma.disciplina.update({ where: { id }, data: dataLimpia });

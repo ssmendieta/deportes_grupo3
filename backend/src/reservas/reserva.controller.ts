@@ -31,10 +31,14 @@ export class ReservasController {
   findAll(
     @Query("espacioId") espacioId?: string,
     @Query("fecha") fecha?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
   ) {
     return this.reservasService.findAll(
       espacioId ? parseInt(espacioId) : undefined,
       fecha,
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 50,
     );
   }
 
