@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
 import EmptyState from "../../../shared/components/EmptyState";
 import {
   crearReserva,
   getDisciplinasReserva,
   getEspacios,
 } from "../services/reservaService";
-import type { DisciplinaBasica, Espacio, ReservaFormData } from "../types/reserva.types";
+import ReservaConfirmadaModal from "./ReservaConfirmadaModal";
+import type { DisciplinaBasica, Espacio, Reserva, ReservaFormData } from "../types/reserva.types";
 
 type Props = {
-  onReservaCreada?: () => void;
+  onReservaCreada?: (reserva: Reserva) => void;
 };
 
 const formInicial: ReservaFormData = {
@@ -33,12 +33,12 @@ function horaAMinutos(hora: string) {
 }
 
 function ReservaForm({ onReservaCreada }: Props) {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState<ReservaFormData>(formInicial);
   const [espacios, setEspacios] = useState<Espacio[]>([]);
   const [disciplinas, setDisciplinas] = useState<DisciplinaBasica[]>([]);
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [reservaCreada, setReservaCreada] = useState<Reserva | null>(null);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -88,7 +88,7 @@ function ReservaForm({ onReservaCreada }: Props) {
 
     setGuardando(true);
     try {
-      await crearReserva({
+      const reserva = await crearReserva({
         espacio_id: Number(formData.espacio_id),
         disciplina_id: Number(formData.disciplina_id),
         fecha: formData.fecha,
@@ -99,8 +99,9 @@ function ReservaForm({ onReservaCreada }: Props) {
         motivo: formData.motivo.trim(),
         ...(formData.email_solicitante.trim() && { email_solicitante: formData.email_solicitante.trim() }),
       });
-      onReservaCreada?.();
-      navigate("/reservas");
+      setReservaCreada(reserva);
+      onReservaCreada?.(reserva);
+      setFormData(formInicial);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo crear la reserva");
     } finally {
@@ -180,10 +181,15 @@ function ReservaForm({ onReservaCreada }: Props) {
         {error && <div className="form-error full">{error}</div>}
 
         <div className="form-actions full">
-          <button type="button" className="btn btn-ghost" onClick={() => navigate("/reservas")}>Volver</button>
+          <button type="button" className="btn btn-ghost" onClick={() => window.history.back()}>Volver</button>
           <button type="submit" className="btn btn-primary" disabled={!formularioValido || guardando}>{guardando ? "Guardando..." : "Crear reserva"}</button>
         </div>
       </form>
+      <ReservaConfirmadaModal
+        abierto={!!reservaCreada}
+        reserva={reservaCreada}
+        onCerrar={() => setReservaCreada(null)}
+      />
     </section>
   );
 }

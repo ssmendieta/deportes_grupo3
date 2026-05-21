@@ -20,7 +20,7 @@ import GestionDisciplinasPage from "./features/disciplinas/pages/GestionDiscipli
 
 // CORRECCIÓN CRÍTICA: Se quitaron las llaves { } porque tus amigos usaron export default
 import AdminReserva from "./features/reservas/components/AdminReserva";
-import ReservaForm from "./features/reservas/components/ReservaForm";
+import NuevaReservaPage from "./features/reservas/pages/NuevaReservaPage";
 
 import LoginPage from "./features/auth/pages/LoginPage";
 
@@ -148,7 +148,7 @@ function App() {
           {/* NUEVA RESERVA */}
           <Route
             path="/reservas/nueva"
-            element={<ReservaForm />}
+            element={<NuevaReservaPage />}
           />
 
         </Route>
