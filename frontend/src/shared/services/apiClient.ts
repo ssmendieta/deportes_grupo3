@@ -1,4 +1,5 @@
-export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const viteApiUrl = import.meta.env.VITE_API_URL;
+export const API_URL = viteApiUrl === "__RELATIVE__" ? "" : (viteApiUrl || "http://localhost:4000");
 const TOKEN_KEY = "ucb_auth_token";
 
 type RequestOptions = RequestInit & {

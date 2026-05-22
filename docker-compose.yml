@@ -12,6 +12,49 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: grupo3_backend
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: "postgresql://admin_user:admin_password123@db:5432/sistema_reservas?schema=public"
+      PORT: "4000"
+      CORS_ORIGIN: "http://localhost"
+      SMTP_HOST: "${SMTP_HOST:-sandbox.smtp.mailtrap.io}"
+      SMTP_PORT: "${SMTP_PORT:-2525}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASS: "${SMTP_PASS:-}"
+      SMTP_FROM: "${SMTP_FROM:-noreply@ucb-deportes.dev}"
+    ports:
+      - "4000:4000"
+    networks:
+      - app_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: "__RELATIVE__"
+    container_name: grupo3_frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - app_network
 
 volumes:
   postgres_data:
+
+networks:
+  app_network:
+    driver: bridge

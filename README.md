@@ -14,6 +14,62 @@ Sistema web para la gestión y reserva de espacios deportivos de la UCB, desarro
 
 ---
 
+## Arquitectura
+
+```mermaid
+flowchart TB
+  subgraph Frontend["Frontend (React + Vite)"]
+    RR["react-router-dom\n(7 rutas)"] --> PLogin["/login"]
+    RR --> PDash["/dashboard"]
+    RR --> PCal["/calendario"]
+    RR --> PDep["/deportistas"]
+    RR --> PDis["/disciplinas"]
+    RR --> PRes["/reservas"]
+    RR --> PPag["/pagos"]
+    PLogin --> AuthStore["authStore\n(sessionStorage JWT)"]
+    AuthStore --> ProtectedLayout["ProtectedLayout\n(rol check)"]
+    ProtectedLayout --> FEATURES["auth / dashboard / calendario / \ndeportistas / disciplinas / reservas / pagos"]
+    FEATURES --> shared["shared/\ncomponents | services | utils | types"]
+    FEATURES --> apiClient["apiClient.ts\n(fetch wrapper)"]
+  end
+
+  subgraph Backend["Backend (NestJS + TypeScript)"]
+    direction TB
+    MW["AuthMiddleware\n(JWT RS256 verify)"] --> Controllers
+    Controllers --> Services
+    Services --> PrismaService
+    PrismaService --> DB[("PostgreSQL 15\n(Docker)")]
+    Services --> MailService["MailService\n(SMTP - sidecar)"]
+    MailService --> TM["templates/\nreserva-confirmada.hbs"]
+
+    subgraph Controllers["Controllers (7)"]
+      AC["AuthController"]
+      EC["EspaciosController"]
+      HC["HorariosController"]
+      DC["DisciplinasController"]
+      DepC["DeportistasController"]
+      RC["ReservasController"]
+      PC["PagosController"]
+    end
+
+    subgraph Services["Services (7)"]
+      AS["AuthService"]
+      ES["EspaciosService"]
+      HS["HorariosService"]
+      DS["DisciplinasService"]
+      DepS["DeportistasService"]
+      RS["ReservasService"]
+      PS["PagosService"]
+    end
+  end
+
+  apiClient -->|"HTTP :4000"| MW
+
+  style Frontend fill:#e3f2fd,stroke:#1565c0
+  style Backend fill:#f3e5f5,stroke:#7b1fa2
+  style DB fill:#fff3e0,stroke:#e65100
+```
+
 ## Estructura del proyecto
 
 ```
@@ -816,6 +872,69 @@ npx prisma studio                       # Abrir visor de BD
 npm run start:dev    # Modo desarrollo con hot reload
 npm run build        # Compilar para producción
 npm run start        # Iniciar en producción
+```
+
+---
+
+## Despliegue con Docker
+
+El proyecto incluye Dockerfiles multistage para backend y frontend, y un `docker-compose.yml` que orquesta los 3 servicios.
+
+### Build y ejecución
+
+```bash
+# Construir imágenes
+docker compose build
+
+# Iniciar todos los servicios
+docker compose up -d
+```
+
+### Acceso
+
+| Servicio | URL |
+|---|---|
+| Frontend (React + nginx) | `http://localhost` |
+| Backend API (NestJS) | `http://localhost:4000` |
+| Swagger UI | `http://localhost/docs` |
+| Base de datos (PostgreSQL) | `localhost:5433` |
+
+### Migraciones y seed
+
+Ejecutar dentro del contenedor del backend:
+
+```bash
+docker compose exec backend npx prisma migrate dev
+docker compose exec backend npx prisma db seed
+```
+
+### Variables de entorno
+
+| Variable | Descripción | Default |
+|---|---|---|
+| `SMTP_HOST` | Host SMTP para emails | `sandbox.smtp.mailtrap.io` |
+| `SMTP_PORT` | Puerto SMTP | `2525` |
+| `SMTP_USER` | Usuario SMTP | *(vacio)* |
+| `SMTP_PASS` | Contraseña SMTP | *(vacio)* |
+| `SMTP_FROM` | Correo remitente | `noreply@ucb-deportes.dev` |
+
+Para configurar SMTP, crear un archivo `.env` en la raíz:
+
+```bash
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=tu-correo@gmail.com
+SMTP_PASS=tu-contrasena
+```
+
+### Comandos útiles
+
+```bash
+docker compose logs backend    # Ver logs del backend
+docker compose logs frontend   # Ver logs del frontend
+docker compose down            # Detener servicios
+docker compose down -v         # Detener y borrar volúmenes (pierde datos)
+docker compose restart backend # Reiniciar solo el backend
 ```
 
 ---

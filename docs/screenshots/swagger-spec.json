@@ -1,0 +1,1691 @@
+﻿{
+    "openapi":  "3.0.0",
+    "paths":  {
+                  "/api/auth/logout":  {
+                                           "post":  {
+                                                        "description":  "Invalida la sesión del usuario del lado del servidor.",
+                                                        "operationId":  "AuthController_logout",
+                                                        "parameters":  [
+
+                                                                       ],
+                                                        "responses":  {
+                                                                          "204":  {
+                                                                                      "description":  ""
+                                                                                  }
+                                                                      },
+                                                        "summary":  "Cerrar sesión",
+                                                        "tags":  [
+                                                                     "auth"
+                                                                 ]
+                                                    }
+                                       },
+                  "/api/espacios":  {
+                                        "get":  {
+                                                    "description":  "Endpoint público.",
+                                                    "operationId":  "EspaciosController_findAll",
+                                                    "parameters":  [
+
+                                                                   ],
+                                                    "responses":  {
+                                                                      "200":  {
+                                                                                  "description":  "Éxito"
+                                                                              }
+                                                                  },
+                                                    "summary":  "Listar espacios físicos",
+                                                    "tags":  [
+                                                                 "espacios"
+                                                             ]
+                                                }
+                                    },
+                  "/api/espacios/{id}":  {
+                                             "get":  {
+                                                         "operationId":  "EspaciosController_findOne",
+                                                         "parameters":  [
+                                                                            {
+                                                                                "name":  "id",
+                                                                                "required":  true,
+                                                                                "in":  "path",
+                                                                                "schema":  {
+                                                                                               "example":  1,
+                                                                                               "type":  "number"
+                                                                                           }
+                                                                            }
+                                                                        ],
+                                                         "responses":  {
+                                                                           "200":  {
+                                                                                       "description":  "Espacio encontrado."
+                                                                                   },
+                                                                           "404":  {
+                                                                                       "description":  "No encontrado."
+                                                                                   }
+                                                                       },
+                                                         "summary":  "Ver detalle de un espacio",
+                                                         "tags":  [
+                                                                      "espacios"
+                                                                  ]
+                                                     }
+                                         },
+                  "/api/horarios-disponibles/{espacioId}":  {
+                                                                "get":  {
+                                                                            "description":  "Endpoint público.",
+                                                                            "operationId":  "HorariosController_getDisponibilidad",
+                                                                            "parameters":  [
+                                                                                               {
+                                                                                                   "name":  "espacioId",
+                                                                                                   "required":  true,
+                                                                                                   "in":  "path",
+                                                                                                   "schema":  {
+                                                                                                                  "example":  1,
+                                                                                                                  "type":  "number"
+                                                                                                              }
+                                                                                               },
+                                                                                               {
+                                                                                                   "name":  "fecha",
+                                                                                                   "required":  true,
+                                                                                                   "in":  "query",
+                                                                                                   "description":  "Formato YYYY-MM-DD",
+                                                                                                   "schema":  {
+                                                                                                                  "example":  "2026-05-15",
+                                                                                                                  "type":  "string"
+                                                                                                              }
+                                                                                               }
+                                                                                           ],
+                                                                            "responses":  {
+                                                                                              "200":  {
+                                                                                                          "description":  "Éxito"
+                                                                                                      },
+                                                                                              "400":  {
+                                                                                                          "description":  "Fecha mal formada."
+                                                                                                      }
+                                                                                          },
+                                                                            "summary":  "Consultar disponibilidad de horarios",
+                                                                            "tags":  [
+                                                                                         "horarios"
+                                                                                     ]
+                                                                        }
+                                                            },
+                  "/api/disciplinas":  {
+                                           "get":  {
+                                                       "description":  "Retorna la lista de disciplinas deportivas registradas. Se puede filtrar por estado activo/inactivo.",
+                                                       "operationId":  "DisciplinasController_findAll",
+                                                       "parameters":  [
+                                                                          {
+                                                                              "name":  "activo",
+                                                                              "required":  false,
+                                                                              "in":  "query",
+                                                                              "description":  "Filtrar por estado activo/inactivo",
+                                                                              "schema":  {
+                                                                                             "example":  true,
+                                                                                             "type":  "boolean"
+                                                                                         }
+                                                                          }
+                                                                      ],
+                                                       "responses":  {
+                                                                         "200":  {
+                                                                                     "description":  "Lista de disciplinas obtenida exitosamente."
+                                                                                 },
+                                                                         "401":  {
+                                                                                     "description":  "Token de autenticación inválido o ausente."
+                                                                                 }
+                                                                     },
+                                                       "security":  [
+                                                                        {
+                                                                            "bearer":  [
+
+                                                                                       ]
+                                                                        }
+                                                                    ],
+                                                       "summary":  "Listar todas las disciplinas",
+                                                       "tags":  [
+                                                                    "Disciplinas"
+                                                                ]
+                                                   },
+                                           "post":  {
+                                                        "description":  "Crea una nueva disciplina deportiva en el sistema.",
+                                                        "operationId":  "DisciplinasController_create",
+                                                        "parameters":  [
+
+                                                                       ],
+                                                        "requestBody":  {
+                                                                            "required":  true,
+                                                                            "content":  {
+                                                                                            "application/json":  {
+                                                                                                                     "schema":  {
+                                                                                                                                    "$ref":  "#/components/schemas/CreateDisciplinaDto"
+                                                                                                                                }
+                                                                                                                 }
+                                                                                        }
+                                                                        },
+                                                        "responses":  {
+                                                                          "201":  {
+                                                                                      "description":  "Disciplina creada exitosamente."
+                                                                                  },
+                                                                          "400":  {
+                                                                                      "description":  "Datos inválidos."
+                                                                                  },
+                                                                          "401":  {
+                                                                                      "description":  "Token de autenticación inválido o ausente."
+                                                                                  }
+                                                                      },
+                                                        "security":  [
+                                                                         {
+                                                                             "bearer":  [
+
+                                                                                        ]
+                                                                         }
+                                                                     ],
+                                                        "summary":  "Registrar nueva disciplina",
+                                                        "tags":  [
+                                                                     "Disciplinas"
+                                                                 ]
+                                                    }
+                                       },
+                  "/api/disciplinas/reporte":  {
+                                                   "get":  {
+                                                               "description":  "Genera un archivo Excel o PDF con la lista de disciplinas.",
+                                                               "operationId":  "DisciplinasController_descargarReporte",
+                                                               "parameters":  [
+                                                                                  {
+                                                                                      "name":  "formato",
+                                                                                      "required":  true,
+                                                                                      "in":  "query",
+                                                                                      "description":  "Formato del reporte: \u0027pdf\u0027 o \u0027excel\u0027",
+                                                                                      "schema":  {
+                                                                                                     "example":  "excel",
+                                                                                                     "type":  "string"
+                                                                                                 }
+                                                                                  },
+                                                                                  {
+                                                                                      "name":  "estado",
+                                                                                      "required":  false,
+                                                                                      "in":  "query",
+                                                                                      "description":  "Filtrar: activas, inactivas, todas",
+                                                                                      "schema":  {
+                                                                                                     "type":  "string"
+                                                                                                 }
+                                                                                  }
+                                                                              ],
+                                                               "responses":  {
+                                                                                 "200":  {
+                                                                                             "description":  ""
+                                                                                         }
+                                                                             },
+                                                               "security":  [
+                                                                                {
+                                                                                    "bearer":  [
+
+                                                                                               ]
+                                                                                }
+                                                                            ],
+                                                               "summary":  "Exportar reporte de disciplinas",
+                                                               "tags":  [
+                                                                            "Disciplinas"
+                                                                        ]
+                                                           }
+                                               },
+                  "/api/disciplinas/{id}":  {
+                                                "get":  {
+                                                            "description":  "Retorna los datos completos de una disciplina específica.",
+                                                            "operationId":  "DisciplinasController_findOne",
+                                                            "parameters":  [
+                                                                               {
+                                                                                   "name":  "id",
+                                                                                   "required":  true,
+                                                                                   "in":  "path",
+                                                                                   "description":  "ID único de la disciplina",
+                                                                                   "schema":  {
+                                                                                                  "example":  1,
+                                                                                                  "type":  "number"
+                                                                                              }
+                                                                               }
+                                                                           ],
+                                                            "responses":  {
+                                                                              "200":  {
+                                                                                          "description":  "Disciplina encontrada."
+                                                                                      },
+                                                                              "401":  {
+                                                                                          "description":  "Token de autenticación inválido o ausente."
+                                                                                      },
+                                                                              "404":  {
+                                                                                          "description":  "Disciplina no encontrada."
+                                                                                      }
+                                                                          },
+                                                            "security":  [
+                                                                             {
+                                                                                 "bearer":  [
+
+                                                                                            ]
+                                                                             }
+                                                                         ],
+                                                            "summary":  "Obtener disciplina por ID",
+                                                            "tags":  [
+                                                                         "Disciplinas"
+                                                                     ]
+                                                        },
+                                                "patch":  {
+                                                              "description":  "Actualiza parcialmente los datos de una disciplina existente. Solo se modifican los campos enviados.",
+                                                              "operationId":  "DisciplinasController_update",
+                                                              "parameters":  [
+                                                                                 {
+                                                                                     "name":  "id",
+                                                                                     "required":  true,
+                                                                                     "in":  "path",
+                                                                                     "description":  "ID único de la disciplina",
+                                                                                     "schema":  {
+                                                                                                    "example":  1,
+                                                                                                    "type":  "number"
+                                                                                                }
+                                                                                 }
+                                                                             ],
+                                                              "requestBody":  {
+                                                                                  "required":  true,
+                                                                                  "content":  {
+                                                                                                  "application/json":  {
+                                                                                                                           "schema":  {
+                                                                                                                                          "$ref":  "#/components/schemas/UpdateDisciplinaDto"
+                                                                                                                                      }
+                                                                                                                       }
+                                                                                              }
+                                                                              },
+                                                              "responses":  {
+                                                                                "200":  {
+                                                                                            "description":  "Disciplina actualizada exitosamente."
+                                                                                        },
+                                                                                "400":  {
+                                                                                            "description":  "Datos inválidos."
+                                                                                        },
+                                                                                "401":  {
+                                                                                            "description":  "Token de autenticación inválido o ausente."
+                                                                                        },
+                                                                                "404":  {
+                                                                                            "description":  "Disciplina no encontrada."
+                                                                                        }
+                                                                            },
+                                                              "security":  [
+                                                                               {
+                                                                                   "bearer":  [
+
+                                                                                              ]
+                                                                               }
+                                                                           ],
+                                                              "summary":  "Actualizar disciplina",
+                                                              "tags":  [
+                                                                           "Disciplinas"
+                                                                       ]
+                                                          }
+                                            },
+                  "/api/disciplinas/{id}/estado":  {
+                                                       "patch":  {
+                                                                     "description":  "Activa o desactiva una disciplina sin eliminarla del sistema.",
+                                                                     "operationId":  "DisciplinasController_cambiarEstado",
+                                                                     "parameters":  [
+                                                                                        {
+                                                                                            "name":  "id",
+                                                                                            "required":  true,
+                                                                                            "in":  "path",
+                                                                                            "description":  "ID único de la disciplina",
+                                                                                            "schema":  {
+                                                                                                           "example":  1,
+                                                                                                           "type":  "number"
+                                                                                                       }
+                                                                                        }
+                                                                                    ],
+                                                                     "requestBody":  {
+                                                                                         "required":  true,
+                                                                                         "content":  {
+                                                                                                         "application/json":  {
+                                                                                                                                  "schema":  {
+                                                                                                                                                 "type":  "object",
+                                                                                                                                                 "required":  [
+                                                                                                                                                                  "activo"
+                                                                                                                                                              ],
+                                                                                                                                                 "properties":  {
+                                                                                                                                                                    "activo":  {
+                                                                                                                                                                                   "type":  "boolean",
+                                                                                                                                                                                   "description":  "Nuevo estado de la disciplina",
+                                                                                                                                                                                   "example":  false
+                                                                                                                                                                               }
+                                                                                                                                                                }
+                                                                                                                                             }
+                                                                                                                              }
+                                                                                                     }
+                                                                                     },
+                                                                     "responses":  {
+                                                                                       "200":  {
+                                                                                                   "description":  "Estado actualizado exitosamente."
+                                                                                               },
+                                                                                       "401":  {
+                                                                                                   "description":  "Token de autenticación inválido o ausente."
+                                                                                               },
+                                                                                       "404":  {
+                                                                                                   "description":  "Disciplina no encontrada."
+                                                                                               }
+                                                                                   },
+                                                                     "security":  [
+                                                                                      {
+                                                                                          "bearer":  [
+
+                                                                                                     ]
+                                                                                      }
+                                                                                  ],
+                                                                     "summary":  "Cambiar estado de la disciplina",
+                                                                     "tags":  [
+                                                                                  "Disciplinas"
+                                                                              ]
+                                                                 }
+                                                   },
+                  "/api/reservas":  {
+                                        "get":  {
+                                                    "description":  "Obtiene todas las reservas. Se puede filtrar por espacioId y por fecha (YYYY-MM-DD).",
+                                                    "operationId":  "ReservasController_findAll",
+                                                    "parameters":  [
+                                                                       {
+                                                                           "name":  "espacioId",
+                                                                           "required":  true,
+                                                                           "in":  "query",
+                                                                           "schema":  {
+                                                                                          "type":  "string"
+                                                                                      }
+                                                                       },
+                                                                       {
+                                                                           "name":  "fecha",
+                                                                           "required":  true,
+                                                                           "in":  "query",
+                                                                           "schema":  {
+                                                                                          "type":  "string"
+                                                                                      }
+                                                                       },
+                                                                       {
+                                                                           "name":  "page",
+                                                                           "required":  true,
+                                                                           "in":  "query",
+                                                                           "schema":  {
+                                                                                          "type":  "string"
+                                                                                      }
+                                                                       },
+                                                                       {
+                                                                           "name":  "limit",
+                                                                           "required":  true,
+                                                                           "in":  "query",
+                                                                           "schema":  {
+                                                                                          "type":  "string"
+                                                                                      }
+                                                                       }
+                                                                   ],
+                                                    "responses":  {
+                                                                      "200":  {
+                                                                                  "description":  ""
+                                                                              }
+                                                                  },
+                                                    "security":  [
+                                                                     {
+                                                                         "permisos-rol":  [
+
+                                                                                          ]
+                                                                     }
+                                                                 ],
+                                                    "summary":  "Listado general de reservas",
+                                                    "tags":  [
+                                                                 "reservas"
+                                                             ]
+                                                },
+                                        "post":  {
+                                                     "description":  "Crea una reserva validando disponibilidad horaria, existencia de espacios y evitando conflictos con clases pre-agendadas.",
+                                                     "operationId":  "ReservasController_create",
+                                                     "parameters":  [
+
+                                                                    ],
+                                                     "requestBody":  {
+                                                                         "required":  true,
+                                                                         "content":  {
+                                                                                         "application/json":  {
+                                                                                                                  "schema":  {
+                                                                                                                                 "$ref":  "#/components/schemas/CreateReservaDto"
+                                                                                                                             }
+                                                                                                              }
+                                                                                     }
+                                                                     },
+                                                     "responses":  {
+                                                                       "201":  {
+                                                                                   "description":  ""
+                                                                               }
+                                                                   },
+                                                     "security":  [
+                                                                      {
+                                                                          "permisos-rol":  [
+
+                                                                                           ]
+                                                                      }
+                                                                  ],
+                                                     "summary":  "Registrar nueva reserva",
+                                                     "tags":  [
+                                                                  "reservas"
+                                                              ]
+                                                 }
+                                    },
+                  "/api/reservas/reporte":  {
+                                                "get":  {
+                                                            "description":  "Genera un archivo Excel o PDF con el historial de reservas filtrado.",
+                                                            "operationId":  "ReservasController_descargarReporte",
+                                                            "parameters":  [
+                                                                               {
+                                                                                   "name":  "formato",
+                                                                                   "required":  true,
+                                                                                   "in":  "query",
+                                                                                   "schema":  {
+                                                                                                  "example":  "excel",
+                                                                                                  "type":  "string"
+                                                                                              }
+                                                                               },
+                                                                               {
+                                                                                   "name":  "desde",
+                                                                                   "required":  false,
+                                                                                   "in":  "query",
+                                                                                   "description":  "Fecha inicio (YYYY-MM-DD)",
+                                                                                   "schema":  {
+                                                                                                  "type":  "string"
+                                                                                              }
+                                                                               },
+                                                                               {
+                                                                                   "name":  "hasta",
+                                                                                   "required":  false,
+                                                                                   "in":  "query",
+                                                                                   "description":  "Fecha fin (YYYY-MM-DD)",
+                                                                                   "schema":  {
+                                                                                                  "type":  "string"
+                                                                                              }
+                                                                               },
+                                                                               {
+                                                                                   "name":  "estado",
+                                                                                   "required":  false,
+                                                                                   "in":  "query",
+                                                                                   "description":  "Estado: confirmada, cancelada, todas",
+                                                                                   "schema":  {
+                                                                                                  "type":  "string"
+                                                                                              }
+                                                                               }
+                                                                           ],
+                                                            "responses":  {
+                                                                              "200":  {
+                                                                                          "description":  ""
+                                                                                      }
+                                                                          },
+                                                            "security":  [
+                                                                             {
+                                                                                 "permisos-rol":  [
+
+                                                                                                  ]
+                                                                             }
+                                                                         ],
+                                                            "summary":  "Exportar reporte de reservas",
+                                                            "tags":  [
+                                                                         "reservas"
+                                                                     ]
+                                                        }
+                                            },
+                  "/api/reservas/{id}":  {
+                                             "get":  {
+                                                         "description":  "Retorna toda la información de una reserva mediante su identificador único.",
+                                                         "operationId":  "ReservasController_findOne",
+                                                         "parameters":  [
+                                                                            {
+                                                                                "name":  "id",
+                                                                                "required":  true,
+                                                                                "in":  "path",
+                                                                                "schema":  {
+                                                                                               "type":  "number"
+                                                                                           }
+                                                                            }
+                                                                        ],
+                                                         "responses":  {
+                                                                           "200":  {
+                                                                                       "description":  ""
+                                                                                   }
+                                                                       },
+                                                         "security":  [
+                                                                          {
+                                                                              "permisos-rol":  [
+
+                                                                                               ]
+                                                                          }
+                                                                      ],
+                                                         "summary":  "Consultar una reserva específica",
+                                                         "tags":  [
+                                                                      "reservas"
+                                                                  ]
+                                                     },
+                                             "patch":  {
+                                                           "description":  "Permite confirmar o cancelar una reserva. No se pueden modificar reservas que ya estén en estado \u0027cancelada\u0027.",
+                                                           "operationId":  "ReservasController_update",
+                                                           "parameters":  [
+                                                                              {
+                                                                                  "name":  "id",
+                                                                                  "required":  true,
+                                                                                  "in":  "path",
+                                                                                  "schema":  {
+                                                                                                 "type":  "number"
+                                                                                             }
+                                                                              }
+                                                                          ],
+                                                           "requestBody":  {
+                                                                               "required":  true,
+                                                                               "content":  {
+                                                                                               "application/json":  {
+                                                                                                                        "schema":  {
+                                                                                                                                       "$ref":  "#/components/schemas/UpdateReservaDto"
+                                                                                                                                   }
+                                                                                                                    }
+                                                                                           }
+                                                                           },
+                                                           "responses":  {
+                                                                             "200":  {
+                                                                                         "description":  ""
+                                                                                     }
+                                                                         },
+                                                           "security":  [
+                                                                            {
+                                                                                "permisos-rol":  [
+
+                                                                                                 ]
+                                                                            }
+                                                                        ],
+                                                           "summary":  "Cambiar estado de la reserva",
+                                                           "tags":  [
+                                                                        "reservas"
+                                                                    ]
+                                                       }
+                                         },
+                  "/api/reservas/{id}/comprobante":  {
+                                                         "get":  {
+                                                                     "description":  "Genera un documento PDF con los detalles de la reserva para su descarga.",
+                                                                     "operationId":  "ReservasController_descargarComprobante",
+                                                                     "parameters":  [
+                                                                                        {
+                                                                                            "name":  "id",
+                                                                                            "required":  true,
+                                                                                            "in":  "path",
+                                                                                            "schema":  {
+                                                                                                           "type":  "number"
+                                                                                                       }
+                                                                                        }
+                                                                                    ],
+                                                                     "responses":  {
+                                                                                       "200":  {
+                                                                                                   "description":  ""
+                                                                                               }
+                                                                                   },
+                                                                     "security":  [
+                                                                                      {
+                                                                                          "permisos-rol":  [
+
+                                                                                                           ]
+                                                                                      }
+                                                                                  ],
+                                                                     "summary":  "Generar y descargar comprobante PDF",
+                                                                     "tags":  [
+                                                                                  "reservas"
+                                                                              ]
+                                                                 }
+                                                     },
+                  "/api/pagos/conceptos":  {
+                                               "get":  {
+                                                           "operationId":  "PagosController_getConceptos",
+                                                           "parameters":  [
+                                                                              {
+                                                                                  "name":  "disciplinaId",
+                                                                                  "required":  true,
+                                                                                  "in":  "query",
+                                                                                  "schema":  {
+                                                                                                 "type":  "string"
+                                                                                             }
+                                                                              }
+                                                                          ],
+                                                           "responses":  {
+                                                                             "200":  {
+                                                                                         "description":  ""
+                                                                                     }
+                                                                         },
+                                                           "summary":  "Listar conceptos de pago",
+                                                           "tags":  [
+                                                                        "pagos"
+                                                                    ]
+                                                       }
+                                           },
+                  "/api/pagos/planilla":  {
+                                              "get":  {
+                                                          "operationId":  "PagosController_getPlanilla",
+                                                          "parameters":  [
+                                                                             {
+                                                                                 "name":  "disciplinaId",
+                                                                                 "required":  true,
+                                                                                 "in":  "query",
+                                                                                 "schema":  {
+                                                                                                "type":  "number"
+                                                                                            }
+                                                                             },
+                                                                             {
+                                                                                 "name":  "anio",
+                                                                                 "required":  true,
+                                                                                 "in":  "query",
+                                                                                 "schema":  {
+                                                                                                "type":  "number"
+                                                                                            }
+                                                                             }
+                                                                         ],
+                                                          "responses":  {
+                                                                            "200":  {
+                                                                                        "description":  ""
+                                                                                    }
+                                                                        },
+                                                          "summary":  "Ver planilla de pagos por disciplina y año",
+                                                          "tags":  [
+                                                                       "pagos"
+                                                                   ]
+                                                      }
+                                          },
+                  "/api/pagos/morosos":  {
+                                             "get":  {
+                                                         "operationId":  "PagosController_getMorosos",
+                                                         "parameters":  [
+                                                                            {
+                                                                                "name":  "disciplinaId",
+                                                                                "required":  true,
+                                                                                "in":  "query",
+                                                                                "schema":  {
+                                                                                               "type":  "string"
+                                                                                           }
+                                                                            },
+                                                                            {
+                                                                                "name":  "anio",
+                                                                                "required":  true,
+                                                                                "in":  "query",
+                                                                                "schema":  {
+                                                                                               "type":  "string"
+                                                                                           }
+                                                                            }
+                                                                        ],
+                                                         "responses":  {
+                                                                           "200":  {
+                                                                                       "description":  ""
+                                                                                   }
+                                                                       },
+                                                         "summary":  "Listar deportistas con pagos pendientes",
+                                                         "tags":  [
+                                                                      "pagos"
+                                                                  ]
+                                                     }
+                                         },
+                  "/api/pagos/reporte":  {
+                                             "get":  {
+                                                         "description":  "Genera un archivo Excel o PDF con el historial de ingresos financieros.",
+                                                         "operationId":  "PagosController_descargarReporte",
+                                                         "parameters":  [
+                                                                            {
+                                                                                "name":  "formato",
+                                                                                "required":  true,
+                                                                                "in":  "query",
+                                                                                "schema":  {
+                                                                                               "example":  "excel",
+                                                                                               "type":  "string"
+                                                                                           }
+                                                                            },
+                                                                            {
+                                                                                "name":  "mes",
+                                                                                "required":  false,
+                                                                                "in":  "query",
+                                                                                "description":  "Mes (nombre: enero, febrero… o número 1-12)",
+                                                                                "schema":  {
+                                                                                               "type":  "string"
+                                                                                           }
+                                                                            },
+                                                                            {
+                                                                                "name":  "anio",
+                                                                                "required":  false,
+                                                                                "in":  "query",
+                                                                                "description":  "Año del pago",
+                                                                                "schema":  {
+                                                                                               "type":  "string"
+                                                                                           }
+                                                                            }
+                                                                        ],
+                                                         "responses":  {
+                                                                           "200":  {
+                                                                                       "description":  ""
+                                                                                   }
+                                                                       },
+                                                         "summary":  "Exportar reporte de pagos",
+                                                         "tags":  [
+                                                                      "pagos"
+                                                                  ]
+                                                     }
+                                         },
+                  "/api/pagos/deportista/{id}":  {
+                                                     "get":  {
+                                                                 "operationId":  "PagosController_getPagosDeportista",
+                                                                 "parameters":  [
+                                                                                    {
+                                                                                        "name":  "id",
+                                                                                        "required":  true,
+                                                                                        "in":  "path",
+                                                                                        "schema":  {
+                                                                                                       "type":  "number"
+                                                                                                   }
+                                                                                    }
+                                                                                ],
+                                                                 "responses":  {
+                                                                                   "200":  {
+                                                                                               "description":  ""
+                                                                                           }
+                                                                               },
+                                                                 "summary":  "Historial de pagos de un deportista",
+                                                                 "tags":  [
+                                                                              "pagos"
+                                                                          ]
+                                                             }
+                                                 },
+                  "/api/pagos":  {
+                                     "post":  {
+                                                  "operationId":  "PagosController_registrarPago",
+                                                  "parameters":  [
+
+                                                                 ],
+                                                  "requestBody":  {
+                                                                      "required":  true,
+                                                                      "content":  {
+                                                                                      "application/json":  {
+                                                                                                               "schema":  {
+                                                                                                                              "$ref":  "#/components/schemas/CreatePagoDto"
+                                                                                                                          }
+                                                                                                           }
+                                                                                  }
+                                                                  },
+                                                  "responses":  {
+                                                                    "201":  {
+                                                                                "description":  ""
+                                                                            }
+                                                                },
+                                                  "summary":  "Registrar un pago manual",
+                                                  "tags":  [
+                                                               "pagos"
+                                                           ]
+                                              }
+                                 },
+                  "/api/pagos/{id}/anular":  {
+                                                 "patch":  {
+                                                               "operationId":  "PagosController_anularPago",
+                                                               "parameters":  [
+                                                                                  {
+                                                                                      "name":  "id",
+                                                                                      "required":  true,
+                                                                                      "in":  "path",
+                                                                                      "schema":  {
+                                                                                                     "type":  "number"
+                                                                                                 }
+                                                                                  }
+                                                                              ],
+                                                               "responses":  {
+                                                                                 "200":  {
+                                                                                             "description":  ""
+                                                                                         }
+                                                                             },
+                                                               "summary":  "Anular un pago",
+                                                               "tags":  [
+                                                                            "pagos"
+                                                                        ]
+                                                           }
+                                             },
+                  "/api/deportistas":  {
+                                           "get":  {
+                                                       "description":  "Retorna una lista paginada de deportistas con filtros opcionales por tipo, disciplina y estado.",
+                                                       "operationId":  "DeportistasController_findAll",
+                                                       "parameters":  [
+                                                                          {
+                                                                              "name":  "page",
+                                                                              "required":  false,
+                                                                              "in":  "query",
+                                                                              "description":  "Número de página (default: 1)",
+                                                                              "schema":  {
+                                                                                             "example":  1,
+                                                                                             "type":  "number"
+                                                                                         }
+                                                                          },
+                                                                          {
+                                                                              "name":  "limit",
+                                                                              "required":  false,
+                                                                              "in":  "query",
+                                                                              "description":  "Resultados por página (default: 20)",
+                                                                              "schema":  {
+                                                                                             "example":  20,
+                                                                                             "type":  "number"
+                                                                                         }
+                                                                          },
+                                                                          {
+                                                                              "name":  "tipo",
+                                                                              "required":  false,
+                                                                              "in":  "query",
+                                                                              "description":  "Filtrar por tipo de deportista",
+                                                                              "schema":  {
+                                                                                             "example":  "estudiante_ucb",
+                                                                                             "type":  "string"
+                                                                                         }
+                                                                          },
+                                                                          {
+                                                                              "name":  "disciplinaId",
+                                                                              "required":  false,
+                                                                              "in":  "query",
+                                                                              "description":  "Filtrar por ID de disciplina",
+                                                                              "schema":  {
+                                                                                             "example":  15,
+                                                                                             "type":  "number"
+                                                                                         }
+                                                                          },
+                                                                          {
+                                                                              "name":  "activo",
+                                                                              "required":  false,
+                                                                              "in":  "query",
+                                                                              "description":  "Filtrar por estado activo/inactivo",
+                                                                              "schema":  {
+                                                                                             "example":  true,
+                                                                                             "type":  "boolean"
+                                                                                         }
+                                                                          }
+                                                                      ],
+                                                       "responses":  {
+                                                                         "200":  {
+                                                                                     "description":  "Lista de deportistas obtenida exitosamente."
+                                                                                 },
+                                                                         "401":  {
+                                                                                     "description":  "Token de autenticación inválido o ausente."
+                                                                                 }
+                                                                     },
+                                                       "security":  [
+                                                                        {
+                                                                            "bearer":  [
+
+                                                                                       ]
+                                                                        }
+                                                                    ],
+                                                       "summary":  "Listar todos los deportistas",
+                                                       "tags":  [
+                                                                    "Deportistas"
+                                                                ]
+                                                   },
+                                           "post":  {
+                                                        "description":  "Crea un nuevo deportista en el sistema. El CI debe ser único.",
+                                                        "operationId":  "DeportistasController_create",
+                                                        "parameters":  [
+
+                                                                       ],
+                                                        "requestBody":  {
+                                                                            "required":  true,
+                                                                            "content":  {
+                                                                                            "application/json":  {
+                                                                                                                     "schema":  {
+                                                                                                                                    "$ref":  "#/components/schemas/CreateDeportistaDto"
+                                                                                                                                }
+                                                                                                                 }
+                                                                                        }
+                                                                        },
+                                                        "responses":  {
+                                                                          "201":  {
+                                                                                      "description":  "Deportista creado exitosamente."
+                                                                                  },
+                                                                          "400":  {
+                                                                                      "description":  "Datos inválidos o CI ya registrado."
+                                                                                  },
+                                                                          "401":  {
+                                                                                      "description":  "Token de autenticación inválido o ausente."
+                                                                                  }
+                                                                      },
+                                                        "security":  [
+                                                                         {
+                                                                             "bearer":  [
+
+                                                                                        ]
+                                                                         }
+                                                                     ],
+                                                        "summary":  "Registrar nuevo deportista",
+                                                        "tags":  [
+                                                                     "Deportistas"
+                                                                 ]
+                                                    }
+                                       },
+                  "/api/deportistas/buscar":  {
+                                                  "get":  {
+                                                              "description":  "Busca un deportista usando su Cédula de Identidad (CI). Útil para verificar si ya está registrado antes de crear uno nuevo.",
+                                                              "operationId":  "DeportistasController_buscarPorCi",
+                                                              "parameters":  [
+                                                                                 {
+                                                                                     "name":  "ci",
+                                                                                     "required":  true,
+                                                                                     "in":  "query",
+                                                                                     "description":  "Número de CI del deportista",
+                                                                                     "schema":  {
+                                                                                                    "example":  "12345678",
+                                                                                                    "type":  "string"
+                                                                                                }
+                                                                                 }
+                                                                             ],
+                                                              "responses":  {
+                                                                                "200":  {
+                                                                                            "description":  "Deportista encontrado."
+                                                                                        },
+                                                                                "401":  {
+                                                                                            "description":  "Token de autenticación inválido o ausente."
+                                                                                        },
+                                                                                "404":  {
+                                                                                            "description":  "No existe ningún deportista con ese CI."
+                                                                                        }
+                                                                            },
+                                                              "security":  [
+                                                                               {
+                                                                                   "bearer":  [
+
+                                                                                              ]
+                                                                               }
+                                                                           ],
+                                                              "summary":  "Buscar deportista por CI",
+                                                              "tags":  [
+                                                                           "Deportistas"
+                                                                       ]
+                                                          }
+                                              },
+                  "/api/deportistas/reporte":  {
+                                                   "get":  {
+                                                               "description":  "Genera un archivo Excel o PDF con la lista de deportistas.",
+                                                               "operationId":  "DeportistasController_descargarReporte",
+                                                               "parameters":  [
+                                                                                  {
+                                                                                      "name":  "formato",
+                                                                                      "required":  true,
+                                                                                      "in":  "query",
+                                                                                      "description":  "Formato del reporte: \u0027pdf\u0027 o \u0027excel\u0027",
+                                                                                      "schema":  {
+                                                                                                     "example":  "excel",
+                                                                                                     "type":  "string"
+                                                                                                 }
+                                                                                  },
+                                                                                  {
+                                                                                      "name":  "tipo",
+                                                                                      "required":  false,
+                                                                                      "in":  "query",
+                                                                                      "description":  "Filtrar por tipo (estudiante_ucb, academia, competitivo)",
+                                                                                      "schema":  {
+                                                                                                     "type":  "string"
+                                                                                                 }
+                                                                                  },
+                                                                                  {
+                                                                                      "name":  "busqueda",
+                                                                                      "required":  false,
+                                                                                      "in":  "query",
+                                                                                      "description":  "Buscar por nombre o CI",
+                                                                                      "schema":  {
+                                                                                                     "type":  "string"
+                                                                                                 }
+                                                                                  }
+                                                                              ],
+                                                               "responses":  {
+                                                                                 "200":  {
+                                                                                             "description":  ""
+                                                                                         }
+                                                                             },
+                                                               "security":  [
+                                                                                {
+                                                                                    "bearer":  [
+
+                                                                                               ]
+                                                                                }
+                                                                            ],
+                                                               "summary":  "Exportar reporte de deportistas",
+                                                               "tags":  [
+                                                                            "Deportistas"
+                                                                        ]
+                                                           }
+                                               },
+                  "/api/deportistas/{id}":  {
+                                                "get":  {
+                                                            "description":  "Retorna los datos completos de un deportista específico.",
+                                                            "operationId":  "DeportistasController_findOne",
+                                                            "parameters":  [
+                                                                               {
+                                                                                   "name":  "id",
+                                                                                   "required":  true,
+                                                                                   "in":  "path",
+                                                                                   "description":  "ID único del deportista",
+                                                                                   "schema":  {
+                                                                                                  "example":  1,
+                                                                                                  "type":  "number"
+                                                                                              }
+                                                                               }
+                                                                           ],
+                                                            "responses":  {
+                                                                              "200":  {
+                                                                                          "description":  "Deportista encontrado."
+                                                                                      },
+                                                                              "401":  {
+                                                                                          "description":  "Token de autenticación inválido o ausente."
+                                                                                      },
+                                                                              "404":  {
+                                                                                          "description":  "Deportista no encontrado."
+                                                                                      }
+                                                                          },
+                                                            "security":  [
+                                                                             {
+                                                                                 "bearer":  [
+
+                                                                                            ]
+                                                                             }
+                                                                         ],
+                                                            "summary":  "Obtener deportista por ID",
+                                                            "tags":  [
+                                                                         "Deportistas"
+                                                                     ]
+                                                        },
+                                                "patch":  {
+                                                              "description":  "Actualiza parcialmente los datos de un deportista existente. Solo se modifican los campos enviados.",
+                                                              "operationId":  "DeportistasController_update",
+                                                              "parameters":  [
+                                                                                 {
+                                                                                     "name":  "id",
+                                                                                     "required":  true,
+                                                                                     "in":  "path",
+                                                                                     "description":  "ID único del deportista",
+                                                                                     "schema":  {
+                                                                                                    "example":  1,
+                                                                                                    "type":  "number"
+                                                                                                }
+                                                                                 }
+                                                                             ],
+                                                              "requestBody":  {
+                                                                                  "required":  true,
+                                                                                  "content":  {
+                                                                                                  "application/json":  {
+                                                                                                                           "schema":  {
+                                                                                                                                          "$ref":  "#/components/schemas/UpdateDeportistaDto"
+                                                                                                                                      }
+                                                                                                                       }
+                                                                                              }
+                                                                              },
+                                                              "responses":  {
+                                                                                "200":  {
+                                                                                            "description":  "Deportista actualizado exitosamente."
+                                                                                        },
+                                                                                "400":  {
+                                                                                            "description":  "Datos inválidos."
+                                                                                        },
+                                                                                "401":  {
+                                                                                            "description":  "Token de autenticación inválido o ausente."
+                                                                                        },
+                                                                                "404":  {
+                                                                                            "description":  "Deportista no encontrado."
+                                                                                        }
+                                                                            },
+                                                              "security":  [
+                                                                               {
+                                                                                   "bearer":  [
+
+                                                                                              ]
+                                                                               }
+                                                                           ],
+                                                              "summary":  "Actualizar datos del deportista",
+                                                              "tags":  [
+                                                                           "Deportistas"
+                                                                       ]
+                                                          }
+                                            },
+                  "/api/deportistas/{id}/estado":  {
+                                                       "patch":  {
+                                                                     "description":  "Activa o desactiva un deportista sin eliminarlo del sistema (soft enable/disable).",
+                                                                     "operationId":  "DeportistasController_cambiarEstado",
+                                                                     "parameters":  [
+                                                                                        {
+                                                                                            "name":  "id",
+                                                                                            "required":  true,
+                                                                                            "in":  "path",
+                                                                                            "description":  "ID único del deportista",
+                                                                                            "schema":  {
+                                                                                                           "example":  1,
+                                                                                                           "type":  "number"
+                                                                                                       }
+                                                                                        }
+                                                                                    ],
+                                                                     "requestBody":  {
+                                                                                         "required":  true,
+                                                                                         "content":  {
+                                                                                                         "application/json":  {
+                                                                                                                                  "schema":  {
+                                                                                                                                                 "type":  "object",
+                                                                                                                                                 "required":  [
+                                                                                                                                                                  "activo"
+                                                                                                                                                              ],
+                                                                                                                                                 "properties":  {
+                                                                                                                                                                    "activo":  {
+                                                                                                                                                                                   "type":  "boolean",
+                                                                                                                                                                                   "description":  "Nuevo estado del deportista",
+                                                                                                                                                                                   "example":  false
+                                                                                                                                                                               }
+                                                                                                                                                                }
+                                                                                                                                             }
+                                                                                                                              }
+                                                                                                     }
+                                                                                     },
+                                                                     "responses":  {
+                                                                                       "200":  {
+                                                                                                   "description":  "Estado actualizado exitosamente."
+                                                                                               },
+                                                                                       "401":  {
+                                                                                                   "description":  "Token de autenticación inválido o ausente."
+                                                                                               },
+                                                                                       "404":  {
+                                                                                                   "description":  "Deportista no encontrado."
+                                                                                               }
+                                                                                   },
+                                                                     "security":  [
+                                                                                      {
+                                                                                          "bearer":  [
+
+                                                                                                     ]
+                                                                                      }
+                                                                                  ],
+                                                                     "summary":  "Cambiar estado del deportista",
+                                                                     "tags":  [
+                                                                                  "Deportistas"
+                                                                              ]
+                                                                 }
+                                                   },
+                  "/api/deportistas/{id}/inscripciones":  {
+                                                              "post":  {
+                                                                           "description":  "Crea una nueva inscripción para el deportista en una disciplina específica. Opcionalmente define categoría y nivel.",
+                                                                           "operationId":  "DeportistasController_inscribir",
+                                                                           "parameters":  [
+                                                                                              {
+                                                                                                  "name":  "id",
+                                                                                                  "required":  true,
+                                                                                                  "in":  "path",
+                                                                                                  "description":  "ID único del deportista",
+                                                                                                  "schema":  {
+                                                                                                                 "example":  1,
+                                                                                                                 "type":  "number"
+                                                                                                             }
+                                                                                              }
+                                                                                          ],
+                                                                           "requestBody":  {
+                                                                                               "required":  true,
+                                                                                               "content":  {
+                                                                                                               "application/json":  {
+                                                                                                                                        "schema":  {
+                                                                                                                                                       "type":  "object",
+                                                                                                                                                       "required":  [
+                                                                                                                                                                        "disciplinaId"
+                                                                                                                                                                    ],
+                                                                                                                                                       "properties":  {
+                                                                                                                                                                          "disciplinaId":  {
+                                                                                                                                                                                               "type":  "number",
+                                                                                                                                                                                               "description":  "ID de la disciplina",
+                                                                                                                                                                                               "example":  3
+                                                                                                                                                                                           },
+                                                                                                                                                                          "categoria":  {
+                                                                                                                                                                                            "type":  "string",
+                                                                                                                                                                                            "description":  "Categoría del deportista",
+                                                                                                                                                                                            "example":  "juvenil"
+                                                                                                                                                                                        },
+                                                                                                                                                                          "nivel":  {
+                                                                                                                                                                                        "type":  "string",
+                                                                                                                                                                                        "description":  "Nivel de competencia del deportista",
+                                                                                                                                                                                        "example":  "intermedio"
+                                                                                                                                                                                    }
+                                                                                                                                                                      }
+                                                                                                                                                   }
+                                                                                                                                    }
+                                                                                                           }
+                                                                                           },
+                                                                           "responses":  {
+                                                                                             "201":  {
+                                                                                                         "description":  "Inscripción creada exitosamente."
+                                                                                                     },
+                                                                                             "400":  {
+                                                                                                         "description":  "Ya existe una inscripción activa en esa disciplina."
+                                                                                                     },
+                                                                                             "401":  {
+                                                                                                         "description":  "Token de autenticación inválido o ausente."
+                                                                                                     },
+                                                                                             "404":  {
+                                                                                                         "description":  "Deportista o disciplina no encontrada."
+                                                                                                     }
+                                                                                         },
+                                                                           "security":  [
+                                                                                            {
+                                                                                                "bearer":  [
+
+                                                                                                           ]
+                                                                                            }
+                                                                                        ],
+                                                                           "summary":  "Inscribir deportista en una disciplina",
+                                                                           "tags":  [
+                                                                                        "Deportistas"
+                                                                                    ]
+                                                                       },
+                                                              "get":  {
+                                                                          "description":  "Retorna todas las inscripciones (activas e inactivas) de un deportista.",
+                                                                          "operationId":  "DeportistasController_obtenerInscripciones",
+                                                                          "parameters":  [
+                                                                                             {
+                                                                                                 "name":  "id",
+                                                                                                 "required":  true,
+                                                                                                 "in":  "path",
+                                                                                                 "description":  "ID único del deportista",
+                                                                                                 "schema":  {
+                                                                                                                "example":  1,
+                                                                                                                "type":  "number"
+                                                                                                            }
+                                                                                             }
+                                                                                         ],
+                                                                          "responses":  {
+                                                                                            "200":  {
+                                                                                                        "description":  "Lista de inscripciones obtenida exitosamente."
+                                                                                                    },
+                                                                                            "401":  {
+                                                                                                        "description":  "Token de autenticación inválido o ausente."
+                                                                                                    },
+                                                                                            "404":  {
+                                                                                                        "description":  "Deportista no encontrado."
+                                                                                                    }
+                                                                                        },
+                                                                          "security":  [
+                                                                                           {
+                                                                                               "bearer":  [
+
+                                                                                                          ]
+                                                                                           }
+                                                                                       ],
+                                                                          "summary":  "Obtener inscripciones del deportista",
+                                                                          "tags":  [
+                                                                                       "Deportistas"
+                                                                                   ]
+                                                                      }
+                                                          }
+              },
+    "info":  {
+                 "title":  "API de Gestión de Espacios y Disciplinas",
+                 "description":  "Documentación técnica de los endpoints de la API. Autenticación mediante JWT Bearer Token (RS256).",
+                 "version":  "1.0",
+                 "contact":  {
+
+                             }
+             },
+    "tags":  [
+
+             ],
+    "servers":  [
+
+                ],
+    "components":  {
+                       "securitySchemes":  {
+                                               "bearer":  {
+                                                              "scheme":  "bearer",
+                                                              "bearerFormat":  "JWT",
+                                                              "type":  "http"
+                                                          }
+                                           },
+                       "schemas":  {
+                                       "CreateDisciplinaDto":  {
+                                                                   "type":  "object",
+                                                                   "properties":  {
+                                                                                      "nombre":  {
+                                                                                                     "type":  "string",
+                                                                                                     "example":  "Voleibol"
+                                                                                                 },
+                                                                                      "descripcion":  {
+                                                                                                          "type":  "string",
+                                                                                                          "example":  "Deporte de conjunto jugado en cancha dividida por una red."
+                                                                                                      },
+                                                                                      "categorias":  {
+                                                                                                         "type":  "string",
+                                                                                                         "example":  "Sub-14, Mayores"
+                                                                                                     },
+                                                                                      "mensualidad":  {
+                                                                                                          "type":  "number",
+                                                                                                          "example":  120
+                                                                                                      },
+                                                                                      "orden":  {
+                                                                                                    "type":  "number",
+                                                                                                    "example":  1
+                                                                                                }
+                                                                                  },
+                                                                   "required":  [
+                                                                                    "nombre"
+                                                                                ]
+                                                               },
+                                       "UpdateDisciplinaDto":  {
+                                                                   "type":  "object",
+                                                                   "properties":  {
+                                                                                      "nombre":  {
+                                                                                                     "type":  "string",
+                                                                                                     "example":  "Voleibol"
+                                                                                                 },
+                                                                                      "descripcion":  {
+                                                                                                          "type":  "string",
+                                                                                                          "example":  "Deporte de conjunto jugado en cancha dividida por una red."
+                                                                                                      },
+                                                                                      "categorias":  {
+                                                                                                         "type":  "string",
+                                                                                                         "example":  "Sub-14, Mayores"
+                                                                                                     },
+                                                                                      "mensualidad":  {
+                                                                                                          "type":  "number",
+                                                                                                          "example":  120
+                                                                                                      },
+                                                                                      "orden":  {
+                                                                                                    "type":  "number",
+                                                                                                    "example":  1
+                                                                                                }
+                                                                                  }
+                                                               },
+                                       "CreateReservaDto":  {
+                                                                "type":  "object",
+                                                                "properties":  {
+                                                                                   "espacio_id":  {
+                                                                                                      "type":  "number",
+                                                                                                      "example":  1,
+                                                                                                      "description":  "ID del espacio a reservar"
+                                                                                                  },
+                                                                                   "fecha":  {
+                                                                                                 "type":  "string",
+                                                                                                 "example":  "2026-05-20",
+                                                                                                 "description":  "Fecha de la reserva"
+                                                                                             },
+                                                                                   "hora_inicio":  {
+                                                                                                       "type":  "string",
+                                                                                                       "example":  "14:00",
+                                                                                                       "description":  "Hora de inicio"
+                                                                                                   },
+                                                                                   "hora_fin":  {
+                                                                                                    "type":  "string",
+                                                                                                    "example":  "16:00",
+                                                                                                    "description":  "Hora de fin"
+                                                                                                },
+                                                                                   "disciplina_id":  {
+                                                                                                         "type":  "number",
+                                                                                                         "example":  2,
+                                                                                                         "description":  "ID de la disciplina deportiva"
+                                                                                                     },
+                                                                                   "motivo":  {
+                                                                                                  "type":  "string",
+                                                                                                  "example":  "Entrenamiento de equipo",
+                                                                                                  "description":  "Razón de la reserva"
+                                                                                              },
+                                                                                   "nombre_solicitante":  {
+                                                                                                              "type":  "string",
+                                                                                                              "example":  "Juan Pérez",
+                                                                                                              "description":  "Nombre de quien reserva"
+                                                                                                          },
+                                                                                   "carnet":  {
+                                                                                                  "type":  "string",
+                                                                                                  "example":  "1234567 LP",
+                                                                                                  "description":  "Documento de identidad"
+                                                                                              },
+                                                                                   "email_solicitante":  {
+                                                                                                             "type":  "string",
+                                                                                                             "example":  "juan.perez@ucb.edu.bo",
+                                                                                                             "description":  "Correo electrónico del solicitante para envío de comprobante"
+                                                                                                         }
+                                                                               },
+                                                                "required":  [
+                                                                                 "espacio_id",
+                                                                                 "fecha",
+                                                                                 "hora_inicio",
+                                                                                 "hora_fin",
+                                                                                 "disciplina_id",
+                                                                                 "motivo",
+                                                                                 "nombre_solicitante",
+                                                                                 "carnet"
+                                                                             ]
+                                                            },
+                                       "UpdateReservaDto":  {
+                                                                "type":  "object",
+                                                                "properties":  {
+                                                                                   "estado":  {
+                                                                                                  "type":  "string",
+                                                                                                  "example":  "confirmada",
+                                                                                                  "enum":  [
+                                                                                                               "confirmada",
+                                                                                                               "cancelada"
+                                                                                                           ]
+                                                                                              },
+                                                                                   "fecha":  {
+                                                                                                 "type":  "string",
+                                                                                                 "example":  "2025-06-15"
+                                                                                             },
+                                                                                   "hora_inicio":  {
+                                                                                                       "type":  "string",
+                                                                                                       "example":  "14:00"
+                                                                                                   },
+                                                                                   "hora_fin":  {
+                                                                                                    "type":  "string",
+                                                                                                    "example":  "16:00"
+                                                                                                },
+                                                                                   "nombre_solicitante":  {
+                                                                                                              "type":  "string",
+                                                                                                              "example":  "Juan Pérez"
+                                                                                                          },
+                                                                                   "carnet":  {
+                                                                                                  "type":  "string",
+                                                                                                  "example":  "12345678"
+                                                                                              },
+                                                                                   "motivo":  {
+                                                                                                  "type":  "string",
+                                                                                                  "example":  "Entrenamiento de vóleibol"
+                                                                                              },
+                                                                                   "disciplina_id":  {
+                                                                                                         "type":  "number",
+                                                                                                         "example":  3
+                                                                                                     },
+                                                                                   "espacio_id":  {
+                                                                                                      "type":  "number",
+                                                                                                      "example":  1
+                                                                                                  }
+                                                                               }
+                                                            },
+                                       "CreatePagoDto":  {
+                                                             "type":  "object",
+                                                             "properties":  {
+                                                                                "deportista_id":  {
+                                                                                                      "type":  "number",
+                                                                                                      "example":  1,
+                                                                                                      "description":  "ID del deportista"
+                                                                                                  },
+                                                                                "concepto_id":  {
+                                                                                                    "type":  "number",
+                                                                                                    "example":  2,
+                                                                                                    "description":  "ID del concepto de pago"
+                                                                                                },
+                                                                                "monto":  {
+                                                                                              "type":  "number",
+                                                                                              "example":  120,
+                                                                                              "description":  "Monto del pago"
+                                                                                          },
+                                                                                "mes":  {
+                                                                                            "type":  "number",
+                                                                                            "example":  3,
+                                                                                            "description":  "Mes del pago (1-9)"
+                                                                                        },
+                                                                                "anio":  {
+                                                                                             "type":  "number",
+                                                                                             "example":  2026,
+                                                                                             "description":  "Año del pago"
+                                                                                         },
+                                                                                "fecha_pago":  {
+                                                                                                   "type":  "string",
+                                                                                                   "example":  "2026-04-30",
+                                                                                                   "description":  "Fecha del pago"
+                                                                                               },
+                                                                                "comprobante":  {
+                                                                                                    "type":  "string",
+                                                                                                    "example":  "REC-001",
+                                                                                                    "description":  "Número de comprobante"
+                                                                                                },
+                                                                                "observaciones":  {
+                                                                                                      "type":  "string",
+                                                                                                      "example":  "Pago en efectivo"
+                                                                                                  }
+                                                                            },
+                                                             "required":  [
+                                                                              "deportista_id",
+                                                                              "concepto_id",
+                                                                              "monto",
+                                                                              "anio",
+                                                                              "fecha_pago"
+                                                                          ]
+                                                         },
+                                       "CreateDeportistaDto":  {
+                                                                   "type":  "object",
+                                                                   "properties":  {
+                                                                                      "tipo":  {
+                                                                                                   "type":  "string",
+                                                                                                   "description":  "Tipo de deportista. Determina qué campos adicionales son requeridos.",
+                                                                                                   "enum":  [
+                                                                                                                "academia",
+                                                                                                                "competitivo",
+                                                                                                                "estudiante_ucb"
+                                                                                                            ],
+                                                                                                   "example":  "estudiante_ucb"
+                                                                                               },
+                                                                                      "ci":  {
+                                                                                                 "type":  "string",
+                                                                                                 "description":  "Cédula de Identidad del deportista. Debe ser único en el sistema.",
+                                                                                                 "example":  "12345678"
+                                                                                             },
+                                                                                      "nombre_completo":  {
+                                                                                                              "type":  "string",
+                                                                                                              "description":  "Nombre completo del deportista.",
+                                                                                                              "example":  "Juan Carlos Saravia"
+                                                                                                          },
+                                                                                      "carrera":  {
+                                                                                                      "type":  "string",
+                                                                                                      "description":  "Carrera universitaria. **Requerido** si `tipo` es `estudiante_ucb`.",
+                                                                                                      "example":  "Ingeniería de Sistemas"
+                                                                                                  },
+                                                                                      "semestre":  {
+                                                                                                       "type":  "number",
+                                                                                                       "description":  "Semestre actual del estudiante. **Requerido** si `tipo` es `estudiante_ucb`.",
+                                                                                                       "minimum":  1,
+                                                                                                       "maximum":  10,
+                                                                                                       "example":  5
+                                                                                                   },
+                                                                                      "fecha_nacimiento":  {
+                                                                                                               "type":  "string",
+                                                                                                               "description":  "Fecha de nacimiento en formato ISO 8601.",
+                                                                                                               "example":  "2000-04-15"
+                                                                                                           },
+                                                                                      "genero":  {
+                                                                                                     "type":  "string",
+                                                                                                     "description":  "Género del deportista.",
+                                                                                                     "example":  "masculino"
+                                                                                                 },
+                                                                                      "telefono":  {
+                                                                                                       "type":  "string",
+                                                                                                       "description":  "Número de teléfono de contacto.",
+                                                                                                       "example":  "+591 71234567"
+                                                                                                   },
+                                                                                      "email":  {
+                                                                                                    "type":  "string",
+                                                                                                    "description":  "Correo electrónico de contacto.",
+                                                                                                    "example":  "juan.mamani@ucb.edu.bo"
+                                                                                                },
+                                                                                      "disciplinaId":  {
+                                                                                                           "type":  "number",
+                                                                                                           "description":  "ID de disciplina para crear una inscripción automáticamente al registrar al deportista.",
+                                                                                                           "example":  3
+                                                                                                       },
+                                                                                      "categoria":  {
+                                                                                                        "type":  "string",
+                                                                                                        "description":  "Categoría del deportista dentro de la disciplina.",
+                                                                                                        "example":  "juvenil"
+                                                                                                    },
+                                                                                      "nivel":  {
+                                                                                                    "type":  "string",
+                                                                                                    "description":  "Nivel de competencia dentro de la disciplina.",
+                                                                                                    "example":  "intermedio"
+                                                                                                }
+                                                                                  },
+                                                                   "required":  [
+                                                                                    "tipo",
+                                                                                    "ci",
+                                                                                    "nombre_completo"
+                                                                                ]
+                                                               },
+                                       "UpdateDeportistaDto":  {
+                                                                   "type":  "object",
+                                                                   "properties":  {
+                                                                                      "tipo":  {
+                                                                                                   "type":  "string",
+                                                                                                   "description":  "Tipo de deportista. Determina qué campos adicionales son requeridos.",
+                                                                                                   "enum":  [
+                                                                                                                "academia",
+                                                                                                                "competitivo",
+                                                                                                                "estudiante_ucb"
+                                                                                                            ],
+                                                                                                   "example":  "estudiante_ucb"
+                                                                                               },
+                                                                                      "ci":  {
+                                                                                                 "type":  "string",
+                                                                                                 "description":  "Cédula de Identidad del deportista. Debe ser único en el sistema.",
+                                                                                                 "example":  "12345678"
+                                                                                             },
+                                                                                      "nombre_completo":  {
+                                                                                                              "type":  "string",
+                                                                                                              "description":  "Nombre completo del deportista.",
+                                                                                                              "example":  "Juan Carlos Saravia"
+                                                                                                          },
+                                                                                      "carrera":  {
+                                                                                                      "type":  "string",
+                                                                                                      "description":  "Carrera universitaria. **Requerido** si `tipo` es `estudiante_ucb`.",
+                                                                                                      "example":  "Ingeniería de Sistemas"
+                                                                                                  },
+                                                                                      "semestre":  {
+                                                                                                       "type":  "number",
+                                                                                                       "description":  "Semestre actual del estudiante. **Requerido** si `tipo` es `estudiante_ucb`.",
+                                                                                                       "minimum":  1,
+                                                                                                       "maximum":  10,
+                                                                                                       "example":  5
+                                                                                                   },
+                                                                                      "fecha_nacimiento":  {
+                                                                                                               "type":  "string",
+                                                                                                               "description":  "Fecha de nacimiento en formato ISO 8601.",
+                                                                                                               "example":  "2000-04-15"
+                                                                                                           },
+                                                                                      "genero":  {
+                                                                                                     "type":  "string",
+                                                                                                     "description":  "Género del deportista.",
+                                                                                                     "example":  "masculino"
+                                                                                                 },
+                                                                                      "telefono":  {
+                                                                                                       "type":  "string",
+                                                                                                       "description":  "Número de teléfono de contacto.",
+                                                                                                       "example":  "+591 71234567"
+                                                                                                   },
+                                                                                      "email":  {
+                                                                                                    "type":  "string",
+                                                                                                    "description":  "Correo electrónico de contacto.",
+                                                                                                    "example":  "juan.mamani@ucb.edu.bo"
+                                                                                                },
+                                                                                      "disciplinaId":  {
+                                                                                                           "type":  "number",
+                                                                                                           "description":  "ID de disciplina para crear una inscripción automáticamente al registrar al deportista.",
+                                                                                                           "example":  3
+                                                                                                       },
+                                                                                      "categoria":  {
+                                                                                                        "type":  "string",
+                                                                                                        "description":  "Categoría del deportista dentro de la disciplina.",
+                                                                                                        "example":  "juvenil"
+                                                                                                    },
+                                                                                      "nivel":  {
+                                                                                                    "type":  "string",
+                                                                                                    "description":  "Nivel de competencia dentro de la disciplina.",
+                                                                                                    "example":  "intermedio"
+                                                                                                }
+                                                                                  }
+                                                               }
+                                   }
+                   }
+}

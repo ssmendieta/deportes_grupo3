@@ -1,0 +1,41 @@
+====================================
+UNIT TESTS (67 tests, 8 suites)
+====================================
+PASS src/reservas/reservas.service.spec.ts (15 tests)
+PASS src/deportistas/deportistas.service.spec.ts (10 tests)
+PASS src/pagos/pagos.service.spec.ts (12 tests)
+PASS src/disciplinas/disciplinas.service.spec.ts (8 tests)
+PASS src/espacios/espacios.service.spec.ts (3 tests)
+PASS src/middleware/auth.middleware.spec.ts (7 tests)
+PASS src/reservas/reserva.controller.spec.ts (2 tests)
+PASS src/deportistas/deportistas.controller.spec.ts (3 tests)
+Total: 67 passed, 8 suites
+
+====================================
+INTEGRATION TESTS (25 tests, 1 suite)
+====================================
+PASS test/app.e2e-spec.ts (25 tests)
+- GET /api/espacios (3 tests)
+- GET /api/disciplinas (4 tests)
+- GET /api/horarios-disponibles (2 tests)
+- GET /api/reservas (3 tests)
+- POST /api/reservas (5 tests)
+- GET /api/reservas/:id (1 test)
+- GET /api/deportistas (2 tests)
+- POST /api/deportistas (2 tests)
+- GET /api/deportistas/buscar (1 test)
+- GET /api/pagos/conceptos (1 test)
+- POST /api/pagos (1 test)
+Total: 25 passed
+
+====================================
+COVERAGE SUMMARY
+====================================
+AuthMiddleware:       97.5%
+EspaciosService:     100%
+PagosService:         97.05%
+DisciplinasService:   89.65%
+ReservasService:      76.34%
+DeportistasService:   76.25%
+PrismaService:        60%
+Overall:              52.11%
