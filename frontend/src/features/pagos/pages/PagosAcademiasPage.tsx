@@ -141,61 +141,41 @@ function PagosAcademiasPage() {
   return (
     <div className="page-stack">
 
-      {/* HEADER */}
-      <div
-        style={{
-          display: "flex",
+      <PageHeader
+        title="Verificación de pagos de academias"
+        description="Consulta estados de cuenta y pagos registrados por deportista."
+      />
 
-          justifyContent:
-            "space-between",
-
-          alignItems: "center",
-
-          flexWrap: "wrap",
-
-          gap: "16px",
-        }}
-      >
-        <PageHeader
-          title="Verificación de pagos de academias"
-          description="Consulta estados de cuenta y pagos registrados por deportista."
+      <div>
+        <ExportarReporteButton
+          endpoint="/pagos/reporte"
+          filtrosActuales={filtros}
+          nombreArchivoBase="Reporte_Pagos_Academias_UCB"
+          filtrosConfig={[
+            { name: "mes", label: "Mes", type: "select", options: [
+              { value: "", label: "Todos" },
+              { value: "enero", label: "Enero" },
+              { value: "febrero", label: "Febrero" },
+              { value: "marzo", label: "Marzo" },
+              { value: "abril", label: "Abril" },
+              { value: "mayo", label: "Mayo" },
+              { value: "junio", label: "Junio" },
+              { value: "julio", label: "Julio" },
+              { value: "agosto", label: "Agosto" },
+              { value: "septiembre", label: "Septiembre" },
+              { value: "octubre", label: "Octubre" },
+              { value: "noviembre", label: "Noviembre" },
+              { value: "diciembre", label: "Diciembre" },
+            ]},
+            { name: "anio", label: "Año", type: "select", options: [
+              { value: "", label: "Todos" },
+              { value: "2024", label: "2024" },
+              { value: "2025", label: "2025" },
+              { value: "2026", label: "2026" },
+              { value: "2027", label: "2027" },
+            ]},
+          ]}
         />
-
-        <div
-          style={{
-            marginTop: "10px",
-          }}
-        >
-          <ExportarReporteButton
-            endpoint="/pagos/reporte"
-            filtrosActuales={filtros}
-            nombreArchivoBase="Reporte_Pagos_Academias_UCB"
-            filtrosConfig={[
-              { name: "mes", label: "Mes", type: "select", options: [
-                { value: "", label: "Todos" },
-                { value: "enero", label: "Enero" },
-                { value: "febrero", label: "Febrero" },
-                { value: "marzo", label: "Marzo" },
-                { value: "abril", label: "Abril" },
-                { value: "mayo", label: "Mayo" },
-                { value: "junio", label: "Junio" },
-                { value: "julio", label: "Julio" },
-                { value: "agosto", label: "Agosto" },
-                { value: "septiembre", label: "Septiembre" },
-                { value: "octubre", label: "Octubre" },
-                { value: "noviembre", label: "Noviembre" },
-                { value: "diciembre", label: "Diciembre" },
-              ]},
-              { name: "anio", label: "Año", type: "select", options: [
-                { value: "", label: "Todos" },
-                { value: "2024", label: "2024" },
-                { value: "2025", label: "2025" },
-                { value: "2026", label: "2026" },
-                { value: "2027", label: "2027" },
-              ]},
-            ]}
-          />
-        </div>
       </div>
 
       {cargando && <Spinner texto="Cargando datos de pagos..." tamanio="lg" />}

@@ -80,33 +80,30 @@ function RegistroDeportistaPage() {
 
   return (
     <div className="page-stack">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
-        <PageHeader
-          title="Registro de nuevo deportista"
-          description="Alta y consulta de deportistas para academias, clases libres y equipos competitivos."
-          actionLabel={
-            formularioAbierto ? "Cerrar formulario" : "+ Nuevo deportista"
-          }
-          onAction={() => setFormularioAbierto((prev) => !prev)}
+      <PageHeader
+        title="Registro de nuevo deportista"
+        description="Alta y consulta de deportistas para academias, clases libres y equipos competitivos."
+        actionLabel={
+          formularioAbierto ? "Cerrar formulario" : "+ Nuevo deportista"
+        }
+        onAction={() => setFormularioAbierto((prev) => !prev)}
+      />
+      
+      <div>
+        <ExportarReporteButton 
+          endpoint="/deportistas/reporte" 
+          filtrosActuales={{ tipo: tipoFiltro }} 
+          nombreArchivoBase="Reporte_Deportistas_Registrados" 
+          filtrosConfig={[
+            { name: "tipo", label: "Tipo", type: "select", options: [
+              { value: "todos", label: "Todos" },
+              { value: "estudiante_ucb", label: "Estudiante UCB" },
+              { value: "academia", label: "Academia" },
+              { value: "competitivo", label: "Competitivo" },
+              { value: "externo", label: "Externo" },
+            ]},
+          ]}
         />
-        
-        {/* Botón integrado respetando los filtros de la tabla */}
-        <div style={{ marginTop: "10px" }}>
-          <ExportarReporteButton 
-            endpoint="/deportistas/reporte" 
-            filtrosActuales={{ tipo: tipoFiltro }} 
-            nombreArchivoBase="Reporte_Deportistas_Registrados" 
-            filtrosConfig={[
-              { name: "tipo", label: "Tipo", type: "select", options: [
-                { value: "todos", label: "Todos" },
-                { value: "estudiante_ucb", label: "Estudiante UCB" },
-                { value: "academia", label: "Academia" },
-                { value: "competitivo", label: "Competitivo" },
-                { value: "externo", label: "Externo" },
-              ]},
-            ]}
-          />
-        </div>
       </div>
 
       {formularioAbierto && (

@@ -98,28 +98,26 @@ function GestionDisciplinasPage() {
 
   return (
     <div className="page-stack">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
-        <PageHeader
-          title="Gestión de disciplinas deportivas"
-          description="Crear, editar y activar/desactivar disciplinas deportivas."
-          actionLabel="+ Nueva disciplina"
-          onAction={abrirCrear}
+      <PageHeader
+        title="Gestión de disciplinas deportivas"
+        description="Crear, editar y activar/desactivar disciplinas deportivas."
+        actionLabel="+ Nueva disciplina"
+        onAction={abrirCrear}
+      />
+
+      <div>
+        <ExportarReporteButton 
+          endpoint="/disciplinas/reporte" 
+          filtrosActuales={{ estado: filtroEstado }} 
+          nombreArchivoBase="Reporte_Disciplinas_Deportivas" 
+          filtrosConfig={[
+            { name: "estado", label: "Estado", type: "select", options: [
+              { value: "todas", label: "Todas" },
+              { value: "activas", label: "Activas" },
+              { value: "inactivas", label: "Inactivas" },
+            ]},
+          ]}
         />
-        
-        <div style={{ marginTop: "10px" }}>
-          <ExportarReporteButton 
-            endpoint="/disciplinas/reporte" 
-            filtrosActuales={{ estado: filtroEstado }} 
-            nombreArchivoBase="Reporte_Disciplinas_Deportivas" 
-            filtrosConfig={[
-              { name: "estado", label: "Estado", type: "select", options: [
-                { value: "todas", label: "Todas" },
-                { value: "activas", label: "Activas" },
-                { value: "inactivas", label: "Inactivas" },
-              ]},
-            ]}
-          />
-        </div>
       </div>
 
       <section className="panel-card">
