@@ -5,7 +5,7 @@ import { getEspacios } from "../../reservas/services/reservaService";
 import type { Espacio } from "../../reservas/types/reserva.types";
 import AlertasCalendario from "../components/AlertasCalendario";
 import EncabezadoCalendario from "../components/EncabezadoCalendario";
-import GrillaCalendarioSemanal from "../components/GrillaCalendarioSemanal";
+import GrillaCalendarioSemanal, { clasePorEspacio } from "../components/GrillaCalendarioSemanal";
 import LeyendaCalendario from "../components/LeyendaCalendario";
 import NavegacionSemana from "../components/NavegacionSemana";
 
@@ -54,7 +54,7 @@ function CalendarioEstudiantePage() {
   return (
     <div className="page-stack">
       <EncabezadoCalendario
-        titulo="Calendario Semanal - Estudiante"
+        titulo="Calendario Semanal"
         subtitulo="Consulta disponibilidad de canchas. Las reservas se realizan de forma presencial."
       />
 
@@ -62,33 +62,32 @@ function CalendarioEstudiantePage() {
         <StatCard label="Horario visible" value="14:00 - 18:00" />
       </section>
 
-      <section className="toolbar-card">
+      <div className="gc-toolbar">
         <NavegacionSemana
           etiquetaSemana={etiquetaSemana}
           onSemanaAnterior={() => setSemanaBase((prev) => sumarDias(prev, -7))}
           onSemanaSiguiente={() => setSemanaBase((prev) => sumarDias(prev, 7))}
         />
 
-        <div className="segmented-inline">
-          <span>Cancha:</span>
+        <div className="gc-space-picker">
           {espacios.map((espacio) => (
             <button
               key={espacio.id}
-              className={espacioSeleccionado === espacio.id ? "active" : ""}
+              className={`gc-space-chip${espacioSeleccionado === espacio.id ? " active" : ""}`}
               onClick={() => setEspacioSeleccionado(espacio.id)}
             >
+              <span className={`gc-space-dot ${clasePorEspacio(espacio.nombre)}`} />
               {espacio.nombre}
             </button>
           ))}
         </div>
-      </section>
+      </div>
 
-      <LeyendaCalendario />
+      <LeyendaCalendario espacios={espacios} />
       <AlertasCalendario mensaje={mensaje} tipo="error" />
 
       {espacioSeleccionado && (
         <GrillaCalendarioSemanal
-          modo="estudiante"
           semanaBase={semanaBase}
           espacioId={espacioSeleccionado}
           onConflicto={(msg) => setMensaje(msg)}

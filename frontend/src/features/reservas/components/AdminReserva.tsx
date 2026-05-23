@@ -26,7 +26,6 @@ import { useToast } from "../../../shared/contexts/ToastContext";
 import {
   validarCI,
   validarNombreCompleto,
-  validarRequerido,
   type ErroresForm,
   mostrarError,
 } from "../../../shared/utils/validators";

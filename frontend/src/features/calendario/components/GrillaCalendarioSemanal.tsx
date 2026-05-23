@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import Spinner from "../../../shared/components/Spinner";
 import {
   DIAS_SEMANA,
-  HORAS_CALENDARIO,
   fechaParaAPI,
   getDisponibilidad,
   getEspacios,
@@ -13,7 +12,6 @@ import type {
 } from "../../reservas/types/reserva.types";
 
 type Props = {
-  modo: "admin" | "estudiante";
   semanaBase: Date;
   espacioId?: number;
   onBloqueLibreClick?: (dia: string, hora: string) => void;
@@ -25,12 +23,30 @@ function horaAMinutos(hora: string) {
   return h * 60 + m;
 }
 
-function clasePorEspacio(nombre: string) {
-  return nombre.toLowerCase().includes("arquitect") ? "arquitectura" : "coliseo";
+export function clasePorEspacio(nombre: string) {
+  return nombre.toLowerCase().includes("arquitect")
+    ? "arquitectura"
+    : "coliseo";
 }
 
 function normalizarHora(hora: string) {
   return hora.slice(0, 5);
+}
+
+function sumarDias(fecha: Date, dias: number) {
+  return new Date(
+    fecha.getFullYear(),
+    fecha.getMonth(),
+    fecha.getDate() + dias,
+  );
+}
+
+function esMismoDia(a: Date, b: Date) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
 
 type BloqueConFilas = {
@@ -47,7 +63,7 @@ function calcularBloquesConFilas(bloques: BloqueOcupado[]): BloqueConFilas[] {
     let startRow = -1;
     let endRow = -1;
 
-    HORAS_CALENDARIO.forEach((hora, idx) => {
+    HORAS_GRID.forEach((hora, idx) => {
       const inicioSlot = horaAMinutos(hora);
       const finSlot = inicioSlot + 30;
       if (inicioB < finSlot && finB > inicioSlot) {
@@ -61,15 +77,36 @@ function calcularBloquesConFilas(bloques: BloqueOcupado[]): BloqueConFilas[] {
   });
 }
 
+const HORAS_GRID = [
+  "12:00",
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+  "17:00",
+  "18:00",
+  "19:00",
+];
+
+const DIA_ABREV: Record<string, string> = {
+  Lunes: "LUN",
+  Martes: "MAR",
+  Miércoles: "MIÉ",
+  Jueves: "JUE",
+  Viernes: "VIE",
+  Sábado: "SÁB",
+};
+
 function GrillaCalendarioSemanal({
-  modo,
   semanaBase,
   espacioId,
   onBloqueLibreClick,
   onConflicto,
 }: Props) {
   const [espacios, setEspacios] = useState<Espacio[]>([]);
-  const [bloquesOcupados, setBloquesOcupados] = useState<Record<string, BloqueOcupado[]>>({});
+  const [bloquesOcupados, setBloquesOcupados] = useState<
+    Record<string, BloqueOcupado[]>
+  >({});
   const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
@@ -109,103 +146,122 @@ function GrillaCalendarioSemanal({
     bloquesOcupados[`${id}-${dia}`] || [];
 
   return (
-    <section className="calendar-stack">
+    <section className="gc-container">
       {cargando && <Spinner texto="Cargando disponibilidad..." />}
 
-      {espaciosMostrados.map((espacio) => (
-        <article key={espacio.id} className="calendar-space-card">
-          <h3>{espacio.nombre}</h3>
-
-          <div className="calendar-scroll">
-            <div className="calendar-grid calendar-grid-explicit">
-              {/* Corner */}
-              <div className="calendar-time empty" style={{ gridColumn: 1, gridRow: 1 }} />
-
-              {/* Day headers — row 1 */}
-              {DIAS_SEMANA.map((dia, colIdx) => (
+      {espaciosMostrados.map((espacio) => {
+        const espacioClase = clasePorEspacio(espacio.nombre);
+        return (
+          <div key={espacio.id} className="gc-wrapper">
+            <div className="gc-scroll">
+              <div className="gc-grid">
+                {/* Corner */}
                 <div
-                  key={dia}
-                  className="calendar-day-header"
-                  style={{ gridColumn: colIdx + 2, gridRow: 1 }}
-                >
-                  {dia}
-                </div>
-              ))}
+                  className="gc-corner"
+                  style={{ gridColumn: 1, gridRow: 1 }}
+                />
 
-              {/* Time labels — column 1, rows 2…N+1 */}
-              {HORAS_CALENDARIO.map((hora, rowIdx) => (
-                <div
-                  key={hora}
-                  className="calendar-time"
-                  style={{ gridColumn: 1, gridRow: rowIdx + 2 }}
-                >
-                  {hora}
-                </div>
-              ))}
-
-              {/* Day columns: one spanning cell per block, free cells elsewhere */}
-              {DIAS_SEMANA.map((dia, colIdx) => {
-                const bloques = obtenerBloquesDeDia(espacio.id, dia);
-                const bloquesConFilas = calcularBloquesConFilas(bloques);
-                const filasOcupadas = new Set(
-                  bloquesConFilas.flatMap(({ startRow, spanRows }) =>
-                    Array.from({ length: spanRows }, (_, i) => startRow + i),
-                  ),
-                );
-
-                return HORAS_CALENDARIO.map((hora, rowIdx) => {
-                  const col = colIdx + 2;
-                  const row = rowIdx + 2;
-
-                  // Spanning block that starts at this row
-                  const bloqueInfo = bloquesConFilas.find((b) => b.startRow === rowIdx);
-                  if (bloqueInfo) {
-                    const { bloque, spanRows } = bloqueInfo;
-                    return (
-                      <button
-                        key={`${espacio.id}-${dia}-${hora}-bloque`}
-                        className="calendar-cell busy"
-                        style={{ gridColumn: col, gridRow: `${row} / span ${spanRows}` }}
-                        onClick={() =>
-                          onConflicto?.(
-                            `El horario del ${dia} a las ${normalizarHora(bloque.hora_inicio)} ya está ocupado.`,
-                          )
-                        }
-                      >
-                        <div className={`booking-block ${clasePorEspacio(espacio.nombre)}`}>
-                          <strong>
-                            {bloque.tipo === "clase" ? "Clase / entrenamiento" : bloque.motivo || "Reserva"}
-                          </strong>
-                          <small>
-                            {normalizarHora(bloque.hora_inicio)} – {normalizarHora(bloque.hora_fin)}
-                          </small>
-                        </div>
-                      </button>
-                    );
-                  }
-
-                  // Row consumed by a spanning block — skip (no cell rendered)
-                  if (filasOcupadas.has(rowIdx)) return null;
-
-                  // Free cell
+                {/* Day headers — row 1, columns 2-7 */}
+                {DIAS_SEMANA.map((dia, colIdx) => {
+                  const fecha = sumarDias(semanaBase, colIdx);
+                  const hoy = esMismoDia(fecha, new Date());
                   return (
-                    <button
-                      key={`${espacio.id}-${dia}-${hora}-libre`}
-                      className="calendar-cell free"
-                      style={{ gridColumn: col, gridRow: row }}
-                      onClick={() => onBloqueLibreClick?.(dia, hora)}
+                    <div
+                      key={dia}
+                      className={`gc-day-header${hoy ? " gc-today" : ""}`}
+                      style={{ gridColumn: colIdx + 2, gridRow: 1 }}
                     >
-                      <span className="free-label">
-                        {modo === "admin" ? "Libre" : "Disponible"}
-                      </span>
-                    </button>
+                      <div className="gc-day-name">
+                        {DIA_ABREV[dia] || dia.slice(0, 3).toUpperCase()}
+                      </div>
+                      <div className="gc-day-number">{fecha.getDate()}</div>
+                    </div>
                   );
-                });
-              })}
+                })}
+
+                {/* Time labels + day cells — rows 2..N+1 */}
+                {HORAS_GRID.map((hora, rowIdx) => (
+                  <div key={hora} style={{ display: "contents" }}>
+                    {/* Time label — column 1 */}
+                    <div
+                      className="gc-time"
+                      style={{ gridColumn: 1, gridRow: rowIdx + 2 }}
+                    >
+                      {hora}
+                    </div>
+
+                    {/* Day columns */}
+                    {DIAS_SEMANA.map((dia, colIdx) => {
+                      const col = colIdx + 2;
+                      const row = rowIdx + 2;
+                      const bloques = obtenerBloquesDeDia(espacio.id, dia);
+                      const bloquesConFilas = calcularBloquesConFilas(bloques);
+                      const filasOcupadas = new Set(
+                        bloquesConFilas.flatMap(({ startRow, spanRows }) =>
+                          Array.from(
+                            { length: spanRows },
+                            (_, i) => startRow + i,
+                          ),
+                        ),
+                      );
+
+                      // Event pill that starts at this row
+                      const bloqueInfo = bloquesConFilas.find(
+                        (b) => b.startRow === rowIdx,
+                      );
+                      if (bloqueInfo) {
+                        const { bloque, spanRows } = bloqueInfo;
+                        return (
+                          <button
+                            key={`${espacio.id}-${dia}-${hora}`}
+                            className="gc-cell"
+                            style={{
+                              gridColumn: col,
+                              gridRow: `${row} / span ${spanRows}`,
+                              padding: 0,
+                              cursor: "pointer",
+                            }}
+                            onClick={() =>
+                              onConflicto?.(
+                                `El horario del ${dia} a las ${normalizarHora(bloque.hora_inicio)} ya está ocupado.`,
+                              )
+                            }
+                          >
+                            <div className={`gc-event ${espacioClase}`}>
+                              <div className="gc-event-title">
+                                {bloque.tipo === "clase"
+                                  ? "Clase"
+                                  : bloque.motivo || "Reserva"}
+                              </div>
+                              <div className="gc-event-time">
+                                {normalizarHora(bloque.hora_inicio)} –{" "}
+                                {normalizarHora(bloque.hora_fin)}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      }
+
+                      // Row consumed by spanning block
+                      if (filasOcupadas.has(rowIdx)) return null;
+
+                      // Free cell
+                      return (
+                        <button
+                          key={`${espacio.id}-${dia}-${hora}`}
+                          className="gc-cell"
+                          style={{ gridColumn: col, gridRow: row }}
+                          onClick={() => onBloqueLibreClick?.(dia, hora)}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </article>
-      ))}
+        );
+      })}
     </section>
   );
 }

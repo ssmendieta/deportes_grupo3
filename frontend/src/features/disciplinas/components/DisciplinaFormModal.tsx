@@ -3,7 +3,6 @@ import type { FormEvent } from "react";
 import type { Disciplina, DisciplinaFormData } from "../types/disciplina.types";
 import {
   validarNombreCompleto,
-  validarRequerido,
   type ErroresForm,
   mostrarError,
 } from "../../../shared/utils/validators";

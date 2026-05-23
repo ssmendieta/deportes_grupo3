@@ -5,8 +5,7 @@ type Props = {
 
 function AlertasCalendario({ mensaje, tipo }: Props) {
   if (!mensaje) return null;
-
-  return <div className={`alerta-calendario ${tipo}`}>{mensaje}</div>;
+  return <div className={`gc-alert ${tipo}`}>{mensaje}</div>;
 }
 
 export default AlertasCalendario;

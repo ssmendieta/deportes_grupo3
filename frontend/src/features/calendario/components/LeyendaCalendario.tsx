@@ -1,11 +1,19 @@
-function LeyendaCalendario() {
+import { clasePorEspacio } from "../components/GrillaCalendarioSemanal.js";
+
+type Props = {
+  espacios: { id: number; nombre: string }[];
+};
+
+function LeyendaCalendario({ espacios }: Props) {
   return (
-    <section className="legend-card">
-      <div><span className="legend-dot coliseo" /> Coliseo Polideportivo</div>
-      <div><span className="legend-dot arquitectura" /> Cancha de Arquitectura</div>
-      <div><span className="legend-pill libre" /> Disponible</div>
-      <div><span className="legend-pill ocupado" /> Ocupado / Actividad</div>
-    </section>
+    <div className="gc-legend">
+      {espacios.map((esp) => (
+        <div key={esp.id} className="gc-legend-item">
+          <span className={`gc-legend-dot ${clasePorEspacio(esp.nombre)}`} />
+          {esp.nombre}
+        </div>
+      ))}
+    </div>
   );
 }
 

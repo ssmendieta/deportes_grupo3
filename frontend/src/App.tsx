@@ -6,11 +6,10 @@ import {
   Outlet,
   useNavigate,
   useLocation,
-  Link,
 } from "react-router-dom";
 import "./App.css";
 
-import AppNavigation from "./shared/components/AppNavigation";
+import Sidebar from "./shared/components/Sidebar";
 import { ErrorBoundary } from "./shared/components/ErrorBoundary";
 import { ToastProvider } from "./shared/contexts/ToastContext";
 import DashboardAdminPage from "./features/dashboard/pages/DashboardAdminPage";
@@ -84,22 +83,12 @@ function ProtectedLayout() {
 
   return (
     <div className="app-shell">
-      <div className="app-topbar">
-        <AppNavigation />
-        <button
-          className="btn btn-ghost btn-logout small"
-          onClick={handleLogout}
-          title="Cerrar sesión"
-        >
-          {user?.email ? (
-            <Link to="/perfil" className="user-email">{user.email}</Link>
-          ) : null}
-          Salir
-        </button>
+      <Sidebar onLogout={handleLogout} />
+      <div className="app-content">
+        <main className="app-main">
+          <ErrorBoundary><Outlet /></ErrorBoundary>
+        </main>
       </div>
-      <main className="app-main">
-        <ErrorBoundary><Outlet /></ErrorBoundary>
-      </main>
     </div>
   );
 }

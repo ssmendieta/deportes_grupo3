@@ -6,7 +6,7 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log("🚀 Iniciando Seed...");
+  console.log("Iniciando Seed...");
 
   await prisma.planillaPagosAcademia.deleteMany({});
   await prisma.pago.deleteMany({});
@@ -40,7 +40,7 @@ async function main() {
     },
   });
 
-  console.log("✅ Espacios creados");
+  console.log("Espacios creados");
 
   const futsal = await prisma.disciplina.create({
     data: {
@@ -83,36 +83,9 @@ async function main() {
     },
   });
 
-  console.log("✅ Disciplinas creadas");
+  console.log("Disciplinas creadas");
 
-  const diasSemana = [1, 2, 3, 4, 5];
-  for (const dia of diasSemana) {
-    for (const clase of [
-      { hora_inicio: "08:00", hora_fin: "10:00" },
-      { hora_inicio: "10:00", hora_fin: "12:00" },
-      { hora_inicio: "12:00", hora_fin: "14:00" },
-    ]) {
-      await prisma.horarioDisponible.create({
-        data: {
-          espacio_id: coliseo.id,
-          dia_semana: dia,
-          ...clase,
-          disponible: false,
-        },
-      });
-    }
-    await prisma.horarioDisponible.create({
-      data: {
-        espacio_id: canchaArquitectura.id,
-        dia_semana: dia,
-        hora_inicio: "07:00",
-        hora_fin: "14:00",
-        disponible: false,
-      },
-    });
-  }
-
-  console.log("✅ Horarios creados");
+  console.log("Horarios omitidos");
 
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
@@ -144,7 +117,7 @@ async function main() {
     ],
   });
 
-  console.log("✅ Reservas creadas");
+  console.log("Reservas creadas");
 
   const conceptos = await prisma.conceptoPago.createManyAndReturn({
     data: [
@@ -207,7 +180,7 @@ async function main() {
     );
   const anio = new Date().getFullYear();
 
-  console.log("✅ Conceptos de pago creados");
+  console.log("Conceptos de pago creados");
 
   const martin = await prisma.deportista.create({
     data: {
@@ -387,7 +360,7 @@ async function main() {
     },
   });
 
-  console.log("✅ Deportistas creados");
+  console.log("Deportistas creados");
 
   await prisma.inscripcion.createMany({
     data: [
@@ -485,7 +458,7 @@ async function main() {
     ],
   });
 
-  console.log("✅ Inscripciones creadas");
+  console.log("Inscripciones creadas");
 
   await prisma.pago.createMany({
     data: [
@@ -745,34 +718,12 @@ async function main() {
     },
   });
 
-  console.log("✅ Pagos y planillas creados");
-
-  console.log(`
-┌─────────────────────────────────────────────────────────────────┐
-│                  RESUMEN DE CASOS DE PRUEBA                     │
-├────────────────────────┬──────────────────┬─────────────────────┤
-│ Deportista             │ Tipo             │ Estado esperado     │
-├────────────────────────┼──────────────────┼─────────────────────┤
-│ Martín Quispe          │ Academia         │ AL DÍA              │
-│ Valeria Romero         │ Academia         │ AL DÍA (adelantado) │
-│ Rodrigo Salinas        │ Academia         │ PENDIENTE (falta May)│
-│ Camila Torrez          │ Academia         │ PENDIENTE (solo mat.)│
-│ Nelson Condori         │ Academia         │ MOROSO (2 meses)    │
-│ Patricia Mamani        │ Academia         │ MOROSO (3 meses)    │
-│ Diego Villca           │ Academia         │ PENDIENTE (sin plan.)│
-│ Lucía Fernández        │ Estudiante UCB   │ EXONERADO           │
-│ Andrés Chávez          │ Estudiante UCB   │ EXONERADO           │
-│ Sofía Rojas            │ Estudiante UCB   │ EXONERADO           │
-│ Miguel Vargas          │ Competitivo      │ EXONERADO           │
-│ Carla Mendoza          │ Competitivo      │ EXONERADO           │
-│ Roberto Ticona         │ Competitivo      │ (inactivo)          │
-└────────────────────────┴──────────────────┴─────────────────────┘
-  `);
+  console.log("Pagos y planillas creados");
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Error en el seed:", e);
+    console.error("Error en el seed:", e);
     process.exit(1);
   })
   .finally(async () => {
