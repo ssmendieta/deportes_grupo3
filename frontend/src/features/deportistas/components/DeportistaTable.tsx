@@ -6,6 +6,7 @@ type Props = {
   deportistas: Deportista[];
   cargando?: boolean;
   onVerCuenta: (deportista: Deportista) => void;
+  onEditar?: (deportista: Deportista) => void;
 };
 
 const estadoLabel: Record<EstadoCuenta, string> = {
@@ -20,13 +21,25 @@ const estadoTone: Record<EstadoCuenta, "success" | "warning" | "info"> = {
   no_aplica: "info",
 };
 
-function DeportistaTable({ deportistas, cargando, onVerCuenta }: Props) {
+function DeportistaTable({
+  deportistas,
+  cargando,
+  onVerCuenta,
+  onEditar,
+}: Props) {
   if (cargando) {
     return <Spinner texto="Cargando deportistas..." tamanio="lg" />;
   }
 
   if (deportistas.length === 0) {
-    return <div className="panel-card" style={{ textAlign: "center", padding: "2rem" }}>No se encontraron deportistas.</div>;
+    return (
+      <div
+        className="panel-card"
+        style={{ textAlign: "center", padding: "2rem" }}
+      >
+        No se encontraron deportistas.
+      </div>
+    );
   }
 
   return (
@@ -40,7 +53,7 @@ function DeportistaTable({ deportistas, cargando, onVerCuenta }: Props) {
             <th>Mes actual</th>
             <th>Estado</th>
             <th>Deuda</th>
-            <th>Acción</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -72,12 +85,24 @@ function DeportistaTable({ deportistas, cargando, onVerCuenta }: Props) {
                 </td>
                 <td>Bs. {deuda}</td>
                 <td>
-                  <button
-                    className="btn btn-outline small"
-                    onClick={() => onVerCuenta(item)}
+                  <div
+                    style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
                   >
-                    Ver cuenta
-                  </button>
+                    <button
+                      className="btn btn-outline small"
+                      onClick={() => onVerCuenta(item)}
+                    >
+                      Ver cuenta
+                    </button>
+                    {onEditar && (
+                      <button
+                        className="btn btn-primary small"
+                        onClick={() => onEditar(item)}
+                      >
+                        Editar
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             );

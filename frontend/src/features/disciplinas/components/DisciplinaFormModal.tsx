@@ -34,20 +34,25 @@ function DisciplinaFormModal({
   const [errores, setErrores] = useState<ErroresForm>({});
 
   useEffect(() => {
-    if (!abierto) return;
-    setFormData(
-      disciplinaEditando
-        ? {
-            nombre: disciplinaEditando.nombre,
-            descripcion: disciplinaEditando.descripcion,
-            categorias: disciplinaEditando.categorias,
-            mensualidad: String(disciplinaEditando.mensualidad),
-            estado: disciplinaEditando.estado,
-          }
-        : formInicial,
-    );
-    setError("");
-    setErrores({});
+    if (!abierto) return undefined;
+
+    const tarea = window.setTimeout(() => {
+      setFormData(
+        disciplinaEditando
+          ? {
+              nombre: disciplinaEditando.nombre,
+              descripcion: disciplinaEditando.descripcion,
+              categorias: disciplinaEditando.categorias,
+              mensualidad: String(disciplinaEditando.mensualidad),
+              estado: disciplinaEditando.estado,
+            }
+          : formInicial,
+      );
+      setError("");
+      setErrores({});
+    }, 0);
+
+    return () => window.clearTimeout(tarea);
   }, [abierto, disciplinaEditando]);
 
   if (!abierto) return null;
@@ -65,7 +70,10 @@ function DisciplinaFormModal({
 
     const nuevosErrores: ErroresForm = {
       nombre: validarNombreCompleto(formData.nombre, "El nombre"),
-      mensualidad: formData.mensualidad && Number(formData.mensualidad) < 0 ? "La mensualidad no puede ser negativa." : null,
+      mensualidad:
+        formData.mensualidad && Number(formData.mensualidad) < 0
+          ? "La mensualidad no puede ser negativa."
+          : null,
     };
     setErrores(nuevosErrores);
     if (Object.values(nuevosErrores).some(Boolean)) return;
@@ -94,14 +102,32 @@ function DisciplinaFormModal({
             <input
               id="disc-nombre"
               value={formData.nombre}
-              onChange={(e) => { const v = e.target.value; handleChange("nombre", v.charAt(0).toUpperCase() + v.slice(1)); setErrores((p) => ({ ...p, nombre: null })); }}
-              onBlur={() => { if (!formData.nombre.trim()) setErrores((p) => ({ ...p, nombre: validarNombreCompleto(formData.nombre, "El nombre") })); }}
+              onChange={(e) => {
+                const v = e.target.value;
+                handleChange("nombre", v.charAt(0).toUpperCase() + v.slice(1));
+                setErrores((p) => ({ ...p, nombre: null }));
+              }}
+              onBlur={() => {
+                if (!formData.nombre.trim())
+                  setErrores((p) => ({
+                    ...p,
+                    nombre: validarNombreCompleto(formData.nombre, "El nombre"),
+                  }));
+              }}
               placeholder="Ej. Voleibol"
               required
               maxLength={80}
-              aria-describedby={mostrarError(errores, "nombre") ? "error-disc-nombre" : undefined}
+              aria-describedby={
+                mostrarError(errores, "nombre")
+                  ? "error-disc-nombre"
+                  : undefined
+              }
             />
-            {mostrarError(errores, "nombre") && <small id="error-disc-nombre" className="field-error">{mostrarError(errores, "nombre")}</small>}
+            {mostrarError(errores, "nombre") && (
+              <small id="error-disc-nombre" className="field-error">
+                {mostrarError(errores, "nombre")}
+              </small>
+            )}
           </label>
 
           <label className="field">
@@ -145,12 +171,29 @@ function DisciplinaFormModal({
               type="number"
               min="0"
               value={formData.mensualidad}
-              onChange={(e) => { handleChange("mensualidad", e.target.value); setErrores((p) => ({ ...p, mensualidad: null })); }}
-              onBlur={() => { if (formData.mensualidad && Number(formData.mensualidad) < 0) setErrores((p) => ({ ...p, mensualidad: "La mensualidad no puede ser negativa." })); }}
+              onChange={(e) => {
+                handleChange("mensualidad", e.target.value);
+                setErrores((p) => ({ ...p, mensualidad: null }));
+              }}
+              onBlur={() => {
+                if (formData.mensualidad && Number(formData.mensualidad) < 0)
+                  setErrores((p) => ({
+                    ...p,
+                    mensualidad: "La mensualidad no puede ser negativa.",
+                  }));
+              }}
               placeholder="Ej. 120"
-              aria-describedby={mostrarError(errores, "mensualidad") ? "error-disc-mensualidad" : undefined}
+              aria-describedby={
+                mostrarError(errores, "mensualidad")
+                  ? "error-disc-mensualidad"
+                  : undefined
+              }
             />
-            {mostrarError(errores, "mensualidad") && <small id="error-disc-mensualidad" className="field-error">{mostrarError(errores, "mensualidad")}</small>}
+            {mostrarError(errores, "mensualidad") && (
+              <small id="error-disc-mensualidad" className="field-error">
+                {mostrarError(errores, "mensualidad")}
+              </small>
+            )}
           </label>
 
           <div className="form-hint full">
@@ -161,7 +204,12 @@ function DisciplinaFormModal({
           {error && <div className="form-error full">{error}</div>}
 
           <div className="form-actions full">
-            <button className="btn btn-ghost" type="button" onClick={onCerrar} disabled={guardando}>
+            <button
+              className="btn btn-ghost"
+              type="button"
+              onClick={onCerrar}
+              disabled={guardando}
+            >
               Cancelar
             </button>
             <button

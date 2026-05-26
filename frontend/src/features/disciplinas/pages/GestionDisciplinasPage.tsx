@@ -15,9 +15,8 @@ import type {
   FiltroEstadoDisciplina,
 } from "../types/disciplina.types";
 
-// IMPORTANTE: Importación del botón de reportes
 import { ExportarReporteButton } from "../../../shared/components/ExportarReporteButton";
-import { useToast } from "../../../shared/contexts/ToastContext";
+import { useToast } from "../../../shared/hooks/useToast";
 
 function GestionDisciplinasPage() {
   const toast = useToast();
@@ -36,14 +35,19 @@ function GestionDisciplinasPage() {
       const disciplinasData = await listarDisciplinas();
       setDisciplinas(disciplinasData);
     } catch {
-      // Error silencioso — la tabla mostrará vacío
+      // Error silencioso 
     } finally {
       setCargando(false);
     }
   };
 
   useEffect(() => {
-    void cargarDatos();
+    const tarea = window.setTimeout(() => {
+      void cargarDatos();
+    }, 0);
+
+    return () => window.clearTimeout(tarea);
+    
   }, []);
 
   const disciplinasFiltradas = useMemo(() => {
@@ -99,23 +103,29 @@ function GestionDisciplinasPage() {
   return (
     <div className="page-stack">
       <PageHeader
+        eyebrow="Universidad Católica Boliviana"
         title="Gestión de disciplinas deportivas"
         description="Crear, editar y activar/desactivar disciplinas deportivas."
         actionLabel="+ Nueva disciplina"
         onAction={abrirCrear}
       />
 
-      <div>
-        <ExportarReporteButton 
-          endpoint="/disciplinas/reporte" 
-          filtrosActuales={{ estado: filtroEstado }} 
-          nombreArchivoBase="Reporte_Disciplinas_Deportivas" 
+      <div style={{ display: "flex", justifyContent: "flex-end", width: "100%" }}>
+        <ExportarReporteButton
+          endpoint="/disciplinas/reporte"
+          filtrosActuales={{ estado: filtroEstado }}
+          nombreArchivoBase="Reporte_Disciplinas_Deportivas"
           filtrosConfig={[
-            { name: "estado", label: "Estado", type: "select", options: [
-              { value: "todas", label: "Todas" },
-              { value: "activas", label: "Activas" },
-              { value: "inactivas", label: "Inactivas" },
-            ]},
+            {
+              name: "estado",
+              label: "Estado",
+              type: "select",
+              options: [
+                { value: "todas", label: "Todas" },
+                { value: "activas", label: "Activas" },
+                { value: "inactivas", label: "Inactivas" },
+              ],
+            },
           ]}
         />
       </div>

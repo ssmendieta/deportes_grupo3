@@ -1,7 +1,11 @@
 import { useEffect, useCallback, useState } from "react";
 import type { FormEvent } from "react";
 import { apiRequest } from "../../../shared/services/apiClient";
-import type { DeportistaFormData, Disciplina } from "../types/deportista.types";
+import type {
+  Deportista,
+  DeportistaFormData,
+  Disciplina,
+} from "../types/deportista.types";
 import {
   validarCI,
   validarTelefono,
@@ -27,6 +31,7 @@ function formatearCI(v: string) {
 type Props = {
   onCancelar: () => void;
   onGuardar: (data: DeportistaFormData) => Promise<void> | void;
+  deportistaEditando?: Deportista | null;
 };
 
 const formInicial: DeportistaFormData = {
@@ -48,13 +53,37 @@ const formInicial: DeportistaFormData = {
   activo: true,
 };
 
-function DeportistaForm({ onCancelar, onGuardar }: Props) {
+function crearFormDesdeDeportista(deportista: Deportista): DeportistaFormData {
+  const inscripcionActiva = deportista.inscripciones?.find((i) => i.activo);
+
+  return {
+    nombreCompleto: deportista.nombreCompleto ?? "",
+    ci: deportista.ci ?? "",
+    fechaNacimiento: deportista.fechaNacimiento?.slice(0, 10) ?? "",
+    genero: deportista.genero ?? "",
+    telefono: deportista.telefono ?? "",
+    email: deportista.email ?? "",
+    direccion: deportista.direccion ?? "",
+    carrera: deportista.carrera ?? "",
+    semestre: deportista.semestre ? String(deportista.semestre) : "",
+    tipo: deportista.tipo,
+    disciplinaId: inscripcionActiva?.disciplina?.id,
+    categoria: inscripcionActiva?.categoria ?? "Mayores",
+    nivel: inscripcionActiva?.nivel ?? "Inicial",
+    matriculaActiva: deportista.matriculaActiva ?? true,
+    tallaCamiseta: deportista.tallaCamiseta ?? "M",
+    activo: deportista.activo ?? true,
+  };
+}
+
+function DeportistaForm({ onCancelar, onGuardar, deportistaEditando }: Props) {
   const [formData, setFormData] = useState(formInicial);
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [errores, setErrores] = useState<ErroresForm>({});
   const [tocado, setTocado] = useState<Record<string, boolean>>({});
+  const esEdicion = Boolean(deportistaEditando);
 
   useEffect(() => {
     apiRequest<Disciplina[]>("/api/disciplinas?activo=true", {
@@ -64,6 +93,22 @@ function DeportistaForm({ onCancelar, onGuardar }: Props) {
       .catch(() => setDisciplinas([]));
   }, []);
 
+  useEffect(() => {
+    const tarea = window.setTimeout(() => {
+      if (deportistaEditando) {
+        setFormData(crearFormDesdeDeportista(deportistaEditando));
+      } else {
+        setFormData(formInicial);
+      }
+
+      setErrores({});
+      setTocado({});
+      setError("");
+    }, 0);
+
+    return () => window.clearTimeout(tarea);
+  }, [deportistaEditando]);
+
   const handleChange = <K extends keyof DeportistaFormData>(
     campo: K,
     value: DeportistaFormData[K],
@@ -71,20 +116,32 @@ function DeportistaForm({ onCancelar, onGuardar }: Props) {
     setFormData((prev) => ({ ...prev, [campo]: value }));
   };
 
-  const validarCampo = useCallback((campo: string, valor: unknown): string | null => {
-    switch (campo) {
-      case "nombreCompleto": return validarNombreCompleto(valor as string, "El nombre");
-      case "ci": return validarCI(valor as string);
-      case "telefono": return validarTelefono(valor as string);
-      case "email": return validarEmail(valor as string);
-      case "disciplinaId": return valor ? null : "Debes seleccionar una disciplina.";
-      default: return null;
-    }
-  }, []);
+  const validarCampo = useCallback(
+    (campo: string, valor: unknown): string | null => {
+      switch (campo) {
+        case "nombreCompleto":
+          return validarNombreCompleto(valor as string, "El nombre");
+        case "ci":
+          return validarCI(valor as string);
+        case "telefono":
+          return validarTelefono(valor as string);
+        case "email":
+          return validarEmail(valor as string);
+        case "disciplinaId":
+          return valor ? null : "Debes seleccionar una disciplina.";
+        default:
+          return null;
+      }
+    },
+    [],
+  );
 
   const handleBlur = (campo: string) => {
     setTocado((prev) => ({ ...prev, [campo]: true }));
-    setErrores((prev) => ({ ...prev, [campo]: validarCampo(campo, formData[campo as keyof DeportistaFormData]) }));
+    setErrores((prev) => ({
+      ...prev,
+      [campo]: validarCampo(campo, formData[campo as keyof DeportistaFormData]),
+    }));
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -92,14 +149,25 @@ function DeportistaForm({ onCancelar, onGuardar }: Props) {
     setError("");
 
     const nuevosErrores: ErroresForm = {
-      nombreCompleto: validarNombreCompleto(formData.nombreCompleto, "El nombre"),
+      nombreCompleto: validarNombreCompleto(
+        formData.nombreCompleto,
+        "El nombre",
+      ),
       ci: validarCI(formData.ci),
       telefono: validarTelefono(formData.telefono),
       email: validarEmail(formData.email),
-      disciplinaId: formData.disciplinaId ? null : "Debes seleccionar una disciplina.",
+      disciplinaId: formData.disciplinaId
+        ? null
+        : "Debes seleccionar una disciplina.",
     };
     setErrores(nuevosErrores);
-    setTocado({ nombreCompleto: true, ci: true, telefono: true, email: true, disciplinaId: true });
+    setTocado({
+      nombreCompleto: true,
+      ci: true,
+      telefono: true,
+      email: true,
+      disciplinaId: true,
+    });
     const hayErrores = Object.values(nuevosErrores).some(Boolean);
     if (hayErrores) return;
 
@@ -116,8 +184,10 @@ function DeportistaForm({ onCancelar, onGuardar }: Props) {
   return (
     <section className="panel-card form-section">
       <div className="section-heading">
-        <span>Formulario</span>
-        <h2>Nuevo deportista</h2>
+        <span>{esEdicion ? "Edición" : "Formulario"}</span>
+        <h2>
+          {esEdicion ? "Editar información del deportista" : "Nuevo deportista"}
+        </h2>
       </div>
 
       <form className="form-grid" onSubmit={handleSubmit} noValidate>
@@ -126,27 +196,50 @@ function DeportistaForm({ onCancelar, onGuardar }: Props) {
           <input
             id="dep-nombre"
             value={formData.nombreCompleto}
-            onChange={(e) => { const v = capitalizar(e.target.value); handleChange("nombreCompleto", v); setErrores((p) => ({ ...p, nombreCompleto: null })); }}
+            onChange={(e) => {
+              const v = capitalizar(e.target.value);
+              handleChange("nombreCompleto", v);
+              setErrores((p) => ({ ...p, nombreCompleto: null }));
+            }}
             onBlur={() => handleBlur("nombreCompleto")}
             maxLength={100}
             required
-            aria-describedby={tocado.nombreCompleto && mostrarError(errores, "nombreCompleto") ? "error-dep-nombre" : undefined}
+            aria-describedby={
+              tocado.nombreCompleto && mostrarError(errores, "nombreCompleto")
+                ? "error-dep-nombre"
+                : undefined
+            }
           />
-          {tocado.nombreCompleto && mostrarError(errores, "nombreCompleto") && <small id="error-dep-nombre" className="field-error">{mostrarError(errores, "nombreCompleto")}</small>}
+          {tocado.nombreCompleto && mostrarError(errores, "nombreCompleto") && (
+            <small id="error-dep-nombre" className="field-error">
+              {mostrarError(errores, "nombreCompleto")}
+            </small>
+          )}
         </label>
         <label className="field">
           <span>CI *</span>
           <input
             id="dep-ci"
             value={formData.ci}
-            onChange={(e) => { handleChange("ci", formatearCI(e.target.value)); setErrores((p) => ({ ...p, ci: null })); }}
+            onChange={(e) => {
+              handleChange("ci", formatearCI(e.target.value));
+              setErrores((p) => ({ ...p, ci: null }));
+            }}
             onBlur={() => handleBlur("ci")}
             maxLength={13}
             placeholder="Ej. 1234567 o 1234567-1L"
             required
-            aria-describedby={tocado.ci && mostrarError(errores, "ci") ? "error-dep-ci" : undefined}
+            aria-describedby={
+              tocado.ci && mostrarError(errores, "ci")
+                ? "error-dep-ci"
+                : undefined
+            }
           />
-          {tocado.ci && mostrarError(errores, "ci") && <small id="error-dep-ci" className="field-error">{mostrarError(errores, "ci")}</small>}
+          {tocado.ci && mostrarError(errores, "ci") && (
+            <small id="error-dep-ci" className="field-error">
+              {mostrarError(errores, "ci")}
+            </small>
+          )}
         </label>
         <label className="field">
           <span>Fecha de nacimiento</span>
@@ -173,13 +266,24 @@ function DeportistaForm({ onCancelar, onGuardar }: Props) {
           <input
             id="dep-telefono"
             value={formData.telefono}
-            onChange={(e) => { handleChange("telefono", soloDigitos(e.target.value)); setErrores((p) => ({ ...p, telefono: null })); }}
+            onChange={(e) => {
+              handleChange("telefono", soloDigitos(e.target.value));
+              setErrores((p) => ({ ...p, telefono: null }));
+            }}
             onBlur={() => handleBlur("telefono")}
             maxLength={8}
             placeholder="Ej. 71234567"
-            aria-describedby={tocado.telefono && mostrarError(errores, "telefono") ? "error-dep-telefono" : undefined}
+            aria-describedby={
+              tocado.telefono && mostrarError(errores, "telefono")
+                ? "error-dep-telefono"
+                : undefined
+            }
           />
-          {tocado.telefono && mostrarError(errores, "telefono") && <small id="error-dep-telefono" className="field-error">{mostrarError(errores, "telefono")}</small>}
+          {tocado.telefono && mostrarError(errores, "telefono") && (
+            <small id="error-dep-telefono" className="field-error">
+              {mostrarError(errores, "telefono")}
+            </small>
+          )}
         </label>
         <label className="field">
           <span>Correo</span>
@@ -187,13 +291,24 @@ function DeportistaForm({ onCancelar, onGuardar }: Props) {
             id="dep-email"
             type="email"
             value={formData.email}
-            onChange={(e) => { handleChange("email", e.target.value); setErrores((p) => ({ ...p, email: null })); }}
+            onChange={(e) => {
+              handleChange("email", e.target.value);
+              setErrores((p) => ({ ...p, email: null }));
+            }}
             onBlur={() => handleBlur("email")}
             maxLength={120}
             placeholder="ej. correo@ucb.edu.bo"
-            aria-describedby={tocado.email && mostrarError(errores, "email") ? "error-dep-email" : undefined}
+            aria-describedby={
+              tocado.email && mostrarError(errores, "email")
+                ? "error-dep-email"
+                : undefined
+            }
           />
-          {tocado.email && mostrarError(errores, "email") && <small id="error-dep-email" className="field-error">{mostrarError(errores, "email")}</small>}
+          {tocado.email && mostrarError(errores, "email") && (
+            <small id="error-dep-email" className="field-error">
+              {mostrarError(errores, "email")}
+            </small>
+          )}
         </label>
         <label className="field full">
           <span>Dirección</span>
@@ -248,7 +363,11 @@ function DeportistaForm({ onCancelar, onGuardar }: Props) {
             }}
             onBlur={() => handleBlur("disciplinaId")}
             required
-            aria-describedby={tocado.disciplinaId && mostrarError(errores, "disciplinaId") ? "error-dep-disciplina" : undefined}
+            aria-describedby={
+              tocado.disciplinaId && mostrarError(errores, "disciplinaId")
+                ? "error-dep-disciplina"
+                : undefined
+            }
           >
             <option value="">Seleccionar disciplina</option>
             {disciplinas.map((d) => (
@@ -257,7 +376,11 @@ function DeportistaForm({ onCancelar, onGuardar }: Props) {
               </option>
             ))}
           </select>
-          {tocado.disciplinaId && mostrarError(errores, "disciplinaId") && <small id="error-dep-disciplina" className="field-error">{mostrarError(errores, "disciplinaId")}</small>}
+          {tocado.disciplinaId && mostrarError(errores, "disciplinaId") && (
+            <small id="error-dep-disciplina" className="field-error">
+              {mostrarError(errores, "disciplinaId")}
+            </small>
+          )}
         </label>
         <label className="field">
           <span>Categoría</span>
@@ -276,6 +399,30 @@ function DeportistaForm({ onCancelar, onGuardar }: Props) {
           />
         </label>
         <label className="field">
+          <span>Matrícula</span>
+          <select
+            value={formData.matriculaActiva ? "activa" : "inactiva"}
+            onChange={(e) =>
+              handleChange("matriculaActiva", e.target.value === "activa")
+            }
+          >
+            <option value="activa">Activa</option>
+            <option value="inactiva">Inactiva</option>
+          </select>
+        </label>
+        <label className="field">
+          <span>Estado del deportista</span>
+          <select
+            value={formData.activo ? "activo" : "inactivo"}
+            onChange={(e) =>
+              handleChange("activo", e.target.value === "activo")
+            }
+          >
+            <option value="activo">Activo</option>
+            <option value="inactivo">Inactivo</option>
+          </select>
+        </label>
+        <label className="field">
           <span>Talla camiseta</span>
           <select
             value={formData.tallaCamiseta}
@@ -289,7 +436,12 @@ function DeportistaForm({ onCancelar, onGuardar }: Props) {
         </label>
         {error && <div className="form-error full">{error}</div>}
         <div className="form-actions full">
-          <button className="btn btn-ghost" type="button" onClick={onCancelar} disabled={guardando}>
+          <button
+            className="btn btn-ghost"
+            type="button"
+            onClick={onCancelar}
+            disabled={guardando}
+          >
             Cancelar
           </button>
           <button
@@ -297,7 +449,11 @@ function DeportistaForm({ onCancelar, onGuardar }: Props) {
             type="submit"
             disabled={guardando}
           >
-            {guardando ? "Guardando..." : "Guardar deportista"}
+            {guardando
+              ? "Guardando..."
+              : esEdicion
+                ? "Guardar cambios"
+                : "Guardar deportista"}
           </button>
         </div>
       </form>

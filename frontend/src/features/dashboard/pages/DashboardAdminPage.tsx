@@ -112,7 +112,6 @@ function DashboardAdminPage() {
         />
       </section>
 
-      {/* NUEVA SECCIÓN REQUERIDA: Tarjeta unificada de reportes en el Dashboard */}
       <section className="panel-card" style={{ borderLeft: "4px solid var(--brand-blue, #002f6c)" }}>
         <div className="section-heading">
           <span>Módulo de reportes generales</span>
