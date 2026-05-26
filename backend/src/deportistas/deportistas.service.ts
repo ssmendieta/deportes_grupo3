@@ -7,7 +7,10 @@ import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateDeportistaDto } from "./dto/create-deportista.dto";
 
-type PlanillaMap = Map<number, { matricula_pagada: boolean; saldo_pendiente: number; [key: string]: unknown }>;
+type PlanillaMap = Map<
+  number,
+  { matricula_pagada: boolean; saldo_pendiente: number; [key: string]: unknown }
+>;
 
 @Injectable()
 export class DeportistasService {
@@ -30,12 +33,21 @@ export class DeportistasService {
     const mesActual = new Date().getMonth();
     const indiceMesAcademico = mesActual - 2;
     const camposMes = [
-      "mes_1_pagado", "mes_2_pagado", "mes_3_pagado",
-      "mes_4_pagado", "mes_5_pagado", "mes_6_pagado",
-      "mes_7_pagado", "mes_8_pagado", "mes_9_pagado",
+      "mes_1_pagado",
+      "mes_2_pagado",
+      "mes_3_pagado",
+      "mes_4_pagado",
+      "mes_5_pagado",
+      "mes_6_pagado",
+      "mes_7_pagado",
+      "mes_8_pagado",
+      "mes_9_pagado",
     ] as const;
 
-    const mesesDebidos = camposMes.slice(0, Math.max(0, indiceMesAcademico + 1));
+    const mesesDebidos = camposMes.slice(
+      0,
+      Math.max(0, indiceMesAcademico + 1),
+    );
     const mesesPendientes = mesesDebidos.filter((campo) => !planilla[campo]);
     const deuda = Number(planilla.saldo_pendiente);
 
@@ -54,7 +66,10 @@ export class DeportistasService {
     });
     const map: PlanillaMap = new Map();
     for (const p of planillas) {
-      map.set(p.deportista_id, p as unknown as PlanillaMap extends Map<number, infer V> ? V : never);
+      map.set(
+        p.deportista_id,
+        p as unknown as PlanillaMap extends Map<number, infer V> ? V : never,
+      );
     }
     return map;
   }
@@ -155,6 +170,10 @@ export class DeportistasService {
           genero: dto.genero,
           telefono: dto.telefono,
           email: dto.email,
+          direccion: dto.direccion,
+          matricula_activa: dto.matricula_activa ?? false,
+          talla_camiseta: dto.talla_camiseta,
+          activo: dto.activo ?? true,
         },
       });
 
@@ -175,8 +194,79 @@ export class DeportistasService {
 
   async update(id: number, dto: any) {
     await this.findOne(id);
-    const { ci, tipo, ...updateData } = dto;
-    return this.prisma.deportista.update({ where: { id }, data: updateData });
+
+    if (dto.ci) {
+      const existeCi = await this.prisma.deportista.findUnique({
+        where: { ci: dto.ci },
+      });
+      if (existeCi && existeCi.id !== id) {
+        throw new ConflictException(`El CI ${dto.ci} ya está registrado`);
+      }
+    }
+
+    const { disciplinaId, categoria, nivel, ...datosDeportista } = dto;
+    const updateData: Record<string, unknown> = { ...datosDeportista };
+
+    if (datosDeportista.fecha_nacimiento !== undefined) {
+      updateData.fecha_nacimiento = datosDeportista.fecha_nacimiento
+        ? new Date(datosDeportista.fecha_nacimiento)
+        : null;
+    }
+
+    if (datosDeportista.semestre !== undefined) {
+      updateData.semestre = datosDeportista.semestre
+        ? Number(datosDeportista.semestre)
+        : null;
+    }
+
+    return this.prisma.$transaction(async (prisma) => {
+      await prisma.deportista.update({ where: { id }, data: updateData });
+
+      if (disciplinaId) {
+        const disciplina = await prisma.disciplina.findUnique({
+          where: { id: Number(disciplinaId) },
+        });
+        if (!disciplina) {
+          throw new NotFoundException(
+            `La disciplina #${disciplinaId} no existe`,
+          );
+        }
+
+        const inscripcionActiva = await prisma.inscripcion.findFirst({
+          where: { deportista_id: id, estado: "activo" },
+        });
+
+        if (inscripcionActiva) {
+          await prisma.inscripcion.update({
+            where: { id: inscripcionActiva.id },
+            data: {
+              disciplina_id: Number(disciplinaId),
+              categoria,
+              nivel,
+            },
+          });
+        } else {
+          await prisma.inscripcion.create({
+            data: {
+              deportista_id: id,
+              disciplina_id: Number(disciplinaId),
+              categoria,
+              nivel,
+            },
+          });
+        }
+      }
+
+      return prisma.deportista.findUnique({
+        where: { id },
+        include: {
+          inscripciones: {
+            where: { estado: "activo" },
+            include: { disciplina: true },
+          },
+        },
+      });
+    });
   }
 
   async cambiarEstado(id: number, activo: boolean) {

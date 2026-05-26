@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import PageHeader from "../../../shared/components/PageHeader";
 import {
+  actualizarDeportista,
   crearDeportista,
   listarDeportistas,
 } from "../services/deportistaService";
@@ -13,9 +14,8 @@ import DeportistaAccount from "../components/DeportistaAccount";
 import DeportistaForm from "../components/DeportistaForm";
 import DeportistaTable from "../components/DeportistaTable";
 
-// IMPORTANTE: Importación del botón de reportes
 import { ExportarReporteButton } from "../../../shared/components/ExportarReporteButton";
-import { useToast } from "../../../shared/contexts/ToastContext";
+import { useToast } from "../../../shared/hooks/useToast";
 
 const TIPOS: { valor: TipoDeportista | "todos"; label: string }[] = [
   { valor: "todos", label: "Todos" },
@@ -35,6 +35,8 @@ function RegistroDeportistaPage() {
   const [formularioAbierto, setFormularioAbierto] = useState(false);
   const [cuentaSeleccionada, setCuentaSeleccionada] =
     useState<Deportista | null>(null);
+  const [deportistaEditando, setDeportistaEditando] =
+    useState<Deportista | null>(null);
 
   const cargarDatos = async () => {
     setCargando(true);
@@ -42,14 +44,18 @@ function RegistroDeportistaPage() {
       const data = await listarDeportistas();
       setDeportistas(data);
     } catch {
-      // Error silencioso — la tabla mostrará vacío
+      // Error silencioso 
     } finally {
       setCargando(false);
     }
   };
 
   useEffect(() => {
-    void cargarDatos();
+    const tarea = window.setTimeout(() => {
+      void cargarDatos();
+    }, 0);
+
+    return () => window.clearTimeout(tarea);
   }, []);
 
   const deportistasFiltrados = useMemo(() => {
@@ -62,10 +68,34 @@ function RegistroDeportistaPage() {
     });
   }, [busqueda, tipoFiltro, deportistas]);
 
-  const handleGuardar = async (data: DeportistaFormData) => {
-    await crearDeportista(data);
+  const handleAbrirNuevo = () => {
+    setDeportistaEditando(null);
+    setFormularioAbierto((prev) => !prev);
+  };
+
+  const handleEditar = (deportista: Deportista) => {
+    setCuentaSeleccionada(null);
+    setDeportistaEditando(deportista);
+    setFormularioAbierto(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleCancelarFormulario = () => {
     setFormularioAbierto(false);
-    toast.success("Deportista registrado correctamente.");
+    setDeportistaEditando(null);
+  };
+
+  const handleGuardar = async (data: DeportistaFormData) => {
+    if (deportistaEditando) {
+      await actualizarDeportista(deportistaEditando.id, data);
+      toast.success("Información del deportista actualizada correctamente.");
+    } else {
+      await crearDeportista(data);
+      toast.success("Deportista registrado correctamente.");
+    }
+
+    setFormularioAbierto(false);
+    setDeportistaEditando(null);
     await cargarDatos();
   };
 
@@ -81,34 +111,38 @@ function RegistroDeportistaPage() {
   return (
     <div className="page-stack">
       <PageHeader
+        eyebrow="Universidad Católica Boliviana"
         title="Registro de nuevo deportista"
         description="Alta y consulta de deportistas para academias, clases libres y equipos competitivos."
-        actionLabel={
-          formularioAbierto ? "Cerrar formulario" : "+ Nuevo deportista"
-        }
-        onAction={() => setFormularioAbierto((prev) => !prev)}
+        actionLabel={formularioAbierto ? "Cerrar formulario" : "+ Nuevo deportista"}
+        onAction={formularioAbierto ? handleCancelarFormulario : handleAbrirNuevo}
       />
-      
-      <div>
-        <ExportarReporteButton 
-          endpoint="/deportistas/reporte" 
-          filtrosActuales={{ tipo: tipoFiltro }} 
-          nombreArchivoBase="Reporte_Deportistas_Registrados" 
+
+      <div style={{ display: "flex", justifyContent: "flex-end", width: "100%" }}>
+        <ExportarReporteButton
+          endpoint="/deportistas/reporte"
+          filtrosActuales={{ tipo: tipoFiltro, busqueda }}
+          nombreArchivoBase="Reporte_Deportistas_Registrados"
           filtrosConfig={[
-            { name: "tipo", label: "Tipo", type: "select", options: [
-              { value: "todos", label: "Todos" },
-              { value: "estudiante_ucb", label: "Estudiante UCB" },
-              { value: "academia", label: "Academia" },
-              { value: "competitivo", label: "Competitivo" },
-              { value: "externo", label: "Externo" },
-            ]},
+            {
+              name: "tipo",
+              label: "Tipo",
+              type: "select",
+              options: [
+                { value: "todos", label: "Todos" },
+                { value: "estudiante_ucb", label: "Estudiante UCB" },
+                { value: "academia", label: "Academia" },
+                { value: "competitivo", label: "Competitivo" },
+              ],
+            },
           ]}
         />
       </div>
 
       {formularioAbierto && (
         <DeportistaForm
-          onCancelar={() => setFormularioAbierto(false)}
+          deportistaEditando={deportistaEditando}
+          onCancelar={handleCancelarFormulario}
           onGuardar={handleGuardar}
         />
       )}
@@ -144,6 +178,7 @@ function RegistroDeportistaPage() {
       <DeportistaTable
         deportistas={deportistasFiltrados}
         cargando={cargando}
+        onEditar={handleEditar}
         onVerCuenta={setCuentaSeleccionada}
       />
     </div>

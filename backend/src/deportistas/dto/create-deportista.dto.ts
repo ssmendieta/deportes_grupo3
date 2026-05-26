@@ -9,6 +9,7 @@ import {
   Matches,
   Min,
   Max,
+  IsBoolean,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
@@ -93,6 +94,38 @@ export class CreateDeportistaDto {
   @IsOptional()
   @IsEmail()
   email?: string;
+
+  @ApiPropertyOptional({
+    description: "Dirección del deportista.",
+    example: "Av. 14 de Septiembre #123",
+  })
+  @IsOptional()
+  @IsString()
+  direccion?: string;
+
+  @ApiPropertyOptional({
+    description: "Indica si la matrícula del deportista está activa.",
+    example: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  matricula_activa?: boolean;
+
+  @ApiPropertyOptional({
+    description: "Talla de camiseta del deportista.",
+    example: "M",
+  })
+  @IsOptional()
+  @IsString()
+  talla_camiseta?: string;
+
+  @ApiPropertyOptional({
+    description: "Estado lógico del deportista en el sistema.",
+    example: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  activo?: boolean;
 
   @ApiPropertyOptional({
     description:

@@ -61,15 +61,22 @@ function ReservaForm({ onReservaCreada }: Props) {
   const [reservaCreada, setReservaCreada] = useState<Reserva | null>(null);
 
   useEffect(() => {
-    Promise.all([getEspacios(), getDisciplinasReserva()]).then(([espaciosData, disciplinasData]) => {
-      setEspacios(espaciosData);
-      setDisciplinas(disciplinasData);
-      setFormData((prev) => ({
-        ...prev,
-        espacio_id: prev.espacio_id || String(espaciosData[0]?.id || ""),
-        disciplina_id: prev.disciplina_id || String(disciplinasData[0]?.id || ""),
-      }));
-    });
+    const tarea = window.setTimeout(() => {
+      Promise.all([getEspacios(), getDisciplinasReserva()]).then(
+        ([espaciosData, disciplinasData]) => {
+          setEspacios(espaciosData);
+          setDisciplinas(disciplinasData);
+          setFormData((prev) => ({
+            ...prev,
+            espacio_id: prev.espacio_id || String(espaciosData[0]?.id || ""),
+            disciplina_id:
+              prev.disciplina_id || String(disciplinasData[0]?.id || ""),
+          }));
+        },
+      );
+    }, 0);
+
+    return () => window.clearTimeout(tarea);
   }, []);
 
   const espacioSeleccionado = useMemo(
@@ -96,15 +103,21 @@ function ReservaForm({ onReservaCreada }: Props) {
   useEffect(() => {
     const idsPermitidos = disciplinasPermitidas.map((d) => String(d.id));
     if (
-      formData.disciplina_id &&
-      !idsPermitidos.includes(formData.disciplina_id)
+      !formData.disciplina_id ||
+      idsPermitidos.includes(formData.disciplina_id)
     ) {
+      return undefined;
+    }
+
+    const tarea = window.setTimeout(() => {
       setFormData((prev) => ({
         ...prev,
         disciplina_id: idsPermitidos[0] || "",
       }));
-    }
-  }, [disciplinasPermitidas]);
+    }, 0);
+
+    return () => window.clearTimeout(tarea);
+  }, [disciplinasPermitidas, formData.disciplina_id]);
 
   const duracionHoras = useMemo(() => {
     if (!formData.hora_inicio || !formData.hora_fin) return 0;
@@ -182,7 +195,7 @@ function ReservaForm({ onReservaCreada }: Props) {
       setReservaCreada(reserva);
       onReservaCreada?.(reserva);
       setFormData(formInicial);
-    } catch (err) {
+    } catch {
       setError("No se pudo crear la reserva. Verifica los datos e intenta de nuevo.");
     } finally {
       setGuardando(false);

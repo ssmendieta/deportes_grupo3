@@ -155,13 +155,11 @@ function GrillaCalendarioSemanal({
           <div key={espacio.id} className="gc-wrapper">
             <div className="gc-scroll">
               <div className="gc-grid">
-                {/* Corner */}
                 <div
                   className="gc-corner"
                   style={{ gridColumn: 1, gridRow: 1 }}
                 />
 
-                {/* Day headers — row 1, columns 2-7 */}
                 {DIAS_SEMANA.map((dia, colIdx) => {
                   const fecha = sumarDias(semanaBase, colIdx);
                   const hoy = esMismoDia(fecha, new Date());
@@ -179,10 +177,8 @@ function GrillaCalendarioSemanal({
                   );
                 })}
 
-                {/* Time labels + day cells — rows 2..N+1 */}
                 {HORAS_GRID.map((hora, rowIdx) => (
                   <div key={hora} style={{ display: "contents" }}>
-                    {/* Time label — column 1 */}
                     <div
                       className="gc-time"
                       style={{ gridColumn: 1, gridRow: rowIdx + 2 }}
@@ -190,7 +186,6 @@ function GrillaCalendarioSemanal({
                       {hora}
                     </div>
 
-                    {/* Day columns */}
                     {DIAS_SEMANA.map((dia, colIdx) => {
                       const col = colIdx + 2;
                       const row = rowIdx + 2;
@@ -205,7 +200,6 @@ function GrillaCalendarioSemanal({
                         ),
                       );
 
-                      // Event pill that starts at this row
                       const bloqueInfo = bloquesConFilas.find(
                         (b) => b.startRow === rowIdx,
                       );
@@ -242,10 +236,8 @@ function GrillaCalendarioSemanal({
                         );
                       }
 
-                      // Row consumed by spanning block
                       if (filasOcupadas.has(rowIdx)) return null;
 
-                      // Free cell
                       return (
                         <button
                           key={`${espacio.id}-${dia}-${hora}`}

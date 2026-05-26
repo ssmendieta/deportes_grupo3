@@ -131,18 +131,26 @@ export async function actualizarDeportista(
   data: Partial<DeportistaFormData>,
 ): Promise<Deportista> {
   const body: Record<string, unknown> = {};
-  if (data.nombreCompleto !== undefined) body.nombre_completo = data.nombreCompleto;
+  if (data.nombreCompleto !== undefined)
+    body.nombre_completo = data.nombreCompleto;
   if (data.ci !== undefined) body.ci = data.ci;
-  if (data.fechaNacimiento !== undefined) body.fecha_nacimiento = data.fechaNacimiento;
+  if (data.fechaNacimiento !== undefined)
+    body.fecha_nacimiento = data.fechaNacimiento;
   if (data.genero !== undefined) body.genero = data.genero;
   if (data.telefono !== undefined) body.telefono = data.telefono;
   if (data.email !== undefined) body.email = data.email;
   if (data.direccion !== undefined) body.direccion = data.direccion;
   if (data.carrera !== undefined) body.carrera = data.carrera;
-  if (data.semestre !== undefined) body.semestre = data.semestre ? Number(data.semestre) : undefined;
-  if (data.tallaCamiseta !== undefined) body.talla_camiseta = data.tallaCamiseta;
-  if (data.matriculaActiva !== undefined) body.matricula_activa = data.matriculaActiva;
+  if (data.semestre !== undefined)
+    body.semestre = data.semestre ? Number(data.semestre) : undefined;
+  if (data.tallaCamiseta !== undefined)
+    body.talla_camiseta = data.tallaCamiseta;
+  if (data.matriculaActiva !== undefined)
+    body.matricula_activa = data.matriculaActiva;
   if (data.activo !== undefined) body.activo = data.activo;
+  if (data.disciplinaId !== undefined) body.disciplinaId = data.disciplinaId;
+  if (data.categoria !== undefined) body.categoria = data.categoria;
+  if (data.nivel !== undefined) body.nivel = data.nivel;
 
   const raw = await apiRequest<DeportistaRaw>(`/api/deportistas/${id}`, {
     method: "PATCH",
@@ -192,15 +200,18 @@ export async function obtenerInscripciones(id: number): Promise<Inscripcion[]> {
 }
 
 const MESES: Record<number, string> = {
-  1: "Marzo",
-  2: "Abril",
-  3: "Mayo",
-  4: "Junio",
-  5: "Julio",
-  6: "Agosto",
-  7: "Septiembre",
-  8: "Octubre",
-  9: "Noviembre",
+  1: "Enero",
+  2: "Febrero",
+  3: "Marzo",
+  4: "Abril",
+  5: "Mayo",
+  6: "Junio",
+  7: "Julio",
+  8: "Agosto",
+  9: "Septiembre",
+  10: "Octubre",
+  11: "Noviembre",
+  12: "Diciembre",
 };
 
 function mapPago(raw: PagoRaw): PagoHistorial {
