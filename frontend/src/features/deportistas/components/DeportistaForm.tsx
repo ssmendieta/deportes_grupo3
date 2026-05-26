@@ -94,18 +94,19 @@ function DeportistaForm({ onCancelar, onGuardar, deportistaEditando }: Props) {
   }, []);
 
   useEffect(() => {
-    if (deportistaEditando) {
-      setFormData(crearFormDesdeDeportista(deportistaEditando));
+    const tarea = window.setTimeout(() => {
+      if (deportistaEditando) {
+        setFormData(crearFormDesdeDeportista(deportistaEditando));
+      } else {
+        setFormData(formInicial);
+      }
+
       setErrores({});
       setTocado({});
       setError("");
-      return;
-    }
+    }, 0);
 
-    setFormData(formInicial);
-    setErrores({});
-    setTocado({});
-    setError("");
+    return () => window.clearTimeout(tarea);
   }, [deportistaEditando]);
 
   const handleChange = <K extends keyof DeportistaFormData>(
