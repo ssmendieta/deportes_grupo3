@@ -168,7 +168,6 @@ describe("Integración: API endpoints", () => {
       if (!espacio) return; // skip if no spaces
 
       const hora_inicio = espacio.horario_apertura;
-      // Calculate end time 1 hour later
       const [h, m] = hora_inicio.split(":").map(Number);
       const hora_fin = `${String(h + 1).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 
@@ -185,12 +184,10 @@ describe("Integración: API endpoints", () => {
           motivo: testMotivo,
         });
 
-      // If a conflict exists, the test still passes as long as the API responds correctly
       expect([201, 409]).toContain(res.status);
 
       if (res.status === 201) {
         expect(res.body).toHaveProperty("id");
-        // Cleanup
         await prisma.reserva
           .delete({ where: { id: res.body.id } })
           .catch(() => {});

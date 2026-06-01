@@ -5,7 +5,6 @@ import StatCard from "../../../shared/components/StatCard";
 import { apiRequest } from "../../../shared/services/apiClient";
 import { listarDeportistas } from "../../deportistas/services/deportistaService";
 
-// IMPORTANTE: Importación del componente de reportes para las descargas directas del Dashboard
 import { ExportarReporteButton } from "../../../shared/components/ExportarReporteButton";
 
 type Stats = {
