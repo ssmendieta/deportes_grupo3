@@ -1,0 +1,2 @@
+﻿-- Baseline migration: schema already created via DDL
+-- This migration marks the current state as the initial baseline.
