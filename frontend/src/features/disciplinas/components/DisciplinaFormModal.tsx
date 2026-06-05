@@ -71,8 +71,9 @@ function DisciplinaFormModal({
     setGuardando(true);
     try {
       await onGuardar(formData);
-    } catch {
+    } catch (err) {
       setError("No se pudo guardar la disciplina. Verifica los datos.");
+      console.error("Error guardando:", err);
     } finally {
       setGuardando(false);
     }

@@ -33,8 +33,7 @@ export async function crearDisciplina(
     method: "POST",
     requiresAuth: true,
     body: JSON.stringify({
-      nombre: data.nombre.trim(),
-      activo: true,
+      nombre_disciplina: data.nombre.trim(),
     }),
   });
   return mapDisciplina(raw);
@@ -48,7 +47,7 @@ export async function actualizarDisciplina(
     method: "PATCH",
     requiresAuth: true,
     body: JSON.stringify({
-      activo: data.estado === "activa",
+      nombre_disciplina: data.nombre.trim(),
     }),
   });
   return mapDisciplina(raw);

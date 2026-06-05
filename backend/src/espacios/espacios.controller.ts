@@ -7,7 +7,6 @@ import {
 } from "@nestjs/common";
 import { EspaciosService } from "./espacios.service.js";
 import { ApiOperation, ApiResponse, ApiTags, ApiParam } from "@nestjs/swagger";
-import { Roles } from "../auth/decorators/roles.decorator";
 
 @ApiTags("espacios")
 @Controller("api/espacios")
@@ -15,7 +14,6 @@ export class EspaciosController {
   constructor(private readonly espaciosService: EspaciosService) {}
 
   @Get()
-  @Roles("admin", "entrenador", "delegado", "deportista")
   @ApiOperation({
     summary: "Listar espacios físicos",
     description: "Lista todos los espacios disponibles.",
@@ -26,7 +24,6 @@ export class EspaciosController {
   }
 
   @Get(":id")
-  @Roles("admin", "entrenador", "delegado", "deportista")
   @ApiOperation({ summary: "Ver detalle de un espacio" })
   @ApiParam({ name: "id", example: 1 })
   @ApiResponse({ status: 200, description: "Espacio encontrado." })

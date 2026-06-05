@@ -36,7 +36,6 @@ export class DisciplinasController {
   ) {}
 
   @Get()
-  @Roles("admin", "entrenador")
   @ApiOperation({
     summary: "Listar todas las disciplinas",
     description:
@@ -52,10 +51,6 @@ export class DisciplinasController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: "Lista de disciplinas obtenida exitosamente.",
-  })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
-    description: "Token de autenticación inválido o ausente.",
   })
   findAll(@Query("activo") activo?: string) {
     return this.disciplinasService.findAll(activo);
@@ -116,7 +111,6 @@ export class DisciplinasController {
   }
 
   @Get(":id")
-  @Roles("admin", "entrenador")
   @ApiOperation({
     summary: "Obtener disciplina por ID",
     description: "Retorna los datos completos de una disciplina específica.",
@@ -131,10 +125,6 @@ export class DisciplinasController {
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: "Disciplina no encontrada.",
-  })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
-    description: "Token de autenticación inválido o ausente.",
   })
   findOne(@Param("id", ParseIntPipe) id: number) {
     return this.disciplinasService.findOne(id);

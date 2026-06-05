@@ -14,7 +14,6 @@ import {
   ApiQuery,
   ApiResponse,
 } from "@nestjs/swagger";
-import { Roles } from "../auth/decorators/roles.decorator";
 
 @ApiTags("horarios")
 @Controller("api/horarios-disponibles")
@@ -22,7 +21,6 @@ export class HorariosController {
   constructor(private readonly horariosService: HorariosService) {}
 
   @Get(":espacioId")
-  @Roles("admin", "entrenador", "delegado", "deportista")
   @ApiOperation({
     summary: "Consultar disponibilidad de horarios",
     description: "Consulta los horarios disponibles para un espacio en una fecha específica.",

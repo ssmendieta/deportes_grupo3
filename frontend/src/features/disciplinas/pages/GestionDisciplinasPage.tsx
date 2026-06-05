@@ -34,8 +34,9 @@ function GestionDisciplinasPage() {
     try {
       const disciplinasData = await listarDisciplinas();
       setDisciplinas(disciplinasData);
-    } catch {
-      // Error silencioso 
+    } catch (err) {
+      toast.error("No se pudieron cargar las disciplinas.");
+      console.error("Error cargando disciplinas:", err);
     } finally {
       setCargando(false);
     }
@@ -84,8 +85,9 @@ function GestionDisciplinasPage() {
       }
       setModalAbierto(false);
       await cargarDatos();
-    } catch {
-      // Error manejado por el modal
+    } catch (err) {
+      toast.error("No se pudo guardar la disciplina.");
+      console.error("Error guardando disciplina:", err);
     }
   };
 
@@ -95,8 +97,9 @@ function GestionDisciplinasPage() {
       await cambiarEstadoDisciplina(disciplina.id, nuevoEstado);
       await cargarDatos();
       toast.success(`Disciplina ${nuevoEstado === "activa" ? "activada" : "desactivada"} correctamente.`);
-    } catch {
-      // Error silencioso
+    } catch (err) {
+      toast.error("No se pudo cambiar el estado de la disciplina.");
+      console.error("Error cambiando estado:", err);
     }
   };
 

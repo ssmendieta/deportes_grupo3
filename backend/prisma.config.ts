@@ -3,6 +3,7 @@ import { defineConfig, env } from "prisma/config";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
+  engineType: "binary",
   migrations: {
     path: "prisma/migrations",
     seed: "ts-node --transpile-only ./prisma/seed.ts",
