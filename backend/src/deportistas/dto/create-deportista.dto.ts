@@ -6,89 +6,105 @@ import {
   ValidateIf,
   IsInt,
   IsEmail,
-  Matches,
+  IsBoolean,
   Min,
   Max,
-  IsBoolean,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class CreateDeportistaDto {
+  @ApiProperty({ description: "Nombres del deportista", example: "Juan Carlos" })
+  @IsString()
+  @IsNotEmpty()
+  nombres!: string;
+
+  @ApiProperty({ description: "Apellido paterno", example: "Saravia" })
+  @IsString()
+  @IsNotEmpty()
+  ape_paterno!: string;
+
+  @ApiProperty({ description: "Apellido materno", example: "Mamani" })
+  @IsString()
+  @IsNotEmpty()
+  ape_materno!: string;
+
+  @ApiProperty({ description: "Cédula de Identidad (número entero)", example: 12345678 })
+  @IsInt()
+  @IsNotEmpty()
+  ci!: number;
+
+  @ApiPropertyOptional({ description: "Complemento de CI", example: "LP" })
+  @IsOptional()
+  @IsString()
+  complemento?: string;
+
+  @ApiProperty({ description: "Teléfono / celular", example: "+591 71234567" })
+  @IsString()
+  @IsNotEmpty()
+  celular!: string;
+
+  @ApiProperty({ description: "Fecha de nacimiento ISO", example: "2000-04-15" })
+  @IsString()
+  @IsNotEmpty()
+  fecha_nacimiento!: string;
+
   @ApiProperty({
-    description:
-      "Tipo de deportista. Determina qué campos adicionales son requeridos.",
-    enum: ["academia", "competitivo", "estudiante_ucb"],
+    description: "Tipo de deportista",
+    enum: ["academia", "competitivo", "estudiante_ucb", "exonerado"],
     example: "estudiante_ucb",
   })
   @IsString()
-  @IsIn(["academia", "competitivo", "estudiante_ucb"])
-  tipo!: string;
+  @IsIn(["academia", "competitivo", "estudiante_ucb", "exonerado"])
+  tipo_deportista!: string;
 
-  @ApiProperty({
-    description:
-      "Cédula de Identidad del deportista. Debe ser único en el sistema.",
-    example: "12345678",
-  })
+  @ApiPropertyOptional({ description: "Talla de ropa", example: "M" })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  ci!: string;
-
-  @ApiProperty({
-    description: "Nombre completo del deportista.",
-    example: "Juan Carlos Saravia",
-  })
-  @IsString()
-  @IsNotEmpty()
-  nombre_completo!: string;
+  talla_ropa?: string;
 
   @ApiPropertyOptional({
-    description:
-      "Carrera universitaria. **Requerido** si `tipo` es `estudiante_ucb`.",
-    example: "Ingeniería de Sistemas",
+    description: "ID de carrera. Requerido si tipo es estudiante_ucb",
+    example: 1,
   })
-  @ValidateIf((o) => o.tipo === "estudiante_ucb")
-  @IsString()
+  @ValidateIf((o) => o.tipo_deportista === "estudiante_ucb")
+  @IsInt()
   @IsNotEmpty()
-  carrera?: string;
+  id_carrera?: number;
 
   @ApiPropertyOptional({
-    description:
-      "Semestre actual del estudiante. **Requerido** si `tipo` es `estudiante_ucb`.",
+    description: "Semestre actual. Requerido si tipo es estudiante_ucb",
     minimum: 1,
-    maximum: 10,
+    maximum: 12,
     example: 5,
   })
-  @ValidateIf((o) => o.tipo === "estudiante_ucb")
+  @ValidateIf((o) => o.tipo_deportista === "estudiante_ucb")
   @IsInt()
+  @Min(1)
+  @Max(12)
   @IsNotEmpty()
   semestre?: number;
 
-  @ApiPropertyOptional({
-    description: "Fecha de nacimiento en formato ISO 8601.",
-    example: "2000-04-15",
-  })
+  @ApiPropertyOptional({ description: "Estudiante regular", example: true })
   @IsOptional()
-  @IsString()
-  fecha_nacimiento?: string;
+  @IsBoolean()
+  est_regular?: boolean;
 
   @ApiPropertyOptional({
-    description: "Género del deportista.",
-    example: "masculino",
+    description: "Colegio o instituto. Requerido si tipo es competitivo",
+    example: "Colegio San Calixto",
   })
+  @ValidateIf((o) => o.tipo_deportista === "competitivo")
+  @IsString()
+  @IsNotEmpty()
+  colegio_instituto?: string;
+
+  @ApiPropertyOptional({ description: "Curso / grado", example: "6to Secundaria" })
   @IsOptional()
   @IsString()
-  genero?: string;
+  curso?: string;
 
   @ApiPropertyOptional({
-    description: "Número de teléfono de contacto.",
-    example: "+591 71234567",
-  })
-  @IsOptional()
-  @IsString()
-  telefono?: string;
-
-  @ApiPropertyOptional({
-    description: "Correo electrónico de contacto.",
+    description: "Email para crear usuario del sistema",
     example: "juan.mamani@ucb.edu.bo",
   })
   @IsOptional()
@@ -96,40 +112,7 @@ export class CreateDeportistaDto {
   email?: string;
 
   @ApiPropertyOptional({
-    description: "Dirección del deportista.",
-    example: "Av. 14 de Septiembre #123",
-  })
-  @IsOptional()
-  @IsString()
-  direccion?: string;
-
-  @ApiPropertyOptional({
-    description: "Indica si la matrícula del deportista está activa.",
-    example: true,
-  })
-  @IsOptional()
-  @IsBoolean()
-  matricula_activa?: boolean;
-
-  @ApiPropertyOptional({
-    description: "Talla de camiseta del deportista.",
-    example: "M",
-  })
-  @IsOptional()
-  @IsString()
-  talla_camiseta?: string;
-
-  @ApiPropertyOptional({
-    description: "Estado lógico del deportista en el sistema.",
-    example: true,
-  })
-  @IsOptional()
-  @IsBoolean()
-  activo?: boolean;
-
-  @ApiPropertyOptional({
-    description:
-      "ID de disciplina para crear una inscripción automáticamente al registrar al deportista.",
+    description: "ID de disciplina para inscripción automática",
     example: 3,
   })
   @IsOptional()
@@ -137,18 +120,10 @@ export class CreateDeportistaDto {
   disciplinaId?: number;
 
   @ApiPropertyOptional({
-    description: "Categoría del deportista dentro de la disciplina.",
-    example: "juvenil",
+    description: "ID de categoría para la inscripción (FK a CATEGORIAS)",
+    example: 1,
   })
   @IsOptional()
-  @IsString()
-  categoria?: string;
-
-  @ApiPropertyOptional({
-    description: "Nivel de competencia dentro de la disciplina.",
-    example: "intermedio",
-  })
-  @IsOptional()
-  @IsString()
-  nivel?: string;
+  @IsInt()
+  id_categoria?: number;
 }

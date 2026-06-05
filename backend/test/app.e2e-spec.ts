@@ -11,6 +11,7 @@ describe("Integración: API endpoints", () => {
   let prisma: PrismaService;
   let espacioId: number;
   let disciplinaId: number;
+  let personaAprobadorId: number;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -25,14 +26,17 @@ describe("Integración: API endpoints", () => {
 
     prisma = app.get(PrismaService);
 
-    // Use existing data IDs if available
-    const espacio = await prisma.espacio.findFirst({ where: { activo: true } });
-    espacioId = espacio?.id ?? 1;
+    const espacio = await (prisma.espacios as any).findFirst({ where: { activo: true } });
+    espacioId = espacio?.id_espacio ?? 1;
 
-    const disciplina = await prisma.disciplina.findFirst({
+    const disciplina = await (prisma.disciplinas as any).findFirst({
       where: { activo: true },
     });
-    disciplinaId = disciplina?.id ?? 1;
+    disciplinaId = disciplina?.id_disciplina ?? 1;
+
+    const persona = await (prisma.personas as any).findFirst();
+    personaAprobadorId = persona?.id_persona;
+    if (!personaAprobadorId) throw new Error("No se encontró ninguna persona en la BD para usar como aprobador");
   });
 
   afterAll(async () => {
@@ -157,39 +161,39 @@ describe("Integración: API endpoints", () => {
   });
 
   describe("POST /api/reservas", () => {
-    const testCi = "99999999";
+    const testCi = 99999999;
     const testMotivo = "Test integración";
 
     it("retorna 201 y crea una reserva exitosamente", async () => {
-      const espacio = await prisma.espacio.findFirst({
+      const espacio = await (prisma.espacios as any).findFirst({
         where: { activo: true },
-        select: { id: true, horario_apertura: true, horario_cierre: true },
+        select: { id_espacio: true, hora_apertura: true, horario_cierre: true },
       });
-      if (!espacio) return; // skip if no spaces
+      if (!espacio) return;
 
-      const hora_inicio = espacio.horario_apertura;
-      const [h, m] = hora_inicio.split(":").map(Number);
-      const hora_fin = `${String(h + 1).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      const hora_inicio = "14:00";
+      const hora_fin = "15:00";
 
       const res = await request(app.getHttpServer())
         .post("/api/reservas")
         .send({
-          espacio_id: espacio.id,
-          disciplina_id: disciplinaId,
-          fecha: "2026-12-01",
+          espacio_id: espacio.id_espacio,
+          fecha_reserva: "2026-12-01",
           hora_inicio,
           hora_fin,
+          tipo_reserva: "entrenamiento",
           nombre_solicitante: "Test Integración",
-          carnet: testCi,
+          ci: testCi,
           motivo: testMotivo,
+          id_persona_aprobador: personaAprobadorId,
         });
 
       expect([201, 409]).toContain(res.status);
 
       if (res.status === 201) {
         expect(res.body).toHaveProperty("id");
-        await prisma.reserva
-          .delete({ where: { id: res.body.id } })
+        await (prisma.reservas as any)
+          .delete({ where: { id_reserva: res.body.id } })
           .catch(() => {});
       }
     });
@@ -199,13 +203,14 @@ describe("Integración: API endpoints", () => {
         .post("/api/reservas")
         .send({
           espacio_id: espacioId,
-          disciplina_id: disciplinaId,
-          fecha: "2026-12-01",
+          fecha_reserva: "2026-12-01",
           hora_inicio: "14:00",
           hora_fin: "13:00",
+          tipo_reserva: "entrenamiento",
           nombre_solicitante: "Test",
-          carnet: testCi,
+          ci: testCi,
           motivo: testMotivo,
+          id_persona_aprobador: personaAprobadorId,
         });
       expect(res.status).toBe(400);
     });
@@ -215,13 +220,14 @@ describe("Integración: API endpoints", () => {
         .post("/api/reservas")
         .send({
           espacio_id: espacioId,
-          disciplina_id: disciplinaId,
-          fecha: "2026-12-01",
+          fecha_reserva: "2026-12-01",
           hora_inicio: "08:00",
           hora_fin: "12:00",
+          tipo_reserva: "entrenamiento",
           nombre_solicitante: "Test",
-          carnet: testCi,
+          ci: testCi,
           motivo: testMotivo,
+          id_persona_aprobador: personaAprobadorId,
         });
       expect(res.status).toBe(400);
     });
@@ -231,29 +237,14 @@ describe("Integración: API endpoints", () => {
         .post("/api/reservas")
         .send({
           espacio_id: 99999,
-          disciplina_id: disciplinaId,
-          fecha: "2026-12-01",
+          fecha_reserva: "2026-12-01",
           hora_inicio: "10:00",
           hora_fin: "11:00",
+          tipo_reserva: "entrenamiento",
           nombre_solicitante: "Test",
-          carnet: testCi,
+          ci: testCi,
           motivo: testMotivo,
-        });
-      expect(res.status).toBe(404);
-    });
-
-    it("retorna 404 si disciplina no existe", async () => {
-      const res = await request(app.getHttpServer())
-        .post("/api/reservas")
-        .send({
-          espacio_id: espacioId,
-          disciplina_id: 99999,
-          fecha: "2026-12-01",
-          hora_inicio: "10:00",
-          hora_fin: "11:00",
-          nombre_solicitante: "Test",
-          carnet: testCi,
-          motivo: testMotivo,
+          id_persona_aprobador: personaAprobadorId,
         });
       expect(res.status).toBe(404);
     });
@@ -288,13 +279,13 @@ describe("Integración: API endpoints", () => {
   });
 
   describe("POST /api/deportistas", () => {
-    const testCi = "TESTINTEGRACION01";
+    const testCi = 98765432;
     let createdId: number | null = null;
 
     afterAll(async () => {
       if (createdId) {
-        await prisma.deportista
-          .delete({ where: { id: createdId } })
+        await (prisma.deportistas as any)
+          .delete({ where: { id_deportista: createdId } })
           .catch(() => {});
       }
     });
@@ -303,14 +294,13 @@ describe("Integración: API endpoints", () => {
       const res = await request(app.getHttpServer())
         .post("/api/deportistas")
         .send({
-          tipo: "academia",
+          tipo_deportista: "academia",
           ci: testCi,
-          nombre_completo: "Test Integración",
-          carrera: "Ing. Sistemas",
-          semestre: 5,
+          nombres: "Test",
+          ape_paterno: "Integración",
+          ape_materno: "E2E",
+          celular: "71234567",
           fecha_nacimiento: "2000-01-01",
-          genero: "masculino",
-          telefono: "12345678",
           email: "test@integracion.com",
         });
       expect(res.status).toBe(201);
@@ -322,11 +312,13 @@ describe("Integración: API endpoints", () => {
       const res = await request(app.getHttpServer())
         .post("/api/deportistas")
         .send({
-          tipo: "academia",
+          tipo_deportista: "academia",
           ci: testCi,
-          nombre_completo: "Duplicado",
-          carrera: "Derecho",
-          semestre: 3,
+          nombres: "Duplicado",
+          ape_paterno: "Prueba",
+          ape_materno: "Dos",
+          celular: "71234567",
+          fecha_nacimiento: "2000-01-01",
         });
       expect(res.status).toBe(409);
     });
@@ -335,7 +327,7 @@ describe("Integración: API endpoints", () => {
   describe("GET /api/deportistas/buscar", () => {
     it("retorna 404 si el CI no existe", async () => {
       const res = await request(app.getHttpServer()).get(
-        "/api/deportistas/buscar?ci=NOEXISTE99",
+        "/api/deportistas/buscar?ci=99999999",
       );
       expect(res.status).toBe(404);
     });
@@ -357,12 +349,14 @@ describe("Integración: API endpoints", () => {
   describe("POST /api/pagos", () => {
     it("retorna 404 si deportista no existe", async () => {
       const res = await request(app.getHttpServer()).post("/api/pagos").send({
-        deportista_id: 99999,
-        concepto_id: 1,
-        monto: 120,
+        id_deportista_beneficiario: 99999,
+        id_concepto: 1,
+        monto_pagado: 120,
         fecha_pago: "2026-06-01",
-        mes: 6,
-        anio: 2026,
+        mes_correspondiente: 6,
+        gestion: 2026,
+        id_persona_pago: 1,
+        id_transaccion_caja: "CAJA-TEST-001",
       });
       expect(res.status).toBe(404);
     });

@@ -1,5 +1,6 @@
 import { Controller, Post, Req, HttpCode, Logger } from "@nestjs/common";
 import { ApiTags, ApiOperation } from "@nestjs/swagger";
+import { Roles } from "../auth/decorators/roles.decorator";
 
 @ApiTags("auth")
 @Controller("api/auth")
@@ -7,6 +8,7 @@ export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
   @Post("logout")
+  @Roles("admin", "entrenador", "delegado", "deportista")
   @HttpCode(204)
   @ApiOperation({ summary: "Cerrar sesión", description: "Invalida la sesión del usuario del lado del servidor." })
   logout(@Req() req: any) {

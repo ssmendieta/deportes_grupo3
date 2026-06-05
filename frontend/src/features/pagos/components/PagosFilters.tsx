@@ -28,7 +28,7 @@ function PagosFilters({
     apiRequest<DisciplinaOpcion[]>(
       "/api/disciplinas?activo=true",
       {
-        requiresAdmin: true,
+        requiresAuth: true,
       }
     )
       .then(setDisciplinas)

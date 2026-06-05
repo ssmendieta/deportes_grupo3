@@ -1,55 +1,55 @@
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { ApiProperty } from "@nestjs/swagger";
 import {
   IsInt,
   IsPositive,
   IsNumber,
-  IsOptional,
   IsString,
   IsDateString,
   Min,
   Max,
 } from "class-validator";
+import { Type } from "class-transformer";
 
 export class CreatePagoDto {
-  @ApiProperty({ example: 1, description: "ID del deportista" })
+  @ApiProperty({ example: 1, description: "ID de la persona que registra el pago" })
+  @Type(() => Number)
   @IsInt()
   @IsPositive()
-  deportista_id!: number;
+  id_persona_pago!: number;
+
+  @ApiProperty({ example: 1, description: "ID del deportista beneficiario" })
+  @Type(() => Number)
+  @IsInt()
+  @IsPositive()
+  id_deportista_beneficiario!: number;
 
   @ApiProperty({ example: 2, description: "ID del concepto de pago" })
+  @Type(() => Number)
   @IsInt()
   @IsPositive()
-  concepto_id!: number;
+  id_concepto!: number;
 
-  @ApiProperty({ example: 120.0, description: "Monto del pago" })
+  @ApiProperty({ example: "CAJA-001", description: "ID de transacción de caja" })
+  @IsString()
+  id_transaccion_caja!: string;
+
+  @ApiProperty({ example: 120.0, description: "Monto pagado" })
   @IsNumber()
-  monto!: number;
-
-  @ApiPropertyOptional({ example: 3, description: "Mes del pago (1-9)" })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(9)
-  mes?: number;
-
-  @ApiProperty({ example: 2026, description: "Año del pago" })
-  @IsInt()
-  anio!: number;
+  monto_pagado!: number;
 
   @ApiProperty({ example: "2026-04-30", description: "Fecha del pago" })
   @IsDateString()
   fecha_pago!: string;
 
-  @ApiPropertyOptional({
-    example: "REC-001",
-    description: "Número de comprobante",
-  })
-  @IsOptional()
-  @IsString()
-  comprobante?: string;
+  @ApiProperty({ example: 3, description: "Mes correspondiente (1-12)" })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  mes_correspondiente!: number;
 
-  @ApiPropertyOptional({ example: "Pago en efectivo" })
-  @IsOptional()
-  @IsString()
-  observaciones?: string;
+  @ApiProperty({ example: 2026, description: "Gestión (año)" })
+  @Type(() => Number)
+  @IsInt()
+  gestion!: number;
 }

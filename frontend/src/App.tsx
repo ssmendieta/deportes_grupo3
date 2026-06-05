@@ -29,6 +29,7 @@ import {
   getUserFromToken,
 } from "./features/auth/authStore";
 import { API_URL } from "./shared/services/apiClient";
+import { canAccessRoute, getDefaultRouteForRole } from "./config/routes.config";
 
 function captureTokenFromUrl(): void {
   const params = new URLSearchParams(window.location.search);
@@ -46,10 +47,11 @@ function captureTokenFromUrl(): void {
 
 captureTokenFromUrl();
 
-const ADMIN_ROUTES = [
-  "/dashboard", "/deportistas", "/pagos", "/disciplinas",
-  "/reservas", "/reservas/nueva",
-];
+function RoleBasedRedirect() {
+  const user = getUserFromToken();
+  const defaultRoute = getDefaultRouteForRole(user?.rol);
+  return <Navigate to={defaultRoute} replace />;
+}
 
 function ProtectedLayout() {
   const navigate = useNavigate();
@@ -61,8 +63,8 @@ function ProtectedLayout() {
 
   const user = getUserFromToken();
 
-  if (ADMIN_ROUTES.includes(location.pathname) && user?.rol !== "admin") {
-    return <Navigate to="/" replace />;
+  if (!canAccessRoute(user?.rol, location.pathname)) {
+    return <Navigate to={getDefaultRouteForRole(user?.rol)} replace />;
   }
 
   async function handleLogout() {
@@ -100,7 +102,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route element={<ProtectedLayout />}>
-            <Route index element={<Navigate to="/pagos" replace />} />
+            <Route index element={<RoleBasedRedirect />} />
             <Route path="/dashboard" element={<DashboardAdminPage />} />
             <Route path="/calendario" element={<CalendarioPage />} />
             <Route path="/deportistas" element={<RegistroDeportistaPage />} />

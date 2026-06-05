@@ -4,9 +4,10 @@ import { getUserFromToken } from "../../auth/authStore";
 
 function CalendarioPage() {
   const user = getUserFromToken();
-  const esAdmin = user?.rol === "admin";
+  const rol = user?.rol;
+  const esGestor = rol === "admin" || rol === "entrenador";
 
-  return esAdmin
+  return esGestor
     ? <CalendarioAdminPage />
     : <CalendarioEstudiantePage />;
 }

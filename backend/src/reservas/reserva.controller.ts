@@ -16,6 +16,7 @@ import { CreateReservaDto } from "./dto/create-reserva.dto";
 import { UpdateReservaDto } from "./dto/update-reserva.dto";
 import { ApiOperation, ApiSecurity, ApiTags, ApiQuery } from "@nestjs/swagger";
 import { ReportesService } from "../reportes/reportes.service";
+import { Roles } from "../auth/decorators/roles.decorator";
 
 @ApiTags("reservas")
 @ApiSecurity("permisos-rol")
@@ -23,10 +24,11 @@ import { ReportesService } from "../reportes/reportes.service";
 export class ReservasController {
   constructor(
     private readonly reservasService: ReservasService,
-    private readonly reportesService: ReportesService // <-- Tu servicio inyectado
+    private readonly reportesService: ReportesService
   ) {}
 
   @Get()
+  @Roles("admin", "entrenador")
   @ApiOperation({
     summary: "Listado general de reservas",
     description:
@@ -46,8 +48,8 @@ export class ReservasController {
     );
   }
 
-  // 👇 AQUÍ ESTÁ TU NUEVO ENDPOINT (Punto 9 - Reservas) 👇
   @Get("reporte")
+  @Roles("admin")
   @ApiOperation({
     summary: "Exportar reporte de reservas",
     description: "Genera un archivo Excel o PDF con el historial de reservas filtrado.",
@@ -68,23 +70,22 @@ export class ReservasController {
 
     if (desde) {
       const fechaDesde = new Date(`${desde}T00:00:00.000Z`);
-      reservas = reservas.filter((r) => new Date(r.fecha) >= fechaDesde);
+      reservas = reservas.filter((r: any) => new Date(r.fecha_reserva) >= fechaDesde);
     }
     if (hasta) {
       const fechaHasta = new Date(`${hasta}T23:59:59.999Z`);
-      reservas = reservas.filter((r) => new Date(r.fecha) <= fechaHasta);
+      reservas = reservas.filter((r: any) => new Date(r.fecha_reserva) <= fechaHasta);
     }
 
     if (estado && estado !== "todos" && estado !== "activas") {
-      reservas = reservas.filter((r) => r.estado === estado);
+      reservas = reservas.filter((r: any) => r.estado === estado);
     }
 
-    const datosFormateados = reservas.map((r) => ({
-      id: r.id,
+    const datosFormateados = reservas.map((r: any) => ({
+      id: r.id_reserva,
       solicitante: r.nombre_solicitante || "N/A",
-      espacio: r.espacio?.nombre || "Desconocido",
-      disciplina: r.disciplina?.nombre || "N/A",
-      fecha: new Date(r.fecha).toLocaleDateString("es-BO"),
+      espacio: r.espacio_nombre || "Desconocido",
+      fecha: r.fecha_reserva ? new Date(r.fecha_reserva).toLocaleDateString("es-BO") : "N/A",
       horario: `${r.hora_inicio} - ${r.hora_fin}`,
       motivo: r.motivo || "",
       estado: r.estado.toUpperCase(),
@@ -94,7 +95,6 @@ export class ReservasController {
       { header: "ID", key: "id" },
       { header: "Solicitante", key: "solicitante" },
       { header: "Espacio", key: "espacio" },
-      { header: "Disciplina", key: "disciplina" },
       { header: "Fecha", key: "fecha" },
       { header: "Horario", key: "horario" },
       { header: "Motivo", key: "motivo" },
@@ -120,9 +120,9 @@ export class ReservasController {
 
     res.send(buffer);
   }
-  // 👆 FIN DEL NUEVO ENDPOINT 👆
 
   @Get(":id")
+  @Roles("admin", "entrenador")
   @ApiOperation({
     summary: "Consultar una reserva específica",
     description:
@@ -133,6 +133,7 @@ export class ReservasController {
   }
 
   @Get(":id/comprobante")
+  @Roles("admin", "entrenador")
   @ApiOperation({
     summary: "Generar y descargar comprobante PDF",
     description:
@@ -154,6 +155,7 @@ export class ReservasController {
   }
 
   @Post()
+  @Roles("admin", "entrenador")
   @ApiOperation({
     summary: "Registrar nueva reserva",
     description:
@@ -164,6 +166,7 @@ export class ReservasController {
   }
 
   @Patch(":id")
+  @Roles("admin", "entrenador")
   @ApiOperation({
     summary: "Cambiar estado de la reserva",
     description:

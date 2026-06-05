@@ -24,6 +24,7 @@ import { DisciplinasService } from "./disciplinas.service";
 import { CreateDisciplinaDto } from "./dto/create-disciplina.dto";
 import { UpdateDisciplinaDto } from "./dto/update-disciplina.dto";
 import { ReportesService } from "../reportes/reportes.service";
+import { Roles } from "../auth/decorators/roles.decorator";
 
 @ApiTags("Disciplinas")
 @ApiBearerAuth()
@@ -31,10 +32,11 @@ import { ReportesService } from "../reportes/reportes.service";
 export class DisciplinasController {
   constructor(
     private readonly disciplinasService: DisciplinasService,
-    private readonly reportesService: ReportesService // <-- Tu servicio inyectado
+    private readonly reportesService: ReportesService
   ) {}
 
   @Get()
+  @Roles("admin", "entrenador")
   @ApiOperation({
     summary: "Listar todas las disciplinas",
     description:
@@ -59,8 +61,8 @@ export class DisciplinasController {
     return this.disciplinasService.findAll(activo);
   }
 
-  // 👇 AQUÍ ESTÁ TU NUEVO ENDPOINT (Punto 9 - Disciplinas) 👇
   @Get("reporte")
+  @Roles("admin")
   @ApiOperation({
     summary: "Exportar reporte de disciplinas",
     description: "Genera un archivo Excel o PDF con la lista de disciplinas.",
@@ -81,22 +83,15 @@ export class DisciplinasController {
     const activo = estado === "activas" ? "true" : estado === "inactivas" ? "false" : undefined;
     const disciplinas = await this.disciplinasService.findAll(activo);
 
-    const datosFormateados = disciplinas.map((d) => ({
-      id: d.id,
-      nombre: d.nombre,
-      descripcion: d.descripcion ?? "",
-      categorias: d.categorias ?? "",
-      mensualidad: Number(d.mensualidad ?? 0),
-      orden: d.orden,
+    const datosFormateados = disciplinas.map((d: any) => ({
+      id: d.id_disciplina,
+      nombre: d.nombre_disciplina,
       estado: d.activo ? "Activa" : "Inactiva",
     }));
 
     const columnas = [
       { header: "ID", key: "id" },
       { header: "Nombre", key: "nombre" },
-      { header: "Descripción", key: "descripcion" },
-      { header: "Categorías", key: "categorias" },
-      { header: "Mensualidad (Bs.)", key: "mensualidad" },
       { header: "Estado", key: "estado" },
     ];
 
@@ -119,9 +114,9 @@ export class DisciplinasController {
 
     res.send(buffer);
   }
-  // 👆 FIN DE TU NUEVO ENDPOINT 👆
 
   @Get(":id")
+  @Roles("admin", "entrenador")
   @ApiOperation({
     summary: "Obtener disciplina por ID",
     description: "Retorna los datos completos de una disciplina específica.",
@@ -146,6 +141,7 @@ export class DisciplinasController {
   }
 
   @Post()
+  @Roles("admin")
   @ApiOperation({
     summary: "Registrar nueva disciplina",
     description: "Crea una nueva disciplina deportiva en el sistema.",
@@ -167,6 +163,7 @@ export class DisciplinasController {
   }
 
   @Patch(":id")
+  @Roles("admin")
   @ApiOperation({
     summary: "Actualizar disciplina",
     description:
@@ -199,6 +196,7 @@ export class DisciplinasController {
   }
 
   @Patch(":id/estado")
+  @Roles("admin")
   @ApiOperation({
     summary: "Cambiar estado de la disciplina",
     description:

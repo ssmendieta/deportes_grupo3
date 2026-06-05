@@ -10,16 +10,16 @@ import {
 export class UpdateReservaDto {
   @ApiPropertyOptional({
     example: "confirmada",
-    enum: ["confirmada", "cancelada"],
+    enum: ["Pendiente", "confirmada", "cancelada"],
   })
   @IsOptional()
   @IsString()
-  estado?: "confirmada" | "cancelada";
+  estado?: string;
 
-  @ApiPropertyOptional({ example: "2025-06-15" })
+  @ApiPropertyOptional({ example: "2026-06-15" })
   @IsOptional()
   @IsDateString()
-  fecha?: string;
+  fecha_reserva?: string;
 
   @ApiPropertyOptional({ example: "14:00" })
   @IsOptional()
@@ -33,28 +33,43 @@ export class UpdateReservaDto {
   @Matches(/^\d{2}:\d{2}$/)
   hora_fin?: string;
 
+  @ApiPropertyOptional({ example: "entrenamiento" })
+  @IsOptional()
+  @IsString()
+  tipo_reserva?: string;
+
   @ApiPropertyOptional({ example: "Juan Pérez" })
   @IsOptional()
   @IsString()
   nombre_solicitante?: string;
 
-  @ApiPropertyOptional({ example: "12345678" })
+  @ApiPropertyOptional({ example: 12345678 })
+  @IsOptional()
+  @IsInt()
+  ci?: number;
+
+  @ApiPropertyOptional({ example: "LP" })
   @IsOptional()
   @IsString()
-  carnet?: string;
+  complemento?: string;
+
+  @ApiPropertyOptional({ example: "juan@ucb.edu.bo" })
+  @IsOptional()
+  @IsString()
+  correo_solicitante?: string;
 
   @ApiPropertyOptional({ example: "Entrenamiento de vóleibol" })
   @IsOptional()
   @IsString()
   motivo?: string;
 
-  @ApiPropertyOptional({ example: 3 })
-  @IsOptional()
-  @IsInt()
-  disciplina_id?: number;
-
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @IsInt()
   espacio_id?: number;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsInt()
+  id_persona_aprobador?: number;
 }

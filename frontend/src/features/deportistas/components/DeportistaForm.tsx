@@ -15,17 +15,14 @@ import {
   mostrarError,
 } from "../../../shared/utils/validators";
 
+type Carrera = { id: number; nombre: string; sigla?: string | null };
+
 function capitalizar(s: string) {
   return s.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function soloDigitos(v: string) {
   return v.replace(/\D/g, "").slice(0, 8);
-}
-
-function formatearCI(v: string) {
-  const limpio = v.replace(/[^0-9A-Za-z-]/g, "").slice(0, 13);
-  return limpio;
 }
 
 type Props = {
@@ -35,21 +32,23 @@ type Props = {
 };
 
 const formInicial: DeportistaFormData = {
-  nombreCompleto: "",
+  nombres: "",
+  ape_paterno: "",
+  ape_materno: "",
   ci: "",
+  complemento: "",
+  celular: "",
   fechaNacimiento: "",
-  genero: "",
-  telefono: "",
   email: "",
-  direccion: "",
+  idCarrera: undefined,
   carrera: "",
   semestre: "",
+  colegioInstituto: "",
+  curso: "",
   tipo: "academia",
   disciplinaId: undefined,
   categoria: "Mayores",
-  nivel: "Inicial",
-  matriculaActiva: true,
-  tallaCamiseta: "M",
+  tallaRopa: "M",
   activo: true,
 };
 
@@ -57,21 +56,23 @@ function crearFormDesdeDeportista(deportista: Deportista): DeportistaFormData {
   const inscripcionActiva = deportista.inscripciones?.find((i) => i.activo);
 
   return {
-    nombreCompleto: deportista.nombreCompleto ?? "",
+    nombres: deportista.nombres ?? "",
+    ape_paterno: deportista.apePaterno ?? "",
+    ape_materno: deportista.apeMaterno ?? "",
     ci: deportista.ci ?? "",
+    complemento: deportista.complemento ?? "",
+    celular: deportista.celular ?? "",
     fechaNacimiento: deportista.fechaNacimiento?.slice(0, 10) ?? "",
-    genero: deportista.genero ?? "",
-    telefono: deportista.telefono ?? "",
     email: deportista.email ?? "",
-    direccion: deportista.direccion ?? "",
+    idCarrera: deportista.idCarrera ?? undefined,
     carrera: deportista.carrera ?? "",
     semestre: deportista.semestre ? String(deportista.semestre) : "",
+    colegioInstituto: deportista.colegioInstituto ?? "",
+    curso: deportista.curso ?? "",
     tipo: deportista.tipo,
     disciplinaId: inscripcionActiva?.disciplina?.id,
     categoria: inscripcionActiva?.categoria ?? "Mayores",
-    nivel: inscripcionActiva?.nivel ?? "Inicial",
-    matriculaActiva: deportista.matriculaActiva ?? true,
-    tallaCamiseta: deportista.tallaCamiseta ?? "M",
+    tallaRopa: deportista.tallaRopa ?? "M",
     activo: deportista.activo ?? true,
   };
 }
@@ -79,6 +80,7 @@ function crearFormDesdeDeportista(deportista: Deportista): DeportistaFormData {
 function DeportistaForm({ onCancelar, onGuardar, deportistaEditando }: Props) {
   const [formData, setFormData] = useState(formInicial);
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
+  const [carreras, setCarreras] = useState<Carrera[]>([]);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [errores, setErrores] = useState<ErroresForm>({});
@@ -87,10 +89,14 @@ function DeportistaForm({ onCancelar, onGuardar, deportistaEditando }: Props) {
 
   useEffect(() => {
     apiRequest<Disciplina[]>("/api/disciplinas?activo=true", {
-      requiresAdmin: true,
+      requiresAuth: true,
     })
       .then(setDisciplinas)
       .catch(() => setDisciplinas([]));
+
+    apiRequest<Carrera[]>("/api/carreras")
+      .then(setCarreras)
+      .catch(() => setCarreras([]));
   }, []);
 
   useEffect(() => {
@@ -119,11 +125,11 @@ function DeportistaForm({ onCancelar, onGuardar, deportistaEditando }: Props) {
   const validarCampo = useCallback(
     (campo: string, valor: unknown): string | null => {
       switch (campo) {
-        case "nombreCompleto":
-          return validarNombreCompleto(valor as string, "El nombre");
+        case "nombres":
+          return validarNombreCompleto(valor as string, "Los nombres");
         case "ci":
           return validarCI(valor as string);
-        case "telefono":
+        case "celular":
           return validarTelefono(valor as string);
         case "email":
           return validarEmail(valor as string);
@@ -149,22 +155,22 @@ function DeportistaForm({ onCancelar, onGuardar, deportistaEditando }: Props) {
     setError("");
 
     const nuevosErrores: ErroresForm = {
-      nombreCompleto: validarNombreCompleto(
-        formData.nombreCompleto,
-        "El nombre",
+      nombres: validarNombreCompleto(
+        formData.nombres,
+        "Los nombres",
       ),
       ci: validarCI(formData.ci),
-      telefono: validarTelefono(formData.telefono),
-      email: validarEmail(formData.email),
+      celular: validarTelefono(formData.celular),
+      email: validarEmail(formData.email ?? ""),
       disciplinaId: formData.disciplinaId
         ? null
         : "Debes seleccionar una disciplina.",
     };
     setErrores(nuevosErrores);
     setTocado({
-      nombreCompleto: true,
+      nombres: true,
       ci: true,
-      telefono: true,
+      celular: true,
       email: true,
       disciplinaId: true,
     });
@@ -181,6 +187,9 @@ function DeportistaForm({ onCancelar, onGuardar, deportistaEditando }: Props) {
     }
   };
 
+  const esCompetitivo = formData.tipo === "competitivo";
+  const esUcb = formData.tipo === "estudiante_ucb";
+
   return (
     <section className="panel-card form-section">
       <div className="section-heading">
@@ -192,29 +201,55 @@ function DeportistaForm({ onCancelar, onGuardar, deportistaEditando }: Props) {
 
       <form className="form-grid" onSubmit={handleSubmit} noValidate>
         <label className="field">
-          <span>Nombre completo *</span>
+          <span>Nombres *</span>
           <input
-            id="dep-nombre"
-            value={formData.nombreCompleto}
+            id="dep-nombres"
+            value={formData.nombres}
             onChange={(e) => {
               const v = capitalizar(e.target.value);
-              handleChange("nombreCompleto", v);
-              setErrores((p) => ({ ...p, nombreCompleto: null }));
+              handleChange("nombres", v);
+              setErrores((p) => ({ ...p, nombres: null }));
             }}
-            onBlur={() => handleBlur("nombreCompleto")}
-            maxLength={100}
+            onBlur={() => handleBlur("nombres")}
+            maxLength={50}
             required
             aria-describedby={
-              tocado.nombreCompleto && mostrarError(errores, "nombreCompleto")
-                ? "error-dep-nombre"
+              tocado.nombres && mostrarError(errores, "nombres")
+                ? "error-dep-nombres"
                 : undefined
             }
           />
-          {tocado.nombreCompleto && mostrarError(errores, "nombreCompleto") && (
-            <small id="error-dep-nombre" className="field-error">
-              {mostrarError(errores, "nombreCompleto")}
+          {tocado.nombres && mostrarError(errores, "nombres") && (
+            <small id="error-dep-nombres" className="field-error">
+              {mostrarError(errores, "nombres")}
             </small>
           )}
+        </label>
+        <label className="field">
+          <span>Ape. Paterno *</span>
+          <input
+            id="dep-paterno"
+            value={formData.ape_paterno}
+            onChange={(e) => {
+              const v = capitalizar(e.target.value);
+              handleChange("ape_paterno", v);
+              setErrores((p) => ({ ...p, ape_paterno: null }));
+            }}
+            maxLength={50}
+            required
+          />
+        </label>
+        <label className="field">
+          <span>Ape. Materno</span>
+          <input
+            id="dep-materno"
+            value={formData.ape_materno}
+            onChange={(e) => {
+              const v = capitalizar(e.target.value);
+              handleChange("ape_materno", v);
+            }}
+            maxLength={50}
+          />
         </label>
         <label className="field">
           <span>CI *</span>
@@ -222,12 +257,13 @@ function DeportistaForm({ onCancelar, onGuardar, deportistaEditando }: Props) {
             id="dep-ci"
             value={formData.ci}
             onChange={(e) => {
-              handleChange("ci", formatearCI(e.target.value));
+              handleChange("ci", soloDigitos(e.target.value));
               setErrores((p) => ({ ...p, ci: null }));
             }}
             onBlur={() => handleBlur("ci")}
-            maxLength={13}
-            placeholder="Ej. 1234567 o 1234567-1L"
+            maxLength={8}
+            placeholder="Ej. 1234567"
+            inputMode="numeric"
             required
             aria-describedby={
               tocado.ci && mostrarError(errores, "ci")
@@ -242,6 +278,16 @@ function DeportistaForm({ onCancelar, onGuardar, deportistaEditando }: Props) {
           )}
         </label>
         <label className="field">
+          <span>Complemento</span>
+          <input
+            id="dep-complemento"
+            value={formData.complemento ?? ""}
+            onChange={(e) => handleChange("complemento", e.target.value)}
+            maxLength={5}
+            placeholder="Ej. LP"
+          />
+        </label>
+        <label className="field">
           <span>Fecha de nacimiento</span>
           <input
             type="date"
@@ -251,37 +297,26 @@ function DeportistaForm({ onCancelar, onGuardar, deportistaEditando }: Props) {
           />
         </label>
         <label className="field">
-          <span>Género</span>
-          <select
-            value={formData.genero}
-            onChange={(e) => handleChange("genero", e.target.value)}
-          >
-            <option value="">Seleccionar</option>
-            <option value="M">Masculino</option>
-            <option value="F">Femenino</option>
-          </select>
-        </label>
-        <label className="field">
           <span>Celular</span>
           <input
-            id="dep-telefono"
-            value={formData.telefono}
+            id="dep-celular"
+            value={formData.celular}
             onChange={(e) => {
-              handleChange("telefono", soloDigitos(e.target.value));
-              setErrores((p) => ({ ...p, telefono: null }));
+              handleChange("celular", soloDigitos(e.target.value));
+              setErrores((p) => ({ ...p, celular: null }));
             }}
-            onBlur={() => handleBlur("telefono")}
+            onBlur={() => handleBlur("celular")}
             maxLength={8}
             placeholder="Ej. 71234567"
             aria-describedby={
-              tocado.telefono && mostrarError(errores, "telefono")
-                ? "error-dep-telefono"
+              tocado.celular && mostrarError(errores, "celular")
+                ? "error-dep-celular"
                 : undefined
             }
           />
-          {tocado.telefono && mostrarError(errores, "telefono") && (
-            <small id="error-dep-telefono" className="field-error">
-              {mostrarError(errores, "telefono")}
+          {tocado.celular && mostrarError(errores, "celular") && (
+            <small id="error-dep-celular" className="field-error">
+              {mostrarError(errores, "celular")}
             </small>
           )}
         </label>
@@ -310,32 +345,66 @@ function DeportistaForm({ onCancelar, onGuardar, deportistaEditando }: Props) {
             </small>
           )}
         </label>
-        <label className="field full">
-          <span>Dirección</span>
-          <input
-            value={formData.direccion}
-            onChange={(e) => handleChange("direccion", e.target.value)}
-            maxLength={200}
-          />
-        </label>
-        <label className="field">
-          <span>Carrera</span>
-          <input
-            value={formData.carrera}
-            onChange={(e) => handleChange("carrera", e.target.value)}
-            maxLength={100}
-          />
-        </label>
-        <label className="field">
-          <span>Semestre</span>
-          <input
-            type="number"
-            min="1"
-            max="12"
-            value={formData.semestre}
-            onChange={(e) => handleChange("semestre", e.target.value)}
-          />
-        </label>
+
+        {esUcb && (
+          <label className="field full">
+            <span>Carrera</span>
+            <select
+              value={formData.idCarrera ?? ""}
+              onChange={(e) =>
+                handleChange(
+                  "idCarrera",
+                  e.target.value ? Number(e.target.value) : undefined,
+                )
+              }
+            >
+              <option value="">Seleccionar carrera</option>
+              {carreras.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {esUcb && (
+          <label className="field">
+            <span>Semestre</span>
+            <input
+              type="number"
+              min="1"
+              max="12"
+              value={formData.semestre}
+              onChange={(e) => handleChange("semestre", e.target.value)}
+            />
+          </label>
+        )}
+
+        {esCompetitivo && (
+          <label className="field full">
+            <span>Colegio / Instituto</span>
+            <input
+              value={formData.colegioInstituto ?? ""}
+              onChange={(e) => handleChange("colegioInstituto", e.target.value)}
+              maxLength={120}
+              placeholder="Ej. Colegio San Calixto"
+            />
+          </label>
+        )}
+
+        {esCompetitivo && (
+          <label className="field">
+            <span>Curso</span>
+            <input
+              value={formData.curso ?? ""}
+              onChange={(e) => handleChange("curso", e.target.value)}
+              maxLength={50}
+              placeholder="Ej. 6to Secundaria"
+            />
+          </label>
+        )}
+
         <label className="field">
           <span>Tipo *</span>
           <select
@@ -391,26 +460,6 @@ function DeportistaForm({ onCancelar, onGuardar, deportistaEditando }: Props) {
           />
         </label>
         <label className="field">
-          <span>Nivel</span>
-          <input
-            value={formData.nivel}
-            onChange={(e) => handleChange("nivel", e.target.value)}
-            maxLength={50}
-          />
-        </label>
-        <label className="field">
-          <span>Matrícula</span>
-          <select
-            value={formData.matriculaActiva ? "activa" : "inactiva"}
-            onChange={(e) =>
-              handleChange("matriculaActiva", e.target.value === "activa")
-            }
-          >
-            <option value="activa">Activa</option>
-            <option value="inactiva">Inactiva</option>
-          </select>
-        </label>
-        <label className="field">
           <span>Estado del deportista</span>
           <select
             value={formData.activo ? "activo" : "inactivo"}
@@ -423,10 +472,10 @@ function DeportistaForm({ onCancelar, onGuardar, deportistaEditando }: Props) {
           </select>
         </label>
         <label className="field">
-          <span>Talla camiseta</span>
+          <span>Talla ropa</span>
           <select
-            value={formData.tallaCamiseta}
-            onChange={(e) => handleChange("tallaCamiseta", e.target.value)}
+            value={formData.tallaRopa}
+            onChange={(e) => handleChange("tallaRopa", e.target.value)}
           >
             <option>S</option>
             <option>M</option>

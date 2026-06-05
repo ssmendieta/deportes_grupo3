@@ -24,6 +24,7 @@ import { DeportistasService } from "./deportistas.service";
 import { CreateDeportistaDto } from "./dto/create-deportista.dto";
 import { UpdateDeportistaDto } from "./dto/update-deportista.dto";
 import { ReportesService } from "../reportes/reportes.service";
+import { Roles } from "../auth/decorators/roles.decorator";
 
 @ApiTags("Deportistas")
 @ApiBearerAuth()
@@ -31,10 +32,11 @@ import { ReportesService } from "../reportes/reportes.service";
 export class DeportistasController {
   constructor(
     private readonly deportistasService: DeportistasService,
-    private readonly reportesService: ReportesService // <-- Servicio inyectado
+    private readonly reportesService: ReportesService
   ) {}
 
   @Get()
+  @Roles("admin", "entrenador")
   @ApiOperation({
     summary: "Listar todos los deportistas",
     description:
@@ -100,6 +102,7 @@ export class DeportistasController {
   }
 
   @Get("buscar")
+  @Roles("admin", "entrenador")
   @ApiOperation({
     summary: "Buscar deportista por CI",
     description:
@@ -125,8 +128,8 @@ export class DeportistasController {
     return this.deportistasService.buscarPorCi(ci);
   }
 
-  // 👇 AQUÍ ESTÁ TU NUEVO ENDPOINT (Punto 9 - Deportistas) 👇
   @Get("reporte")
+  @Roles("admin")
   @ApiOperation({
     summary: "Exportar reporte de deportistas",
     description: "Genera un archivo Excel o PDF con la lista de deportistas.",
@@ -155,16 +158,16 @@ export class DeportistasController {
       deportistas = deportistas.filter(
         (d) =>
           d.nombre_completo?.toLowerCase().includes(q) ||
-          d.ci?.toLowerCase().includes(q),
+          String(d.ci ?? "").includes(q),
       );
     }
 
     const datosFormateados = deportistas.map((d) => ({
-      ci: d.ci,
+      ci: String(d.ci ?? ""),
       nombre_completo: d.nombre_completo,
-      tipo: d.tipo,
+      tipo: d.tipo_deportista,
       email: d.email ?? "",
-      telefono: d.telefono ?? "",
+      telefono: d.celular ?? "",
       carrera: d.carrera ?? "",
       activo: d.activo ? "Sí" : "No",
     }));
@@ -198,9 +201,9 @@ export class DeportistasController {
 
     res.send(buffer);
   }
-  // 👆 FIN DEL NUEVO ENDPOINT 👆
 
   @Get(":id")
+  @Roles("admin", "entrenador")
   @ApiOperation({
     summary: "Obtener deportista por ID",
     description: "Retorna los datos completos de un deportista específico.",
@@ -225,6 +228,7 @@ export class DeportistasController {
   }
 
   @Post()
+  @Roles("admin", "entrenador")
   @ApiOperation({
     summary: "Registrar nuevo deportista",
     description:
@@ -247,6 +251,7 @@ export class DeportistasController {
   }
 
   @Patch(":id")
+  @Roles("admin", "entrenador")
   @ApiOperation({
     summary: "Actualizar datos del deportista",
     description:
@@ -279,6 +284,7 @@ export class DeportistasController {
   }
 
   @Patch(":id/estado")
+  @Roles("admin")
   @ApiOperation({
     summary: "Cambiar estado del deportista",
     description:
@@ -323,6 +329,7 @@ export class DeportistasController {
   }
 
   @Post(":id/inscripciones")
+  @Roles("admin", "entrenador")
   @ApiOperation({
     summary: "Inscribir deportista en una disciplina",
     description:
@@ -334,53 +341,49 @@ export class DeportistasController {
     description: "ID único del deportista",
     example: 1,
   })
-  @ApiBody({
-    schema: {
-      type: "object",
-      required: ["disciplinaId"],
-      properties: {
-        disciplinaId: {
-          type: "number",
-          description: "ID de la disciplina",
-          example: 3,
-        },
-        categoria: {
-          type: "string",
-          description: "Categoría del deportista",
-          example: "juvenil",
-        },
-        nivel: {
-          type: "string",
-          description: "Nivel de competencia del deportista",
-          example: "intermedio",
+    @ApiBody({
+      schema: {
+        type: "object",
+        required: ["disciplinaId", "id_categoria"],
+        properties: {
+          disciplinaId: {
+            type: "number",
+            description: "ID de la disciplina",
+            example: 3,
+          },
+          id_categoria: {
+            type: "number",
+            description: "ID de la categoría (FK a CATEGORIAS)",
+            example: 1,
+          },
         },
       },
-    },
-  })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
-    description: "Inscripción creada exitosamente.",
-  })
-  @ApiResponse({
-    status: HttpStatus.BAD_REQUEST,
-    description: "Ya existe una inscripción activa en esa disciplina.",
-  })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: "Deportista o disciplina no encontrada.",
-  })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
-    description: "Token de autenticación inválido o ausente.",
-  })
-  inscribir(
-    @Param("id", ParseIntPipe) id: number,
-    @Body() body: { disciplinaId: number; categoria?: string; nivel?: string },
-  ) {
+    })
+    @ApiResponse({
+      status: HttpStatus.CREATED,
+      description: "Inscripción creada exitosamente.",
+    })
+    @ApiResponse({
+      status: HttpStatus.BAD_REQUEST,
+      description: "Ya existe una inscripción activa en esa disciplina.",
+    })
+    @ApiResponse({
+      status: HttpStatus.NOT_FOUND,
+      description: "Deportista o disciplina no encontrada.",
+    })
+    @ApiResponse({
+      status: HttpStatus.UNAUTHORIZED,
+      description: "Token de autenticación inválido o ausente.",
+    })
+    inscribir(
+      @Param("id", ParseIntPipe) id: number,
+      @Body() body: { disciplinaId: number; id_categoria: number },
+    ) {
     return this.deportistasService.inscribir(id, body);
   }
 
   @Get(":id/inscripciones")
+  @Roles("admin", "entrenador")
   @ApiOperation({
     summary: "Obtener inscripciones del deportista",
     description:

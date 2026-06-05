@@ -70,8 +70,8 @@ model deportistas {
   talla_ropa                                      String?                           @db.VarChar(10)
   url_foto                                        String?
   activo                                          Boolean                           @default(true)
-  personas_deportistas_id_personaTopersonas       personas                          @relation("deportistas_id_personaTopersonas", fields: [id_persona], references: [id_persona], onDelete: NoAction, onUpdate: NoAction, map: "deportistas_personas")
-  personas_deportistas_id_persona_tutorTopersonas personas?                         @relation("deportistas_id_persona_tutorTopersonas", fields: [id_persona_tutor], references: [id_persona], onDelete: NoAction, onUpdate: NoAction, map: "deportistas_personas_tutor")
+  persona                                personas                          @relation("deportistas_persona", fields: [id_persona], references: [id_persona], onDelete: NoAction, onUpdate: NoAction, map: "deportistas_personas")
+  persona_tutor                          personas?                         @relation("deportistas_persona_tutor", fields: [id_persona_tutor], references: [id_persona], onDelete: NoAction, onUpdate: NoAction, map: "deportistas_personas_tutor")
   deportistas_externos                            deportistas_externos[]
   deportistas_ucb                                 deportistas_ucb[]
   equipo_jugadores                                equipo_jugadores[]
@@ -312,8 +312,8 @@ model personas {
   celular                                            String        @db.VarChar(20)
   ci                                                 Int           @unique(map: "personas_ci_unique")
   complemento                                        String?       @db.VarChar(5)
-  deportistas_deportistas_id_personaTopersonas       deportistas[] @relation("deportistas_id_personaTopersonas")
-  deportistas_deportistas_id_persona_tutorTopersonas deportistas[] @relation("deportistas_id_persona_tutorTopersonas")
+  deportistas       deportistas[] @relation("deportistas_persona")
+  deportistas_tutor deportistas[] @relation("deportistas_persona_tutor")
   equipos                                            equipos[]
   pagos                                              pagos[]
   reservas                                           reservas[]
@@ -433,5 +433,20 @@ model PlanillaPagosAcademia {
   saldo_pendiente  Decimal    @db.Decimal(10, 2)
 
   @@id([deportista_id, gestion])
-  @@ignore
+}
+
+model auditoria {
+  id              Int      @id @default(autoincrement()) @map("id_auditoria")
+  fecha           DateTime @default(now()) @db.Timestamp(6)
+  usuario_email   String   @db.VarChar(150)
+  usuario_rol     String   @db.VarChar(50)
+  accion          String   @db.VarChar(50)
+  entidad         String   @db.VarChar(50)
+  entidad_id      Int
+  detalle_antes   Json?
+  detalle_despues Json?
+  ip              String?  @db.VarChar(45)
+  correlation_id  String?  @db.VarChar(50)
+
+  @@map("auditoria")
 }

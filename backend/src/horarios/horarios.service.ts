@@ -5,12 +5,19 @@ import { PrismaService } from "../prisma/prisma.service";
 export class HorariosService {
   constructor(private prisma: PrismaService) {}
 
+  private formatTime(dt: Date): string {
+    if (!dt) return "";
+    const h = dt.getUTCHours().toString().padStart(2, "0");
+    const m = dt.getUTCMinutes().toString().padStart(2, "0");
+    return `${h}:${m}`;
+  }
+
   async getDisponibilidad(espacioId: number, fecha: string) {
-    const espacio = await this.prisma.espacio.findUnique({
-      where: { id: espacioId },
+    const espacio: any = await this.prisma.espacios.findUnique({
+      where: { id_espacio: espacioId },
       select: {
-        nombre: true,
-        horario_apertura: true,
+        nombre_espacio: true,
+        hora_apertura: true,
         horario_cierre: true,
       },
     });
@@ -22,15 +29,14 @@ export class HorariosService {
     const fechaDate = new Date(`${fecha}T12:00:00.000Z`);
     const diaSemana = fechaDate.getUTCDay();
 
-    const clases = await this.prisma.horarioDisponible.findMany({
+    const clases: any[] = await (this.prisma
+      .plantilla_horarios_fijos as any).findMany({
       where: {
-        espacio_id: espacioId,
+        id_espacio: espacioId,
         dia_semana: diaSemana,
-        disponible: false,
       },
-      select: {
-        hora_inicio: true,
-        hora_fin: true,
+      include: {
+        tipos_bloqueo: true,
       },
     });
 
@@ -39,11 +45,11 @@ export class HorariosService {
     const fechaFin = new Date(fecha);
     fechaFin.setUTCHours(23, 59, 59, 999);
 
-    const reservas = await this.prisma.reserva.findMany({
+    const reservas: any[] = await this.prisma.reservas.findMany({
       where: {
-        espacio_id: espacioId,
-        fecha: { gte: fechaInicio, lte: fechaFin },
-        estado: { in: ["pendiente", "confirmada"] },
+        id_espacio: espacioId,
+        fecha_reserva: { gte: fechaInicio, lte: fechaFin },
+        estado: { in: ["Pendiente", "confirmada"] },
       },
       select: {
         hora_inicio: true,
@@ -55,20 +61,22 @@ export class HorariosService {
 
     return {
       espacio: {
-        nombre: espacio.nombre,
-        horario_apertura: espacio.horario_apertura,
-        horario_cierre: espacio.horario_cierre,
+        nombre: espacio.nombre_espacio,
+        horario_apertura: this.formatTime(espacio.hora_apertura),
+        horario_cierre: espacio.horario_cierre
+          ? this.formatTime(espacio.horario_cierre)
+          : null,
       },
       bloques_ocupados: [
-        ...clases.map((c) => ({
-          hora_inicio: c.hora_inicio,
-          hora_fin: c.hora_fin,
-          tipo: "clase",
-          motivo: "Horario de clases",
+        ...clases.map((c: any) => ({
+          hora_inicio: this.formatTime(c.hora_inicio),
+          hora_fin: this.formatTime(c.hora_fin),
+          tipo: c.tipos_bloqueo?.nombre_bloqueo ?? "clase",
+          motivo: c.tipos_bloqueo?.nombre_bloqueo ?? "Horario de clases",
         })),
-        ...reservas.map((r) => ({
-          hora_inicio: r.hora_inicio,
-          hora_fin: r.hora_fin,
+        ...reservas.map((r: any) => ({
+          hora_inicio: this.formatTime(r.hora_inicio),
+          hora_fin: this.formatTime(r.hora_fin),
           tipo: "reserva",
           estado: r.estado,
           motivo: r.motivo,

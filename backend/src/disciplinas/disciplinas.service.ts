@@ -11,56 +11,70 @@ import { UpdateDisciplinaDto } from "./dto/update-disciplina.dto";
 export class DisciplinasService {
   constructor(private prisma: PrismaService) {}
 
+  private map(d: any) {
+    if (!d) return null;
+    return {
+      id: d.id_disciplina,
+      nombre: d.nombre_disciplina,
+      activo: d.activo,
+    };
+  }
+
   async findAll(activo?: string) {
-    const where = activo === "true" ? { activo: true } : {};
-    return this.prisma.disciplina.findMany({
+    const where: any = activo === "true" ? { activo: true } : {};
+    const data = await this.prisma.disciplinas.findMany({
       where,
-      orderBy: { orden: "asc" },
+      orderBy: { nombre_disciplina: "asc" },
     });
+    return data.map((d: any) => this.map(d));
   }
 
   async findOne(id: number) {
-    const disciplina = await this.prisma.disciplina.findUnique({
-      where: { id },
+    const d = await this.prisma.disciplinas.findUnique({
+      where: { id_disciplina: id },
     });
-    if (!disciplina)
-      throw new NotFoundException(`Disciplina #${id} no encontrada`);
-    return disciplina;
+    if (!d) throw new NotFoundException(`Disciplina #${id} no encontrada`);
+    return this.map(d);
   }
 
   async create(dto: CreateDisciplinaDto) {
-    const existe = await this.prisma.disciplina.findUnique({
-      where: { nombre: dto.nombre },
+    const existe = await this.prisma.disciplinas.findFirst({
+      where: { nombre_disciplina: dto.nombre_disciplina },
     });
     if (existe)
-      throw new ConflictException(`La disciplina ${dto.nombre} ya existe`);
+      throw new ConflictException(
+        `La disciplina ${dto.nombre_disciplina} ya existe`,
+      );
 
-    return this.prisma.disciplina.create({
+    const created = await this.prisma.disciplinas.create({
       data: {
-        nombre: dto.nombre,
-        descripcion: dto.descripcion,
-        categorias: dto.categorias,
-        mensualidad: dto.mensualidad,
-        orden: dto.orden,
+        nombre_disciplina: dto.nombre_disciplina,
         activo: true,
       },
     });
+    return this.map(created);
   }
 
   async update(id: number, dto: UpdateDisciplinaDto) {
     await this.findOne(id);
 
-    const dataLimpia: Record<string, unknown> = {};
-    if (dto.descripcion !== undefined) dataLimpia.descripcion = dto.descripcion;
-    if (dto.categorias !== undefined) dataLimpia.categorias = dto.categorias;
-    if (dto.mensualidad !== undefined) dataLimpia.mensualidad = dto.mensualidad;
-    if (dto.orden !== undefined) dataLimpia.orden = dto.orden;
+    const data: any = {};
+    if (dto.nombre_disciplina !== undefined)
+      data.nombre_disciplina = dto.nombre_disciplina;
 
-    return this.prisma.disciplina.update({ where: { id }, data: dataLimpia });
+    const updated = await this.prisma.disciplinas.update({
+      where: { id_disciplina: id },
+      data,
+    });
+    return this.map(updated);
   }
 
   async cambiarEstado(id: number, activo: boolean) {
     await this.findOne(id);
-    return this.prisma.disciplina.update({ where: { id }, data: { activo } });
+    const updated = await this.prisma.disciplinas.update({
+      where: { id_disciplina: id },
+      data: { activo },
+    });
+    return this.map(updated);
   }
 }

@@ -31,7 +31,7 @@ function DashboardAdminPage() {
           listarDeportistas(),
           apiRequest<{ id: number; activo: boolean }[]>(
             "/api/disciplinas?activo=true",
-            { requiresAdmin: true },
+            { requiresAuth: true },
           ),
         ]);
 

@@ -7,13 +7,11 @@ import {
   cancelarReserva,
   descargarComprobanteReserva,
   editarReserva,
-  getDisciplinasReserva,
   getEspacios,
   getReservas,
   habilitarReserva,
 } from "../services/reservaService";
 import type {
-  DisciplinaBasica,
   Espacio,
   Reserva,
   UpdateReservaDto,
@@ -52,7 +50,6 @@ function AdminReserva() {
   const [erroresEdicion, setErroresEdicion] = useState<ErroresForm>({});
 
   const [espacios, setEspacios] = useState<Espacio[]>([]);
-  const [disciplinas, setDisciplinas] = useState<DisciplinaBasica[]>([]);
 
   useEffect(() => {
     const tarea = window.setTimeout(() => {
@@ -84,18 +81,13 @@ function AdminReserva() {
     getEspacios()
       .then(setEspacios)
       .catch(() => setEspacios([]));
-    getDisciplinasReserva()
-      .then(setDisciplinas)
-      .catch(() => setDisciplinas([]));
   }, []);
 
   const reservasFiltradas = useMemo(() => {
     return reservas.filter((reserva) => {
-      const texto = `${reserva.nombre_solicitante} ${reserva.carnet} ${
-        reserva.motivo
-      } ${reserva.espacio?.nombre ?? ""} ${
-        reserva.disciplina?.nombre ?? ""
-      }`.toLowerCase();
+      const texto = `${reserva.nombre_solicitante} ${reserva.ci} ${
+        reserva.complemento ?? ""
+      } ${reserva.motivo} ${reserva.espacio?.nombre ?? ""}`.toLowerCase();
 
       const coincideBusqueda = texto.includes(busqueda.toLowerCase());
       const coincideEspacio = filtroEspacio
@@ -143,12 +135,12 @@ function AdminReserva() {
 
     setFormEdicion({
       nombre_solicitante: seleccionada.nombre_solicitante,
-      carnet: seleccionada.carnet,
-      fecha: seleccionada.fecha,
+      ci: seleccionada.ci,
+      complemento: seleccionada.complemento ?? undefined,
+      fecha_reserva: seleccionada.fecha_reserva,
       hora_inicio: seleccionada.hora_inicio,
       hora_fin: seleccionada.hora_fin,
       motivo: seleccionada.motivo,
-      disciplina_id: seleccionada.disciplina_id,
       espacio_id: seleccionada.espacio_id,
     });
     setModoEdicion(true);
@@ -178,13 +170,11 @@ function AdminReserva() {
     switch (campo) {
       case "nombre_solicitante":
         return validarNombreCompleto(valor as string, "El nombre");
-      case "carnet":
-        return validarCI(valor as string);
+      case "ci":
+        return validarCI(String(valor));
       case "espacio_id":
         return valor ? null : "Debes seleccionar un espacio.";
-      case "disciplina_id":
-        return valor ? null : "Debes seleccionar una disciplina.";
-      case "fecha":
+      case "fecha_reserva":
         return valor ? null : "La fecha es obligatoria.";
       case "hora_inicio":
         return valor ? null : "La hora de inicio es obligatoria.";
@@ -215,8 +205,8 @@ function AdminReserva() {
         formEdicion.nombre_solicitante !== undefined
           ? validarNombreCompleto(formEdicion.nombre_solicitante, "El nombre")
           : null,
-      carnet:
-        formEdicion.carnet !== undefined ? validarCI(formEdicion.carnet) : null,
+      ci:
+        formEdicion.ci !== undefined ? validarCI(String(formEdicion.ci)) : null,
       motivo:
         formEdicion.motivo !== undefined
           ? formEdicion.motivo.trim()
@@ -226,10 +216,7 @@ function AdminReserva() {
       espacio_id: !formEdicion.espacio_id
         ? "Debes seleccionar un espacio."
         : null,
-      disciplina_id: !formEdicion.disciplina_id
-        ? "Debes seleccionar una disciplina."
-        : null,
-      fecha: !formEdicion.fecha ? "La fecha es obligatoria." : null,
+      fecha_reserva: !formEdicion.fecha_reserva ? "La fecha es obligatoria." : null,
       hora_inicio: !formEdicion.hora_inicio
         ? "La hora de inicio es obligatoria."
         : null,
@@ -347,7 +334,7 @@ function AdminReserva() {
             <input
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Nombre, CI, motivo o disciplina"
+              placeholder="Nombre, CI o motivo"
             />
           </label>
 
@@ -438,8 +425,11 @@ function AdminReserva() {
             >
               <strong>{reserva.nombre_solicitante}</strong>
               <span>
+                CI: {reserva.complemento ? `${reserva.ci} ${reserva.complemento}` : reserva.ci}
+              </span>
+              <span>
                 {reserva.espacio?.nombre || "Espacio"} ·{" "}
-                {formatFechaBO(reserva.fecha)}
+                {formatFechaBO(reserva.fecha_reserva)}
               </span>
               <span>
                 {reserva.hora_inicio} - {reserva.hora_fin}
@@ -509,25 +499,38 @@ function AdminReserva() {
                   </label>
 
                   <label className="field">
-                    <span>Carnet</span>
+                    <span>CI</span>
                     <input
-                      id="edit-carnet"
-                      value={formEdicion.carnet ?? ""}
+                      id="edit-ci"
+                      value={formEdicion.ci ?? ""}
                       onChange={(e) => {
-                        actualizarCampo("carnet", e.target.value);
-                        setErroresEdicion((p) => ({ ...p, carnet: null }));
+                        actualizarCampo("ci", Number(e.target.value));
+                        setErroresEdicion((p) => ({ ...p, ci: null }));
                       }}
                       aria-describedby={
-                        mostrarError(erroresEdicion, "carnet")
-                          ? "error-edit-carnet"
+                        mostrarError(erroresEdicion, "ci")
+                          ? "error-edit-ci"
                           : undefined
                       }
                     />
-                    {mostrarError(erroresEdicion, "carnet") && (
-                      <small id="error-edit-carnet" className="field-error">
-                        {mostrarError(erroresEdicion, "carnet")}
+                    {mostrarError(erroresEdicion, "ci") && (
+                      <small id="error-edit-ci" className="field-error">
+                        {mostrarError(erroresEdicion, "ci")}
                       </small>
                     )}
+                  </label>
+
+                  <label className="field">
+                    <span>Complemento</span>
+                    <input
+                      id="edit-complemento"
+                      value={formEdicion.complemento ?? ""}
+                      onChange={(e) =>
+                        actualizarCampo("complemento", e.target.value)
+                      }
+                      maxLength={5}
+                      placeholder="Ej. LP"
+                    />
                   </label>
 
                   <label className="field">
@@ -561,61 +564,25 @@ function AdminReserva() {
                   </label>
 
                   <label className="field">
-                    <span>Disciplina</span>
-                    <select
-                      id="edit-disciplina"
-                      value={formEdicion.disciplina_id ?? ""}
-                      onChange={(e) => {
-                        actualizarCampo(
-                          "disciplina_id",
-                          Number(e.target.value),
-                        );
-                        setErroresEdicion((p) => ({
-                          ...p,
-                          disciplina_id: null,
-                        }));
-                      }}
-                      onBlur={() => handleBlurEdicion("disciplina_id")}
-                      aria-describedby={
-                        mostrarError(erroresEdicion, "disciplina_id")
-                          ? "error-edit-disciplina"
-                          : undefined
-                      }
-                    >
-                      <option value="">Selecciona una disciplina</option>
-                      {disciplinas.map((disciplina) => (
-                        <option key={disciplina.id} value={disciplina.id}>
-                          {disciplina.nombre}
-                        </option>
-                      ))}
-                    </select>
-                    {mostrarError(erroresEdicion, "disciplina_id") && (
-                      <small id="error-edit-disciplina" className="field-error">
-                        {mostrarError(erroresEdicion, "disciplina_id")}
-                      </small>
-                    )}
-                  </label>
-
-                  <label className="field">
                     <span>Fecha</span>
                     <input
                       id="edit-fecha"
                       type="date"
-                      value={formEdicion.fecha ?? ""}
+                      value={formEdicion.fecha_reserva ?? ""}
                       onChange={(e) => {
-                        actualizarCampo("fecha", e.target.value);
-                        setErroresEdicion((p) => ({ ...p, fecha: null }));
+                        actualizarCampo("fecha_reserva", e.target.value);
+                        setErroresEdicion((p) => ({ ...p, fecha_reserva: null }));
                       }}
-                      onBlur={() => handleBlurEdicion("fecha")}
+                      onBlur={() => handleBlurEdicion("fecha_reserva")}
                       aria-describedby={
-                        mostrarError(erroresEdicion, "fecha")
+                        mostrarError(erroresEdicion, "fecha_reserva")
                           ? "error-edit-fecha"
                           : undefined
                       }
                     />
-                    {mostrarError(erroresEdicion, "fecha") && (
+                    {mostrarError(erroresEdicion, "fecha_reserva") && (
                       <small id="error-edit-fecha" className="field-error">
-                        {mostrarError(erroresEdicion, "fecha")}
+                        {mostrarError(erroresEdicion, "fecha_reserva")}
                       </small>
                     )}
                   </label>
@@ -720,8 +687,8 @@ function AdminReserva() {
               <>
                 <div className="info-grid">
                   <div>
-                    <span>Carnet</span>
-                    <strong>{seleccionada.carnet}</strong>
+                    <span>CI</span>
+                    <strong>{seleccionada.complemento ? `${seleccionada.ci} ${seleccionada.complemento}` : seleccionada.ci}</strong>
                   </div>
                   <div>
                     <span>Espacio</span>
@@ -730,16 +697,13 @@ function AdminReserva() {
                     </strong>
                   </div>
                   <div>
-                    <span>Disciplina</span>
-                    <strong>
-                      {seleccionada.disciplina?.nombre ||
-                        seleccionada.disciplina_id}
-                    </strong>
+                    <span>Tipo reserva</span>
+                    <strong>{seleccionada.tipo_reserva}</strong>
                   </div>
                   <div>
                     <span>Fecha y horario</span>
                     <strong>
-                      {formatFechaBO(seleccionada.fecha)} ·{" "}
+                      {formatFechaBO(seleccionada.fecha_reserva)} ·{" "}
                       {seleccionada.hora_inicio} - {seleccionada.hora_fin}
                     </strong>
                   </div>

@@ -7,7 +7,6 @@ import {
   Body,
   Query,
   ParseIntPipe,
-  Req,
   Res,
 } from "@nestjs/common";
 import { Response } from "express";
@@ -15,16 +14,31 @@ import { ApiOperation, ApiTags, ApiQuery } from "@nestjs/swagger";
 import { PagosService } from "./pagos.service";
 import { CreatePagoDto } from "./dto/create-pago.dto";
 import { ReportesService } from "../reportes/reportes.service";
+import { Roles } from "../auth/decorators/roles.decorator";
+import { MESES_MAP } from "../common/constants/business.constants";
 
 @ApiTags("pagos")
 @Controller("api/pagos")
 export class PagosController {
   constructor(
     private readonly pagosService: PagosService,
-    private readonly reportesService: ReportesService // <-- Tu servicio inyectado
+    private readonly reportesService: ReportesService
   ) {}
 
+  @Get()
+  @Roles("admin", "entrenador")
+  @ApiOperation({ summary: "Listar pagos con paginación" })
+  @ApiQuery({ name: "page", required: false, type: Number, example: 1 })
+  @ApiQuery({ name: "limit", required: false, type: Number, example: 20 })
+  findAll(
+    @Query("page", new ParseIntPipe({ optional: true })) page?: number,
+    @Query("limit", new ParseIntPipe({ optional: true })) limit?: number,
+  ) {
+    return this.pagosService.findAll(page, limit);
+  }
+
   @Get("conceptos")
+  @Roles("admin", "entrenador")
   @ApiOperation({ summary: "Listar conceptos de pago" })
   getConceptos(@Query("disciplinaId") disciplinaId?: string) {
     return this.pagosService.getConceptos(
@@ -33,6 +47,7 @@ export class PagosController {
   }
 
   @Get("planilla")
+  @Roles("admin", "entrenador")
   @ApiOperation({ summary: "Ver planilla de pagos por disciplina y año" })
   getPlanilla(
     @Query("disciplinaId", ParseIntPipe) disciplinaId: number,
@@ -42,6 +57,7 @@ export class PagosController {
   }
 
   @Get("morosos")
+  @Roles("admin", "entrenador")
   @ApiOperation({ summary: "Listar deportistas con pagos pendientes" })
   getMorosos(
     @Query("disciplinaId") disciplinaId?: string,
@@ -53,8 +69,8 @@ export class PagosController {
     );
   }
 
-  // 👇 AQUÍ ESTÁ TU ÚLTIMO ENDPOINT (Punto 9 - Pagos) 👇
   @Get("reporte")
+  @Roles("admin")
   @ApiOperation({
     summary: "Exportar reporte de pagos",
     description: "Genera un archivo Excel o PDF con el historial de ingresos financieros.",
@@ -68,13 +84,10 @@ export class PagosController {
     @Query("mes") mes?: string,
     @Query("anio") anio?: string
   ) {
-    let pagos: any[] = await this.pagosService.findAll();
+    const result = await this.pagosService.findAll(1, 10000);
+    let pagos: any[] = result.data;
 
-    const MESES: Record<string, number> = {
-      enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6,
-      julio: 7, agosto: 8, septiembre: 9, octubre: 10, noviembre: 11, diciembre: 12,
-    };
-    const numeroMes = mes ? (MESES[mes.toLowerCase()] ?? parseInt(mes)) : undefined;
+    const numeroMes = mes ? (MESES_MAP[mes.toLowerCase()] ?? parseInt(mes)) : undefined;
 
     if (numeroMes !== undefined || anio) {
       pagos = pagos.filter((p) => {
@@ -121,22 +134,23 @@ export class PagosController {
 
     res.send(buffer);
   }
-  // 👆 FIN DEL ÚLTIMO ENDPOINT 👆
 
   @Get("deportista/:id")
+  @Roles("admin", "entrenador")
   @ApiOperation({ summary: "Historial de pagos de un deportista" })
   getPagosDeportista(@Param("id", ParseIntPipe) id: number) {
     return this.pagosService.getPagosDeportista(id);
   }
 
   @Post()
+  @Roles("admin")
   @ApiOperation({ summary: "Registrar un pago manual" })
-  registrarPago(@Body() dto: CreatePagoDto, @Req() req: any) {
-    const registrado_por = req.user?.id ?? 0;
-    return this.pagosService.registrarPago(dto, registrado_por);
+  registrarPago(@Body() dto: CreatePagoDto) {
+    return this.pagosService.registrarPago(dto);
   }
 
   @Patch(":id/anular")
+  @Roles("admin")
   @ApiOperation({ summary: "Anular un pago" })
   anularPago(@Param("id", ParseIntPipe) id: number) {
     return this.pagosService.anularPago(id);

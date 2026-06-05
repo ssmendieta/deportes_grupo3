@@ -8,27 +8,20 @@ import type {
 type DisciplinaRaw = {
   id: number;
   nombre: string;
-  descripcion: string | null;
-  categorias: string | null;
-  mensualidad: string | number | null;
   activo: boolean;
-  orden: number;
 };
 
 function mapDisciplina(raw: DisciplinaRaw): Disciplina {
   return {
     id: raw.id,
     nombre: raw.nombre,
-    descripcion: raw.descripcion ?? "",
-    categorias: raw.categorias ?? "",
-    mensualidad: Number(raw.mensualidad ?? 0),
     estado: raw.activo ? "activa" : "inactiva",
   };
 }
 
 export async function listarDisciplinas(): Promise<Disciplina[]> {
   const raw = await apiRequest<DisciplinaRaw[]>("/api/disciplinas", {
-    requiresAdmin: false,
+    requiresAuth: false,
   });
   return raw.map(mapDisciplina);
 }
@@ -38,12 +31,9 @@ export async function crearDisciplina(
 ): Promise<Disciplina> {
   const raw = await apiRequest<DisciplinaRaw>("/api/disciplinas", {
     method: "POST",
-    requiresAdmin: true,
+    requiresAuth: true,
     body: JSON.stringify({
       nombre: data.nombre.trim(),
-      descripcion: data.descripcion.trim(),
-      categorias: data.categorias.trim(),
-      mensualidad: Number(data.mensualidad || 0),
       activo: true,
     }),
   });
@@ -56,11 +46,8 @@ export async function actualizarDisciplina(
 ): Promise<Disciplina> {
   const raw = await apiRequest<DisciplinaRaw>(`/api/disciplinas/${id}`, {
     method: "PATCH",
-    requiresAdmin: true,
+    requiresAuth: true,
     body: JSON.stringify({
-      descripcion: data.descripcion.trim(),
-      categorias: data.categorias.trim(),
-      mensualidad: Number(data.mensualidad || 0),
       activo: data.estado === "activa",
     }),
   });
@@ -73,7 +60,7 @@ export async function cambiarEstadoDisciplina(
 ): Promise<Disciplina> {
   const raw = await apiRequest<DisciplinaRaw>(`/api/disciplinas/${id}/estado`, {
     method: "PATCH",
-    requiresAdmin: true,
+    requiresAuth: true,
     body: JSON.stringify({ activo: estado === "activa" }),
   });
   return mapDisciplina(raw);

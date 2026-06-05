@@ -6,9 +6,16 @@ import * as path from 'path';
 import { mailConfig } from '../config/mail.config';
 import { Prisma } from '@prisma/client';
 
-type ReservaConRelaciones = Prisma.ReservaGetPayload<{
-  include: { espacio: true; disciplina: true };
+type ReservaConRelaciones = Prisma.reservasGetPayload<{
+  include: { espacios: true };
 }>;
+
+function formatHora(dt: Date): string {
+  if (!dt) return '';
+  const h = dt.getUTCHours().toString().padStart(2, '0');
+  const m = dt.getUTCMinutes().toString().padStart(2, '0');
+  return `${h}:${m}`;
+}
 
 @Injectable()
 export class MailService {
@@ -36,28 +43,30 @@ export class MailService {
   }
 
   async sendReservaConfirmada(reserva: ReservaConRelaciones, pdfBuffer: Buffer): Promise<void> {
-    if (!reserva.email_solicitante) {
-      this.logger.warn(`Reserva #${reserva.id} sin email_solicitante, no se envió correo`);
+    if (!reserva.correo_solicitante) {
+      this.logger.warn(`Reserva #${reserva.id_reserva} sin correo_solicitante, no se envió correo`);
       return;
     }
 
-    const fecha = new Date(reserva.fecha).toLocaleDateString('es-BO', {
+    const fecha = new Date(reserva.fecha_reserva).toLocaleDateString('es-BO', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
 
+    const ciStr = reserva.complemento
+      ? `${reserva.ci} ${reserva.complemento}`
+      : `${reserva.ci}`;
+
     const html = this.getTemplate()({
-      id: reserva.id,
+      id: reserva.id_reserva,
       nombre_solicitante: reserva.nombre_solicitante,
-      carnet: reserva.carnet,
-      espacio_nombre: reserva.espacio.nombre,
-      espacio_ubicacion: reserva.espacio.ubicacion,
-      disciplina_nombre: reserva.disciplina.nombre,
+      carnet: ciStr,
+      espacio_nombre: reserva.espacios?.nombre_espacio ?? '',
       fecha,
-      hora_inicio: reserva.hora_inicio,
-      hora_fin: reserva.hora_fin,
+      hora_inicio: formatHora(reserva.hora_inicio),
+      hora_fin: formatHora(reserva.hora_fin),
       motivo: reserva.motivo,
       estado: reserva.estado,
     });
@@ -66,12 +75,12 @@ export class MailService {
 
     await this.transporter.sendMail({
       from: `"Sistema de Reservas UCB" <${mailConfig.from}>`,
-      to: reserva.email_solicitante,
-      subject: `Confirmación de reserva #${reserva.id} — UCB`,
+      to: reserva.correo_solicitante,
+      subject: `Confirmación de reserva #${reserva.id_reserva} — UCB`,
       html,
       attachments: [
         {
-          filename: `comprobante-reserva-${reserva.id}.pdf`,
+          filename: `comprobante-reserva-${reserva.id_reserva}.pdf`,
           content: pdfBuffer,
           contentType: 'application/pdf',
         },
@@ -83,6 +92,6 @@ export class MailService {
       ],
     });
 
-    this.logger.log(`Correo enviado a ${reserva.email_solicitante} (reserva #${reserva.id})`);
+    this.logger.log(`Correo enviado a ${reserva.correo_solicitante} (reserva #${reserva.id_reserva})`);
   }
 }

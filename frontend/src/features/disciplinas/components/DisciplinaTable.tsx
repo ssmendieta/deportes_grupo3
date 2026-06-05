@@ -27,8 +27,6 @@ function DisciplinaTable({
         <thead>
           <tr>
             <th>Disciplina</th>
-            <th>Categorías</th>
-            <th>Mensualidad</th>
             <th>Estado</th>
             <th>Acción</th>
           </tr>
@@ -38,10 +36,7 @@ function DisciplinaTable({
             <tr key={disciplina.id}>
               <td>
                 <strong>{disciplina.nombre}</strong>
-                <span>{disciplina.descripcion || "Sin descripción"}</span>
               </td>
-              <td>{disciplina.categorias || "—"}</td>
-              <td>Bs. {disciplina.mensualidad}</td>
               <td>
                 <EstadoDisciplinaBadge estado={disciplina.estado} />
               </td>

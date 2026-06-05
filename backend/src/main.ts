@@ -4,6 +4,8 @@ import { NestFactory } from "@nestjs/core";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { AppModule } from "./app.module.js";
 import { ValidationPipe } from "@nestjs/common";
+import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
+import { RequestLoggingInterceptor } from "./common/interceptors/request-logging.interceptor";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -26,6 +28,9 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalInterceptors(new RequestLoggingInterceptor());
 
   const config = new DocumentBuilder()
     .addBearerAuth()

@@ -1,4 +1,4 @@
-import { UnauthorizedException, ForbiddenException } from "@nestjs/common";
+import { UnauthorizedException } from "@nestjs/common";
 import { AuthMiddleware } from "./auth.middleware";
 import * as fs from "fs";
 import * as jwt from "jsonwebtoken";
@@ -26,7 +26,7 @@ describe("AuthMiddleware", () => {
     jest.clearAllMocks();
   });
 
-  it("debe llamar next() si el token admin es valido", () => {
+  it("debe llamar next() si el token es valido y extraer el rol", () => {
     mockReq.headers.authorization = "Bearer valid-token";
     (jwt.verify as jest.Mock).mockReturnValue({ rol: "admin", id: 1, email: "admin@test.com" });
 
@@ -36,29 +36,37 @@ describe("AuthMiddleware", () => {
     expect(mockReq.user.rol).toBe("admin");
   });
 
-  it("debe lanzar UnauthorizedException si no hay header Authorization", () => {
-    expect(() => middleware.use(mockReq, mockRes, mockNext)).toThrow(UnauthorizedException);
-    expect(mockNext).not.toHaveBeenCalled();
+  it("debe llamar next() si no hay header Authorization (ruta publica)", () => {
+    middleware.use(mockReq, mockRes, mockNext);
+
+    expect(mockNext).toHaveBeenCalled();
+    expect(mockReq.user).toBeUndefined();
   });
 
-  it("debe lanzar UnauthorizedException si el header no es Bearer", () => {
+  it("debe llamar next() si el header no es Bearer (ruta publica)", () => {
     mockReq.headers.authorization = "Basic token123";
 
-    expect(() => middleware.use(mockReq, mockRes, mockNext)).toThrow(UnauthorizedException);
+    middleware.use(mockReq, mockRes, mockNext);
+
+    expect(mockNext).toHaveBeenCalled();
+    expect(mockReq.user).toBeUndefined();
   });
 
-  it("debe lanzar ForbiddenException si el token no tiene rol", () => {
+  it("debe lanzar UnauthorizedException si el token no tiene rol", () => {
     mockReq.headers.authorization = "Bearer token-sin-rol";
     (jwt.verify as jest.Mock).mockReturnValue({ id: 1, email: "user@test.com" });
 
-    expect(() => middleware.use(mockReq, mockRes, mockNext)).toThrow(ForbiddenException);
+    expect(() => middleware.use(mockReq, mockRes, mockNext)).toThrow(UnauthorizedException);
   });
 
-  it("debe lanzar ForbiddenException si el rol no es admin", () => {
-    mockReq.headers.authorization = "Bearer token-estudiante";
-    (jwt.verify as jest.Mock).mockReturnValue({ rol: "estudiante", id: 2 });
+  it("debe permitir cualquier rol valido (la autorizacion la maneja RolesGuard)", () => {
+    mockReq.headers.authorization = "Bearer token-entrenador";
+    (jwt.verify as jest.Mock).mockReturnValue({ rol: "entrenador", id: 2 });
 
-    expect(() => middleware.use(mockReq, mockRes, mockNext)).toThrow(ForbiddenException);
+    middleware.use(mockReq, mockRes, mockNext);
+
+    expect(mockNext).toHaveBeenCalled();
+    expect(mockReq.user.rol).toBe("entrenador");
   });
 
   it("debe lanzar UnauthorizedException si el token es invalido", () => {
@@ -70,9 +78,9 @@ describe("AuthMiddleware", () => {
     expect(() => middleware.use(mockReq, mockRes, mockNext)).toThrow(UnauthorizedException);
   });
 
-  it("debe usar modo mock en desarrollo si no hay public.pem", () => {
+  it("debe usar modo mock si ALLOW_DEV_MOCK=true y no hay public.pem", () => {
     (fs.readFileSync as jest.Mock).mockImplementation(() => { throw new Error("not found"); });
-    process.env.NODE_ENV = "development";
+    process.env.ALLOW_DEV_MOCK = "true";
 
     const mockMiddleware = new AuthMiddleware();
     mockReq.headers.authorization = undefined;
@@ -82,6 +90,16 @@ describe("AuthMiddleware", () => {
     expect(mockNext).toHaveBeenCalled();
     expect(mockReq.user.rol).toBe("admin");
 
-    process.env.NODE_ENV = undefined;
+    process.env.ALLOW_DEV_MOCK = undefined;
+  });
+
+  it("debe extraer rol desde claim 'role' si 'rol' no existe", () => {
+    mockReq.headers.authorization = "Bearer valid-token";
+    (jwt.verify as jest.Mock).mockReturnValue({ role: "delegado", id: 3 });
+
+    middleware.use(mockReq, mockRes, mockNext);
+
+    expect(mockNext).toHaveBeenCalled();
+    expect(mockReq.user.rol).toBe("delegado");
   });
 });

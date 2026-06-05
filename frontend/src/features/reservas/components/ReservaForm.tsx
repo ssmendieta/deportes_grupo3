@@ -3,10 +3,9 @@ import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   crearReserva,
-  getDisciplinasReserva,
   getEspacios,
 } from "../services/reservaService";
-import type { DisciplinaBasica, Espacio, Reserva, ReservaFormData } from "../types/reserva.types";
+import type { Espacio, Reserva, ReservaFormData } from "../types/reserva.types";
 import {
   validarCI,
   validarEmail,
@@ -18,8 +17,8 @@ import {
 import Spinner from "../../../shared/components/Spinner";
 import ReservaConfirmadaModal from "./ReservaConfirmadaModal";
 
-function formatearCI(v: string) {
-  return v.replace(/[^0-9A-Za-z-]/g, "").slice(0, 13);
+function soloDigitos(v: string) {
+  return v.replace(/\D/g, "").slice(0, 8);
 }
 
 function hoyString() {
@@ -32,14 +31,15 @@ type Props = {
 
 const formInicial: ReservaFormData = {
   nombre_solicitante: "",
-  carnet: "",
-  email_solicitante: "",
+  ci: "",
+  complemento: "",
+  correo_solicitante: "",
   motivo: "",
   espacio_id: "",
-  disciplina_id: "",
-  fecha: "",
+  fecha_reserva: "",
   hora_inicio: "",
   hora_fin: "",
+  tipo_reserva: "entrenamiento",
 };
 
 const horasDisponibles = ["14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00"];
@@ -53,7 +53,6 @@ function ReservaForm({ onReservaCreada }: Props) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState<ReservaFormData>(formInicial);
   const [espacios, setEspacios] = useState<Espacio[]>([]);
-  const [disciplinas, setDisciplinas] = useState<DisciplinaBasica[]>([]);
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [errores, setErrores] = useState<ErroresForm>({});
@@ -62,62 +61,17 @@ function ReservaForm({ onReservaCreada }: Props) {
 
   useEffect(() => {
     const tarea = window.setTimeout(() => {
-      Promise.all([getEspacios(), getDisciplinasReserva()]).then(
-        ([espaciosData, disciplinasData]) => {
-          setEspacios(espaciosData);
-          setDisciplinas(disciplinasData);
-          setFormData((prev) => ({
-            ...prev,
-            espacio_id: prev.espacio_id || String(espaciosData[0]?.id || ""),
-            disciplina_id:
-              prev.disciplina_id || String(disciplinasData[0]?.id || ""),
-          }));
-        },
-      );
+      getEspacios().then((espaciosData) => {
+        setEspacios(espaciosData);
+        setFormData((prev) => ({
+          ...prev,
+          espacio_id: prev.espacio_id || String(espaciosData[0]?.id || ""),
+        }));
+      });
     }, 0);
 
     return () => window.clearTimeout(tarea);
   }, []);
-
-  const espacioSeleccionado = useMemo(
-    () => espacios.find((e) => String(e.id) === formData.espacio_id),
-    [espacios, formData.espacio_id],
-  );
-
-  const disciplinasPermitidas = useMemo(() => {
-    if (!espacioSeleccionado) return disciplinas;
-    const nombre = espacioSeleccionado.nombre.toLowerCase();
-    if (nombre.includes("ucb")) {
-      return disciplinas.filter((d) =>
-        ["voleibol", "básquetbol"].includes(d.nombre.toLowerCase()),
-      );
-    }
-    if (nombre.includes("arquitectura")) {
-      return disciplinas.filter((d) =>
-        d.nombre.toLowerCase() === "fútsal",
-      );
-    }
-    return disciplinas;
-  }, [espacioSeleccionado, disciplinas]);
-
-  useEffect(() => {
-    const idsPermitidos = disciplinasPermitidas.map((d) => String(d.id));
-    if (
-      !formData.disciplina_id ||
-      idsPermitidos.includes(formData.disciplina_id)
-    ) {
-      return undefined;
-    }
-
-    const tarea = window.setTimeout(() => {
-      setFormData((prev) => ({
-        ...prev,
-        disciplina_id: idsPermitidos[0] || "",
-      }));
-    }, 0);
-
-    return () => window.clearTimeout(tarea);
-  }, [disciplinasPermitidas, formData.disciplina_id]);
 
   const duracionHoras = useMemo(() => {
     if (!formData.hora_inicio || !formData.hora_fin) return 0;
@@ -138,12 +92,12 @@ function ReservaForm({ onReservaCreada }: Props) {
   const validarCampo = useCallback((campo: string, valor: string): string | null => {
     switch (campo) {
       case "nombre_solicitante": return validarNombreCompleto(valor, "El nombre del solicitante");
-      case "carnet": return validarCI(valor);
-      case "email_solicitante": return valor.trim() ? validarEmail(valor) : null;
+      case "ci": return validarCI(valor);
+      case "correo_solicitante": return valor.trim() ? validarEmail(valor) : null;
       case "motivo": return validarRequerido(valor, "El motivo");
       case "espacio_id": return valor ? null : "Debes seleccionar un espacio.";
-      case "disciplina_id": return valor ? null : "Debes seleccionar una disciplina.";
-      case "fecha": return valor ? null : "La fecha es obligatoria.";
+      case "fecha_reserva": return valor ? null : "La fecha es obligatoria.";
+      case "tipo_reserva": return valor ? null : "Selecciona un tipo de reserva.";
       case "hora_inicio": return valor ? null : "La hora de inicio es obligatoria.";
       case "hora_fin": return valor ? null : "La hora de fin es obligatoria.";
       default: return null;
@@ -152,7 +106,7 @@ function ReservaForm({ onReservaCreada }: Props) {
 
   const handleBlur = (campo: string) => {
     setTocado((prev) => ({ ...prev, [campo]: true }));
-    setErrores((prev) => ({ ...prev, [campo]: validarCampo(campo, formData[campo as keyof ReservaFormData]) }));
+    setErrores((prev) => ({ ...prev, [campo]: validarCampo(campo, formData[campo as keyof ReservaFormData] ?? "") }));
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -161,17 +115,17 @@ function ReservaForm({ onReservaCreada }: Props) {
 
     const nuevosErrores: ErroresForm = {
       nombre_solicitante: validarNombreCompleto(formData.nombre_solicitante, "El nombre del solicitante"),
-      carnet: validarCI(formData.carnet),
-      email_solicitante: formData.email_solicitante.trim() ? validarEmail(formData.email_solicitante) : null,
+      ci: validarCI(formData.ci),
+      correo_solicitante: (formData.correo_solicitante ?? "").trim() ? validarEmail(formData.correo_solicitante ?? "") : null,
       motivo: validarRequerido(formData.motivo, "El motivo"),
       espacio_id: formData.espacio_id ? null : "Debes seleccionar un espacio.",
-      disciplina_id: formData.disciplina_id ? null : "Debes seleccionar una disciplina.",
-      fecha: formData.fecha ? null : "La fecha es obligatoria.",
+      fecha_reserva: formData.fecha_reserva ? null : "La fecha es obligatoria.",
+      tipo_reserva: formData.tipo_reserva ? null : "Selecciona un tipo de reserva.",
       hora_inicio: formData.hora_inicio ? null : "La hora de inicio es obligatoria.",
       hora_fin: formData.hora_fin ? null : "La hora de fin es obligatoria.",
     };
     setErrores(nuevosErrores);
-    setTocado({ nombre_solicitante: true, carnet: true, email_solicitante: true, motivo: true, espacio_id: true, disciplina_id: true, fecha: true, hora_inicio: true, hora_fin: true });
+    setTocado({ nombre_solicitante: true, ci: true, correo_solicitante: true, motivo: true, espacio_id: true, fecha_reserva: true, tipo_reserva: true, hora_inicio: true, hora_fin: true });
     if (Object.values(nuevosErrores).some(Boolean)) return;
 
     if (duracionHoras <= 0 || duracionHoras > 3) {
@@ -183,14 +137,15 @@ function ReservaForm({ onReservaCreada }: Props) {
     try {
       const reserva = await crearReserva({
         espacio_id: Number(formData.espacio_id),
-        disciplina_id: Number(formData.disciplina_id),
-        fecha: formData.fecha,
+        fecha_reserva: formData.fecha_reserva,
         hora_inicio: formData.hora_inicio,
         hora_fin: formData.hora_fin,
+        tipo_reserva: formData.tipo_reserva,
         nombre_solicitante: formData.nombre_solicitante.trim(),
-        carnet: formData.carnet.trim(),
+        ci: formData.ci ? parseInt(formData.ci) : 0,
+        complemento: formData.complemento?.trim() || undefined,
         motivo: formData.motivo.trim(),
-        ...(formData.email_solicitante.trim() && { email_solicitante: formData.email_solicitante.trim() }),
+        ...((formData.correo_solicitante ?? "").trim() && { correo_solicitante: (formData.correo_solicitante ?? "").trim() }),
       });
       setReservaCreada(reserva);
       onReservaCreada?.(reserva);
@@ -202,7 +157,7 @@ function ReservaForm({ onReservaCreada }: Props) {
     }
   };
 
-  if (!espacios.length || !disciplinas.length) {
+  if (!espacios.length) {
     return <Spinner texto="Preparando formulario..." />;
   }
 
@@ -219,15 +174,20 @@ function ReservaForm({ onReservaCreada }: Props) {
         </label>
 
         <label className="field full">
-          <span>Carnet *</span>
-          <input id="res-carnet" value={formData.carnet} onChange={(e) => { handleChange("carnet", formatearCI(e.target.value)); setErrores((p) => ({ ...p, carnet: null })); }} onBlur={() => handleBlur("carnet")} placeholder="Ej. 1234567 o 1234567-1L" required maxLength={13} aria-describedby={tocado.carnet && mostrarError(errores, "carnet") ? "error-res-carnet" : undefined} />
-          {tocado.carnet && mostrarError(errores, "carnet") && <small id="error-res-carnet" className="field-error">{mostrarError(errores, "carnet")}</small>}
+          <span>CI *</span>
+          <input id="res-ci" value={formData.ci} onChange={(e) => { handleChange("ci", soloDigitos(e.target.value)); setErrores((p) => ({ ...p, ci: null })); }} onBlur={() => handleBlur("ci")} placeholder="Ej. 1234567" inputMode="numeric" required maxLength={8} aria-describedby={tocado.ci && mostrarError(errores, "ci") ? "error-res-ci" : undefined} />
+          {tocado.ci && mostrarError(errores, "ci") && <small id="error-res-ci" className="field-error">{mostrarError(errores, "ci")}</small>}
+        </label>
+
+        <label className="field full">
+          <span>Complemento</span>
+          <input id="res-complemento" value={formData.complemento ?? ""} onChange={(e) => handleChange("complemento", e.target.value)} placeholder="Ej. LP" maxLength={5} />
         </label>
 
         <label className="field full">
           <span>Correo electrónico <small>(opcional — para recibir el comprobante)</small></span>
-          <input id="res-email" type="email" value={formData.email_solicitante} onChange={(e) => { handleChange("email_solicitante", e.target.value); setErrores((p) => ({ ...p, email_solicitante: null })); }} onBlur={() => handleBlur("email_solicitante")} placeholder="Ej. juan.perez@ucb.edu.bo" maxLength={120} aria-describedby={tocado.email_solicitante && mostrarError(errores, "email_solicitante") ? "error-res-email" : undefined} />
-          {tocado.email_solicitante && mostrarError(errores, "email_solicitante") && <small id="error-res-email" className="field-error">{mostrarError(errores, "email_solicitante")}</small>}
+          <input id="res-email" type="email" value={formData.correo_solicitante} onChange={(e) => { handleChange("correo_solicitante", e.target.value); setErrores((p) => ({ ...p, correo_solicitante: null })); }} onBlur={() => handleBlur("correo_solicitante")} placeholder="Ej. juan.perez@ucb.edu.bo" maxLength={120} aria-describedby={tocado.correo_solicitante && mostrarError(errores, "correo_solicitante") ? "error-res-email" : undefined} />
+          {tocado.correo_solicitante && mostrarError(errores, "correo_solicitante") && <small id="error-res-email" className="field-error">{mostrarError(errores, "correo_solicitante")}</small>}
         </label>
 
         <label className="field full">
@@ -245,17 +205,20 @@ function ReservaForm({ onReservaCreada }: Props) {
         </label>
 
         <label className="field">
-          <span>Disciplina *</span>
-          <select id="res-disciplina" value={formData.disciplina_id} onChange={(e) => { handleChange("disciplina_id", e.target.value); setErrores((p) => ({ ...p, disciplina_id: null })); }} onBlur={() => handleBlur("disciplina_id")} required aria-describedby={tocado.disciplina_id && mostrarError(errores, "disciplina_id") ? "error-res-disciplina" : undefined}>
-            {disciplinasPermitidas.map((disciplina) => <option key={disciplina.id} value={disciplina.id}>{disciplina.nombre}</option>)}
+          <span>Tipo reserva *</span>
+          <select id="res-tipo" value={formData.tipo_reserva} onChange={(e) => { handleChange("tipo_reserva", e.target.value); setErrores((p) => ({ ...p, tipo_reserva: null })); }} onBlur={() => handleBlur("tipo_reserva")} required>
+            <option value="entrenamiento">Entrenamiento</option>
+            <option value="partido">Partido</option>
+            <option value="evento">Evento</option>
+            <option value="otro">Otro</option>
           </select>
-          {tocado.disciplina_id && mostrarError(errores, "disciplina_id") && <small id="error-res-disciplina" className="field-error">{mostrarError(errores, "disciplina_id")}</small>}
+          {tocado.tipo_reserva && mostrarError(errores, "tipo_reserva") && <small id="error-res-tipo" className="field-error">{mostrarError(errores, "tipo_reserva")}</small>}
         </label>
 
         <label className="field full">
           <span>Fecha *</span>
-          <input id="res-fecha" type="date" value={formData.fecha} onChange={(e) => { handleChange("fecha", e.target.value); setErrores((p) => ({ ...p, fecha: null })); }} onBlur={() => handleBlur("fecha")} min={hoyString()} required aria-describedby={tocado.fecha && mostrarError(errores, "fecha") ? "error-res-fecha" : undefined} />
-          {tocado.fecha && mostrarError(errores, "fecha") && <small id="error-res-fecha" className="field-error">{mostrarError(errores, "fecha")}</small>}
+          <input id="res-fecha" type="date" value={formData.fecha_reserva} onChange={(e) => { handleChange("fecha_reserva", e.target.value); setErrores((p) => ({ ...p, fecha_reserva: null })); }} onBlur={() => handleBlur("fecha_reserva")} min={hoyString()} required aria-describedby={tocado.fecha_reserva && mostrarError(errores, "fecha_reserva") ? "error-res-fecha" : undefined} />
+          {tocado.fecha_reserva && mostrarError(errores, "fecha_reserva") && <small id="error-res-fecha" className="field-error">{mostrarError(errores, "fecha_reserva")}</small>}
         </label>
 
         <label className="field">

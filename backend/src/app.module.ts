@@ -2,8 +2,8 @@ import {
   Module,
   NestModule,
   MiddlewareConsumer,
-  RequestMethod,
 } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { PrismaModule } from "./prisma/prisma.module";
 import { EspaciosModule } from "./espacios/espacios.module";
@@ -16,6 +16,10 @@ import { AuthModule } from "./auth/auth.module";
 import { DeportistasModule } from './deportistas/deportistas.module';
 import { MailModule } from './mail/mail.module';
 import { ReportesModule } from './reportes/reportes.module';
+import { CarrerasModule } from './carreras/carreras.module';
+import { RolesGuard } from './auth/guards/roles.guard';
+import { HealthModule } from './health/health.module';
+import { AuditoriaModule } from './auditoria/auditoria.module';
 
 @Module({
   imports: [
@@ -30,23 +34,19 @@ import { ReportesModule } from './reportes/reportes.module';
     PagosModule,
     DeportistasModule,
     ReportesModule,
+    CarrerasModule,
+    HealthModule,
+    AuditoriaModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(AuthMiddleware).forRoutes(
-      { path: "api/reservas", method: RequestMethod.ALL },
-      { path: "api/reservas/*path", method: RequestMethod.ALL },
-      { path: "api/pagos", method: RequestMethod.ALL },
-      { path: "api/pagos/*path", method: RequestMethod.ALL },
-      { path: "api/deportistas", method: RequestMethod.ALL },
-      { path: "api/deportistas/*path", method: RequestMethod.ALL },
-      { path: "api/deportistas/reporte", method: RequestMethod.GET },
-      { path: "api/disciplinas/reporte", method: RequestMethod.GET },
-      { path: "api/reservas/reporte", method: RequestMethod.GET },
-      { path: "api/pagos/reporte", method: RequestMethod.GET },
-      { path: "api/disciplinas", method: RequestMethod.POST },
-      { path: "api/disciplinas/*path", method: RequestMethod.PATCH },
-    );
+    consumer.apply(AuthMiddleware).forRoutes('*');
   }
 }

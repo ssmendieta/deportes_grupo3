@@ -6,11 +6,11 @@ import { mockPrisma, resetPrismaMocks } from "../prisma/__mocks__/prisma.service
 describe("EspaciosService", () => {
   let service: EspaciosService;
 
-  const espacioMock = {
-    id: 1,
-    nombre: "Coliseo UCB",
-    horario_apertura: "07:00",
-    horario_cierre: "22:00",
+  const espacioDbMock = {
+    id_espacio: 1,
+    nombre_espacio: "Coliseo UCB",
+    hora_apertura: new Date("1970-01-01T07:00:00.000Z"),
+    horario_cierre: new Date("1970-01-01T22:00:00.000Z"),
     activo: true,
   };
 
@@ -33,31 +33,34 @@ describe("EspaciosService", () => {
 
   describe("findAll", () => {
     it("debe retornar solo espacios activos", async () => {
-      mockPrisma.espacio.findMany.mockResolvedValue([espacioMock]);
+      (mockPrisma.espacios as any).findMany.mockResolvedValue([espacioDbMock]);
 
       const result = await service.findAll();
 
       expect(result).toHaveLength(1);
-      expect(mockPrisma.espacio.findMany).toHaveBeenCalledWith({
+      expect(result[0].id).toBe(1);
+      expect(result[0].nombre).toBe("Coliseo UCB");
+      expect((mockPrisma.espacios as any).findMany).toHaveBeenCalledWith({
         where: { activo: true },
       });
     });
   });
 
   describe("findOne", () => {
-    it("debe retornar un espacio activo por ID", async () => {
-      mockPrisma.espacio.findUnique.mockResolvedValue(espacioMock);
+    it("debe retornar un espacio por ID", async () => {
+      (mockPrisma.espacios as any).findUnique.mockResolvedValue(espacioDbMock);
 
       const result = await service.findOne(1);
 
       expect(result!.id).toBe(1);
-      expect(mockPrisma.espacio.findUnique).toHaveBeenCalledWith({
-        where: { id: 1, activo: true },
+      expect(result!.nombre).toBe("Coliseo UCB");
+      expect((mockPrisma.espacios as any).findUnique).toHaveBeenCalledWith({
+        where: { id_espacio: 1 },
       });
     });
 
-    it("debe retornar null si el espacio no existe o esta inactivo", async () => {
-      mockPrisma.espacio.findUnique.mockResolvedValue(null);
+    it("debe retornar null si el espacio no existe", async () => {
+      (mockPrisma.espacios as any).findUnique.mockResolvedValue(null);
 
       const result = await service.findOne(999);
 

@@ -16,9 +16,6 @@ type Props = {
 
 const formInicial: DisciplinaFormData = {
   nombre: "",
-  descripcion: "",
-  categorias: "",
-  mensualidad: "",
   estado: "activa",
 };
 
@@ -41,9 +38,6 @@ function DisciplinaFormModal({
         disciplinaEditando
           ? {
               nombre: disciplinaEditando.nombre,
-              descripcion: disciplinaEditando.descripcion,
-              categorias: disciplinaEditando.categorias,
-              mensualidad: String(disciplinaEditando.mensualidad),
               estado: disciplinaEditando.estado,
             }
           : formInicial,
@@ -70,10 +64,6 @@ function DisciplinaFormModal({
 
     const nuevosErrores: ErroresForm = {
       nombre: validarNombreCompleto(formData.nombre, "El nombre"),
-      mensualidad:
-        formData.mensualidad && Number(formData.mensualidad) < 0
-          ? "La mensualidad no puede ser negativa."
-          : null,
     };
     setErrores(nuevosErrores);
     if (Object.values(nuevosErrores).some(Boolean)) return;
@@ -144,56 +134,6 @@ function DisciplinaFormModal({
               <option value="activa">Activa</option>
               <option value="inactiva">Inactiva</option>
             </select>
-          </label>
-
-          <label className="field full">
-            <span>Descripción</span>
-            <textarea
-              value={formData.descripcion}
-              onChange={(e) => handleChange("descripcion", e.target.value)}
-              placeholder="Breve descripción de la disciplina"
-            />
-          </label>
-
-          <label className="field">
-            <span>Categorías</span>
-            <input
-              value={formData.categorias}
-              onChange={(e) => handleChange("categorias", e.target.value)}
-              placeholder="Ej. Mayores, Sub-17, Sub-14"
-            />
-          </label>
-
-          <label className="field">
-            <span>Mensualidad (Bs.)</span>
-            <input
-              id="disc-mensualidad"
-              type="number"
-              min="0"
-              value={formData.mensualidad}
-              onChange={(e) => {
-                handleChange("mensualidad", e.target.value);
-                setErrores((p) => ({ ...p, mensualidad: null }));
-              }}
-              onBlur={() => {
-                if (formData.mensualidad && Number(formData.mensualidad) < 0)
-                  setErrores((p) => ({
-                    ...p,
-                    mensualidad: "La mensualidad no puede ser negativa.",
-                  }));
-              }}
-              placeholder="Ej. 120"
-              aria-describedby={
-                mostrarError(errores, "mensualidad")
-                  ? "error-disc-mensualidad"
-                  : undefined
-              }
-            />
-            {mostrarError(errores, "mensualidad") && (
-              <small id="error-disc-mensualidad" className="field-error">
-                {mostrarError(errores, "mensualidad")}
-              </small>
-            )}
           </label>
 
           <div className="form-hint full">

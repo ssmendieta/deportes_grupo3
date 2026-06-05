@@ -2,7 +2,6 @@ import {
   Injectable,
   NestMiddleware,
   UnauthorizedException,
-  ForbiddenException,
   Logger,
 } from "@nestjs/common";
 import * as jwt from "jsonwebtoken";
@@ -12,35 +11,38 @@ import * as path from "path";
 @Injectable()
 export class AuthMiddleware implements NestMiddleware {
   private readonly logger = new Logger(AuthMiddleware.name);
-  private readonly publicKey: string;
+  private readonly publicKey: string | null | undefined;
 
   constructor() {
     const keyPath = path.join(process.cwd(), "src", "config", "public.pem");
     try {
       this.publicKey = fs.readFileSync(keyPath, "utf8");
     } catch {
-      this.logger.warn("public.pem no encontrado. Usando modo mock en desarrollo.");
-      this.publicKey = "";
+      const allowMock = process.env.ALLOW_DEV_MOCK === "true";
+      if (allowMock) {
+        this.logger.warn("public.pem no encontrado. Usando modo mock (ALLOW_DEV_MOCK=true).");
+        this.publicKey = null;
+      } else {
+        this.logger.error("public.pem no encontrado y ALLOW_DEV_MOCK no está activado.");
+        this.publicKey = undefined;
+      }
     }
   }
 
   use(req: any, res: any, next: () => void) {
-    if (!this.publicKey) {
-      const isDev = !process.env.NODE_ENV || process.env.NODE_ENV === "development";
-      if (isDev) {
-        req.user = { rol: "admin", id: 0, email: "dev@localhost" };
-        return next();
-      }
-      throw new Error("public.pem no configurado");
+    if (this.publicKey === null) {
+      req.user = { rol: "admin", id: 0, email: "dev@localhost" };
+      return next();
+    }
+
+    if (this.publicKey === undefined) {
+      throw new Error("public.pem no configurado. Establezca ALLOW_DEV_MOCK=true para modo desarrollo.");
     }
 
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      this.logger.warn(`Intento sin token: ${req.method} ${req.url}`);
-      throw new UnauthorizedException(
-        "No autorizado - se requiere token Bearer",
-      );
+      return next();
     }
 
     const token = authHeader.split(" ")[1];
@@ -54,31 +56,15 @@ export class AuthMiddleware implements NestMiddleware {
 
       if (!rol) {
         this.logger.warn(`Token sin rol: ${req.method} ${req.url}`);
-        throw new ForbiddenException("El token no contiene información de rol");
-      }
-
-      if (rol !== "admin") {
-        this.logger.warn(
-          `Acceso denegado a usuario con rol "${rol}": ${req.method} ${req.url}`,
-        );
-        throw new ForbiddenException(
-          "No tienes permisos para realizar esta acción",
-        );
+        throw new UnauthorizedException("El token no contiene información de rol");
       }
 
       req.user = { ...payload, rol };
       next();
     } catch (error) {
-      if (
-        error instanceof ForbiddenException ||
-        error instanceof UnauthorizedException
-      ) {
-        this.logger.warn(
-          `Acceso no autorizado: ${req.method} ${req.url} - ${error.message}`,
-        );
+      if (error instanceof UnauthorizedException) {
         throw error;
       }
-      this.logger.warn(`Token inválido: ${req.method} ${req.url}`);
       throw new UnauthorizedException("Token inválido o expirado");
     }
   }

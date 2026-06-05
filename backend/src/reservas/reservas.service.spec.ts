@@ -8,20 +8,50 @@ import { mockPrisma, mockTx, resetPrismaMocks } from "../prisma/__mocks__/prisma
 describe("ReservasService", () => {
   let service: ReservasService;
 
-  const espacioMock = { id: 1, nombre: "Coliseo UCB", horario_apertura: "07:00", horario_cierre: "22:00", activo: true };
-  const disciplinaMock = { id: 2, nombre: "Básquetbol", activo: true };
+  const espacioMock = {
+    id_espacio: 1,
+    nombre_espacio: "Coliseo UCB",
+    hora_apertura: new Date("1970-01-01T07:00:00.000Z"),
+    horario_cierre: new Date("1970-01-01T22:00:00.000Z"),
+    activo: true,
+  };
+
   const reservaMock = {
-    id: 1,
-    espacio_id: 1,
-    disciplina_id: 2,
-    fecha: new Date("2026-05-22T12:00:00.000Z"),
-    hora_inicio: "14:00",
-    hora_fin: "16:00",
+    id_reserva: 1,
+    id_espacio: 1,
+    id_persona_aprobador: 1,
+    fecha_reserva: new Date("2026-05-22T12:00:00.000Z"),
+    hora_inicio: new Date("1970-01-01T14:00:00.000Z"),
+    hora_fin: new Date("1970-01-01T16:00:00.000Z"),
+    tipo_reserva: "entrenamiento",
     nombre_solicitante: "Juan Pérez",
-    carnet: "1234567",
+    ci: 12345678,
+    complemento: null,
     motivo: "Entrenamiento",
     estado: "confirmada",
-    email_solicitante: null,
+    correo_solicitante: null,
+    ruta_comprobante_pdf: null,
+    espacios: { nombre_espacio: "Coliseo UCB" },
+    personas: { nombres: "Admin", ape_paterno: "Sistema", ape_materno: null },
+  };
+
+  const mappedReserva = {
+    id_reserva: 1,
+    id_espacio: 1,
+    id_persona_aprobador: 1,
+    fecha_reserva: new Date("2026-05-22T12:00:00.000Z"),
+    hora_inicio: "14:00",
+    hora_fin: "16:00",
+    tipo_reserva: "entrenamiento",
+    motivo: "Entrenamiento",
+    estado: "confirmada",
+    ruta_comprobante_pdf: null,
+    nombre_solicitante: "Juan Pérez",
+    ci: 12345678,
+    complemento: null,
+    correo_solicitante: null,
+    espacio_nombre: "Coliseo UCB",
+    aprobador_nombre: "Admin Sistema",
   };
 
   beforeEach(async () => {
@@ -50,8 +80,8 @@ describe("ReservasService", () => {
   // ========================
   describe("findAll", () => {
     it("debe retornar lista paginada de reservas", async () => {
-      mockPrisma.reserva.findMany.mockResolvedValue([reservaMock]);
-      mockPrisma.reserva.count.mockResolvedValue(1);
+      (mockPrisma.reservas as any).findMany.mockResolvedValue([reservaMock]);
+      (mockPrisma.reservas as any).count.mockResolvedValue(1);
 
       const result = await service.findAll();
 
@@ -59,31 +89,31 @@ describe("ReservasService", () => {
       expect(result.total).toBe(1);
       expect(result.page).toBe(1);
       expect(result.limit).toBe(50);
-      expect(mockPrisma.reserva.findMany).toHaveBeenCalledWith(
+      expect((mockPrisma.reservas as any).findMany).toHaveBeenCalledWith(
         expect.objectContaining({ skip: 0, take: 50 }),
       );
     });
 
     it("debe filtrar por espacioId", async () => {
-      mockPrisma.reserva.findMany.mockResolvedValue([]);
-      mockPrisma.reserva.count.mockResolvedValue(0);
+      (mockPrisma.reservas as any).findMany.mockResolvedValue([]);
+      (mockPrisma.reservas as any).count.mockResolvedValue(0);
 
       await service.findAll(1);
 
-      expect(mockPrisma.reserva.findMany).toHaveBeenCalledWith(
+      expect((mockPrisma.reservas as any).findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ espacio_id: 1 }),
+          where: expect.objectContaining({ id_espacio: 1 }),
         }),
       );
     });
 
     it("debe aplicar paginacion correctamente", async () => {
-      mockPrisma.reserva.findMany.mockResolvedValue([]);
-      mockPrisma.reserva.count.mockResolvedValue(0);
+      (mockPrisma.reservas as any).findMany.mockResolvedValue([]);
+      (mockPrisma.reservas as any).count.mockResolvedValue(0);
 
       await service.findAll(undefined, undefined, 2, 10);
 
-      expect(mockPrisma.reserva.findMany).toHaveBeenCalledWith(
+      expect((mockPrisma.reservas as any).findMany).toHaveBeenCalledWith(
         expect.objectContaining({ skip: 10, take: 10 }),
       );
     });
@@ -94,19 +124,19 @@ describe("ReservasService", () => {
   // ========================
   describe("findOne", () => {
     it("debe retornar una reserva por ID", async () => {
-      mockPrisma.reserva.findUnique.mockResolvedValue(reservaMock);
+      (mockPrisma.reservas as any).findUnique.mockResolvedValue(reservaMock);
 
       const result = await service.findOne(1);
 
-      expect(result.id).toBe(1);
-      expect(mockPrisma.reserva.findUnique).toHaveBeenCalledWith({
-        where: { id: 1 },
-        include: { espacio: true, disciplina: true },
+      expect(result.id_reserva).toBe(1);
+      expect((mockPrisma.reservas as any).findUnique).toHaveBeenCalledWith({
+        where: { id_reserva: 1 },
+        include: { espacios: true, personas: true },
       });
     });
 
     it("debe lanzar NotFoundException si la reserva no existe", async () => {
-      mockPrisma.reserva.findUnique.mockResolvedValue(null);
+      (mockPrisma.reservas as any).findUnique.mockResolvedValue(null);
 
       await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
     });
@@ -118,21 +148,23 @@ describe("ReservasService", () => {
   describe("create", () => {
     const dtoValido = {
       espacio_id: 1,
-      disciplina_id: 2,
-      fecha: "2026-05-22",
+      fecha_reserva: "2026-05-22",
       hora_inicio: "14:00",
       hora_fin: "16:00",
+      tipo_reserva: "entrenamiento",
       nombre_solicitante: "Juan Pérez",
-      carnet: "1234567",
+      ci: 12345678,
+      complemento: undefined,
       motivo: "Entrenamiento",
+      correo_solicitante: undefined,
+      id_persona_aprobador: 1,
     };
 
     it("debe crear una reserva exitosamente", async () => {
-      mockPrisma.espacio.findUnique.mockResolvedValue(espacioMock);
-      mockPrisma.disciplina.findUnique.mockResolvedValue(disciplinaMock);
-      mockPrisma.horarioDisponible.findFirst.mockResolvedValue(null);
-      mockTx.reserva.findFirst.mockResolvedValue(null);
-      mockTx.reserva.create.mockResolvedValue({ ...reservaMock, ...dtoValido });
+      (mockPrisma.espacios as any).findUnique.mockResolvedValue(espacioMock);
+      (mockPrisma.plantilla_horarios_fijos as any).findFirst.mockResolvedValue(null);
+      (mockTx.reservas as any).findFirst.mockResolvedValue(null);
+      (mockTx.reservas as any).create.mockResolvedValue(reservaMock);
 
       const result = await service.create(dtoValido);
 
@@ -153,22 +185,13 @@ describe("ReservasService", () => {
     });
 
     it("debe lanzar NotFoundException si el espacio no existe", async () => {
-      mockPrisma.espacio.findUnique.mockResolvedValue(null);
-      mockPrisma.disciplina.findUnique.mockResolvedValue(disciplinaMock);
-
-      await expect(service.create(dtoValido)).rejects.toThrow(NotFoundException);
-    });
-
-    it("debe lanzar NotFoundException si la disciplina no existe", async () => {
-      mockPrisma.espacio.findUnique.mockResolvedValue(espacioMock);
-      mockPrisma.disciplina.findUnique.mockResolvedValue(null);
+      (mockPrisma.espacios as any).findUnique.mockResolvedValue(null);
 
       await expect(service.create(dtoValido)).rejects.toThrow(NotFoundException);
     });
 
     it("debe lanzar ConflictException si el horario esta fuera del rango del espacio", async () => {
-      mockPrisma.espacio.findUnique.mockResolvedValue(espacioMock);
-      mockPrisma.disciplina.findUnique.mockResolvedValue(disciplinaMock);
+      (mockPrisma.espacios as any).findUnique.mockResolvedValue(espacioMock);
 
       await expect(
         service.create({ ...dtoValido, hora_inicio: "05:00", hora_fin: "06:00" }),
@@ -176,18 +199,16 @@ describe("ReservasService", () => {
     });
 
     it("debe lanzar ConflictException si coincide con horario de clase", async () => {
-      mockPrisma.espacio.findUnique.mockResolvedValue(espacioMock);
-      mockPrisma.disciplina.findUnique.mockResolvedValue(disciplinaMock);
-      mockPrisma.horarioDisponible.findFirst.mockResolvedValue({ id: 99 });
+      (mockPrisma.espacios as any).findUnique.mockResolvedValue(espacioMock);
+      (mockPrisma.plantilla_horarios_fijos as any).findFirst.mockResolvedValue({ id: 99 });
 
       await expect(service.create(dtoValido)).rejects.toThrow(ConflictException);
     });
 
     it("debe lanzar ConflictException si ya existe otra reserva en el mismo horario", async () => {
-      mockPrisma.espacio.findUnique.mockResolvedValue(espacioMock);
-      mockPrisma.disciplina.findUnique.mockResolvedValue(disciplinaMock);
-      mockPrisma.horarioDisponible.findFirst.mockResolvedValue(null);
-      mockTx.reserva.findFirst.mockResolvedValue({ id: 999 });
+      (mockPrisma.espacios as any).findUnique.mockResolvedValue(espacioMock);
+      (mockPrisma.plantilla_horarios_fijos as any).findFirst.mockResolvedValue(null);
+      (mockTx.reservas as any).findFirst.mockResolvedValue({ id_reserva: 999 });
 
       await expect(service.create(dtoValido)).rejects.toThrow(ConflictException);
     });
@@ -198,7 +219,7 @@ describe("ReservasService", () => {
   // ========================
   describe("update", () => {
     it("debe lanzar BadRequestException si duracion > 3h", async () => {
-      mockPrisma.reserva.findUnique.mockResolvedValue(reservaMock);
+      (mockPrisma.reservas as any).findUnique.mockResolvedValue(reservaMock);
 
       await expect(
         service.update(1, { hora_inicio: "14:00", hora_fin: "18:00" }),
@@ -206,16 +227,18 @@ describe("ReservasService", () => {
     });
 
     it("debe lanzar ConflictException si ya esta cancelada", async () => {
-      mockPrisma.reserva.findUnique.mockResolvedValue({ ...reservaMock, estado: "cancelada" });
-      mockTx.reserva.findUnique.mockResolvedValue({ ...reservaMock, estado: "cancelada" });
+      const canceladaMock = { ...reservaMock, estado: "cancelada" };
+      (mockPrisma.reservas as any).findUnique.mockResolvedValue(canceladaMock);
+      (mockTx.reservas as any).findUnique.mockResolvedValue(canceladaMock);
 
       await expect(service.update(1, { estado: "cancelada" })).rejects.toThrow(ConflictException);
     });
 
     it("debe cancelar reserva exitosamente", async () => {
-      mockPrisma.reserva.findUnique.mockResolvedValue(reservaMock);
-      mockTx.reserva.findUnique.mockResolvedValue(reservaMock);
-      mockTx.reserva.update.mockResolvedValue({ ...reservaMock, estado: "cancelada" });
+      (mockPrisma.reservas as any).findUnique.mockResolvedValue(reservaMock);
+      (mockTx.reservas as any).findUnique.mockResolvedValue(reservaMock);
+      const updatedMock = { ...reservaMock, estado: "cancelada" };
+      (mockTx.reservas as any).update.mockResolvedValue(updatedMock);
 
       const result = await service.update(1, { estado: "cancelada" });
 

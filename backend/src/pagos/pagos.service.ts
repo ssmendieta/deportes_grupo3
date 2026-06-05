@@ -4,9 +4,9 @@ import {
   NotFoundException,
   ConflictException,
 } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreatePagoDto } from "./dto/create-pago.dto";
+import { MESES_ACADEMICOS, MESES_NOMBRES } from "../common/constants/business.constants";
 
 @Injectable()
 export class PagosService {
@@ -14,57 +14,94 @@ export class PagosService {
 
   constructor(private prisma: PrismaService) {}
 
-  async findAll() {
-    return this.prisma.pago.findMany({
-      include: { concepto: true },
-      orderBy: { fecha_pago: "desc" },
-    });
+  async findAll(page = 1, limit = 20) {
+    const [pagos, total] = await Promise.all([
+      this.prisma.pagos.findMany({
+        include: { conceptos_pago: true },
+        orderBy: { fecha_pago: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.pagos.count(),
+    ]);
+    return {
+      data: pagos.map((p: any) => this.mapPago(p)),
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  private mapPago(p: any) {
+    return {
+      id: p.id_pago,
+      id_pago: p.id_pago,
+      id_persona_pago: p.id_persona_pago,
+      id_deportista_beneficiario: p.id_deportista_beneficiario,
+      id_concepto: p.id_concepto,
+      id_transaccion_caja: p.id_transaccion_caja,
+      monto_pagado: Number(p.monto_pagado),
+      monto: Number(p.monto_pagado),
+      fecha_pago: p.fecha_pago,
+      mes_correspondiente: p.mes_correspondiente,
+      gestion: p.gestion,
+      estado_factura: p.estado_factura,
+      estado: p.estado_factura,
+      concepto: p.conceptos_pago
+        ? { id: p.conceptos_pago.id_concepto, nombre: p.conceptos_pago.nombre }
+        : null,
+    };
   }
 
   async getConceptos(disciplina_id?: number) {
-    return this.prisma.conceptoPago.findMany({
-      where: {
-        activo: true,
-        ...(disciplina_id && { disciplina_id }),
-      },
-      include: { disciplina: true },
-      orderBy: { id: "asc" },
+    const where: any = { activo: true };
+    if (disciplina_id) where.id_disciplina = disciplina_id;
+
+    const data = await this.prisma.conceptos_pago.findMany({
+      where,
+      include: { disciplinas: true },
+      orderBy: { id_concepto: "asc" },
     });
+    return data.map((c: any) => ({
+      id: c.id_concepto,
+      nombre: c.nombre,
+      monto: Number(c.monto_actual),
+      activo: c.activo,
+      disciplina_id: c.id_disciplina,
+      disciplina_nombre: c.disciplinas?.nombre_disciplina ?? null,
+    }));
   }
 
-  async getPlanilla(disciplina_id: number, anio: number) {
-    const inscripciones = await this.prisma.inscripcion.findMany({
+  async getPlanilla(disciplina_id: number, gestion: number) {
+    const inscripciones = await this.prisma.inscripciones.findMany({
       where: {
-        disciplina_id,
+        id_disciplina: disciplina_id,
         estado: "activo",
-      },
-      include: {
-        deportista: true,
       },
     });
 
-    const deportistaIds = inscripciones.map((i) => i.deportista_id);
+    const deportistaIds = inscripciones.map((i: any) => i.id_deportista);
+
+    if (deportistaIds.length === 0) return [];
+
     const registros = await this.prisma.planillaPagosAcademia.findMany({
-      where: { deportista_id: { in: deportistaIds }, anio },
+      where: {
+        deportista_id: { in: deportistaIds },
+        gestion,
+      },
     });
 
     const registrosMap = new Map(
-      registros.map((r) => [r.deportista_id, r]),
+      registros.map((r: any) => [r.deportista_id, r]),
     );
 
-    const planilla = inscripciones.map((inscripcion) => {
-      const registro = registrosMap.get(inscripcion.deportista_id);
-
+    return inscripciones.map((inscripcion: any) => {
+      const registro = registrosMap.get(inscripcion.id_deportista);
       return {
-        deportista: {
-          id: inscripcion.deportista.id,
-          nombre_completo: inscripcion.deportista.nombre_completo,
-          ci: inscripcion.deportista.ci,
-          tipo: inscripcion.deportista.tipo,
-        },
+        deportista_id: inscripcion.id_deportista,
         planilla: registro ?? {
-          deportista_id: inscripcion.deportista_id,
-          anio,
+          deportista_id: inscripcion.id_deportista,
+          gestion,
           matricula_pagada: false,
           mes_1_pagado: false,
           mes_2_pagado: false,
@@ -80,80 +117,56 @@ export class PagosService {
         },
       };
     });
-
-    return planilla;
   }
 
-  async getMorosos(disciplina_id?: number, anio?: number) {
-    const anioConsulta = anio ?? new Date().getFullYear();
+  async getMorosos(disciplina_id?: number, gestion?: number) {
+    const gestionConsulta = gestion ?? new Date().getFullYear();
 
-    const where: Prisma.PlanillaPagosAcademiaWhereInput = {
-      anio: anioConsulta,
-      OR: [
-        { matricula_pagada: false },
-        { mes_1_pagado: false },
-        { mes_2_pagado: false },
-        { mes_3_pagado: false },
-        { mes_4_pagado: false },
-        { mes_5_pagado: false },
-        { mes_6_pagado: false },
-        { mes_7_pagado: false },
-        { mes_8_pagado: false },
-        { mes_9_pagado: false },
-      ],
-    };
-
-    const planillas = await this.prisma.planillaPagosAcademia.findMany({
-      where,
-      include: {
-        deportista: {
-          include: {
-            inscripciones: {
-              where: {
-                estado: "activo",
-                ...(disciplina_id && { disciplina_id }),
-              },
-              include: { disciplina: true },
-            },
-          },
-        },
+    let registros: any[] = await this.prisma.planillaPagosAcademia.findMany({
+      where: {
+        gestion: gestionConsulta,
+        OR: [
+          { matricula_pagada: false },
+          ...MESES_ACADEMICOS.map((m) => ({ [`mes_${m}_pagado`]: false })),
+        ],
       },
     });
 
-    const resultado = planillas
-      .filter((p) => p.deportista.inscripciones.length > 0)
-      .map((p) => {
-        const mesesPendientes = [
-          !p.mes_1_pagado && "Mar",
-          !p.mes_2_pagado && "Abr",
-          !p.mes_3_pagado && "May",
-          !p.mes_4_pagado && "Jun",
-          !p.mes_5_pagado && "Jul",
-          !p.mes_6_pagado && "Ago",
-          !p.mes_7_pagado && "Sep",
-          !p.mes_8_pagado && "Oct",
-          !p.mes_9_pagado && "Nov",
-        ].filter(Boolean);
+    let deportistaIdsFilter: number[] | null = null;
+    if (disciplina_id) {
+      const inscripciones = await this.prisma.inscripciones.findMany({
+        where: { id_disciplina: disciplina_id, estado: "activo" },
+      });
+      deportistaIdsFilter = inscripciones.map((i: any) => i.id_deportista);
+      registros = registros.filter((r: any) =>
+        deportistaIdsFilter!.includes(r.deportista_id),
+      );
+    }
 
-        return {
-          deportista_id: p.deportista_id,
-          nombre_completo: p.deportista.nombre_completo,
-          ci: p.deportista.ci,
-          disciplina: p.deportista.inscripciones[0]?.disciplina.nombre,
-          matricula_pendiente: !p.matricula_pagada,
-          meses_pendientes: mesesPendientes,
-          cantidad_meses_pendientes: mesesPendientes.length,
-          saldo_pendiente: Number(p.saldo_pendiente),
-        };
-      })
-      .sort((a, b) => b.saldo_pendiente - a.saldo_pendiente);
+    const resultado = registros.map((r: any) => {
+      const mesesPendientes = MESES_ACADEMICOS
+        .filter((m) => !r[`mes_${m}_pagado`])
+        .map((m) => MESES_NOMBRES[m].substring(0, 3).replace(/^(.)/, (_, c) => c.toUpperCase()));
 
-    return resultado;
+      return {
+        deportista_id: r.deportista_id,
+        nombre_completo: r.nombre_completo,
+        tipo_deportista: r.tipo_deportista,
+        matricula_pendiente: !r.matricula_pagada,
+        meses_pendientes: mesesPendientes,
+        cantidad_meses_pendientes: mesesPendientes.length,
+        saldo_pendiente: Number(r.saldo_pendiente),
+      };
+    });
+
+    return resultado.sort(
+      (a: any, b: any) => b.saldo_pendiente - a.saldo_pendiente,
+    );
   }
 
   async getPagosDeportista(deportista_id: number) {
-    const deportista = await this.prisma.deportista.findUnique({
-      where: { id: deportista_id },
+    const deportista = await this.prisma.deportistas.findUnique({
+      where: { id_deportista: deportista_id },
     });
 
     if (!deportista) {
@@ -162,159 +175,103 @@ export class PagosService {
       );
     }
 
-    return this.prisma.pago.findMany({
-      where: { deportista_id },
-      include: { concepto: true },
+    const pagos = await this.prisma.pagos.findMany({
+      where: { id_deportista_beneficiario: deportista_id },
+      include: { conceptos_pago: true },
       orderBy: { fecha_pago: "desc" },
     });
+
+    return pagos.map((p: any) => this.mapPago(p));
   }
 
-  async registrarPago(dto: CreatePagoDto, registrado_por?: number) {
-    const deportista = await this.prisma.deportista.findUnique({
-      where: { id: dto.deportista_id },
+  async registrarPago(dto: CreatePagoDto) {
+    const deportista = await this.prisma.deportistas.findUnique({
+      where: { id_deportista: dto.id_deportista_beneficiario },
     });
     if (!deportista) {
       throw new NotFoundException(
-        `Deportista con id ${dto.deportista_id} no encontrado`,
+        `Deportista con id ${dto.id_deportista_beneficiario} no encontrado`,
       );
     }
 
-    const concepto = await this.prisma.conceptoPago.findUnique({
-      where: { id: dto.concepto_id },
+    const concepto = await this.prisma.conceptos_pago.findUnique({
+      where: { id_concepto: dto.id_concepto },
     });
     if (!concepto) {
       throw new NotFoundException(
-        `Concepto de pago con id ${dto.concepto_id} no encontrado`,
+        `Concepto de pago con id ${dto.id_concepto} no encontrado`,
       );
     }
 
-    if (dto.mes) {
-      const pagoExistente = await this.prisma.pago.findFirst({
-        where: {
-          deportista_id: dto.deportista_id,
-          concepto_id: dto.concepto_id,
-          mes: dto.mes,
-          anio: dto.anio,
-          estado: "confirmado",
-        },
-      });
-      if (pagoExistente) {
-        throw new ConflictException(
-          `Ya existe un pago registrado para el mes ${dto.mes} del año ${dto.anio}`,
-        );
-      }
+    const persona = await this.prisma.personas.findUnique({
+      where: { id_persona: dto.id_persona_pago },
+    });
+    if (!persona) {
+      throw new NotFoundException(
+        `Persona con id ${dto.id_persona_pago} no encontrada`,
+      );
     }
 
-    this.logger.log(`Registrando pago: deportista #${dto.deportista_id}, concepto #${dto.concepto_id}, monto ${dto.monto}`);
+    const pagoExistente = await this.prisma.pagos.findFirst({
+      where: {
+        id_deportista_beneficiario: dto.id_deportista_beneficiario,
+        id_concepto: dto.id_concepto,
+        mes_correspondiente: dto.mes_correspondiente,
+        gestion: dto.gestion,
+        estado_factura: "Activa",
+      },
+    });
+    if (pagoExistente) {
+      throw new ConflictException(
+        `Ya existe un pago registrado para el mes ${dto.mes_correspondiente} de la gestión ${dto.gestion}`,
+      );
+    }
 
-    const resultado = await this.prisma.$transaction(async (tx) => {
-      const pago = await tx.pago.create({
-        data: {
-          deportista_id: dto.deportista_id,
-          concepto_id: dto.concepto_id,
-          monto: dto.monto,
-          mes: dto.mes,
-          anio: dto.anio,
-          fecha_pago: new Date(`${dto.fecha_pago}T12:00:00.000Z`),
-          comprobante: dto.comprobante,
-          observaciones: dto.observaciones,
-          origen: "manual",
-          estado: "confirmado",
-          registrado_por: registrado_por ?? 0,
-        },
-        include: { concepto: true },
-      });
+    this.logger.log(
+      `Registrando pago: deportista #${dto.id_deportista_beneficiario}, concepto #${dto.id_concepto}, monto ${dto.monto_pagado}`,
+    );
 
-      const campoPlanilla = this.obtenerCampoPlanilla(dto.mes);
-
-      if (campoPlanilla) {
-        await tx.planillaPagosAcademia.upsert({
-          where: {
-            deportista_id_anio: {
-              deportista_id: dto.deportista_id,
-              anio: dto.anio,
-            },
-          },
-          update: {
-            [campoPlanilla]: true,
-            total_pagado: { increment: dto.monto },
-            saldo_pendiente: { decrement: dto.monto },
-          },
-          create: {
-            deportista_id: dto.deportista_id,
-            anio: dto.anio,
-            [campoPlanilla]: true,
-            total_pagado: dto.monto,
-            saldo_pendiente: 0,
-          },
-        });
-      }
-
-      return pago;
+    const pago = await this.prisma.pagos.create({
+      data: {
+        id_persona_pago: dto.id_persona_pago,
+        id_deportista_beneficiario: dto.id_deportista_beneficiario,
+        id_concepto: dto.id_concepto,
+        id_transaccion_caja: dto.id_transaccion_caja,
+        monto_pagado: dto.monto_pagado,
+        fecha_pago: new Date(`${dto.fecha_pago}T12:00:00.000Z`),
+        mes_correspondiente: dto.mes_correspondiente,
+        gestion: dto.gestion,
+        estado_factura: "Activa",
+      },
+      include: { conceptos_pago: true },
     });
 
-    this.logger.log(`Pago registrado: #${resultado.id}`);
+    this.logger.log(`Pago registrado: #${pago.id_pago}`);
 
-    return resultado;
+    return this.mapPago(pago);
   }
 
   async anularPago(id: number) {
-    const pago = await this.prisma.pago.findUnique({
-      where: { id },
+    const pago = await this.prisma.pagos.findUnique({
+      where: { id_pago: id },
     });
 
     if (!pago) {
       throw new NotFoundException(`Pago con id ${id} no encontrado`);
     }
 
-    if (pago.estado === "anulado") {
+    if (pago.estado_factura === "Anulado") {
       throw new ConflictException(`El pago con id ${id} ya está anulado`);
     }
 
-    const resultado = await this.prisma.$transaction(async (tx) => {
-      const pagoAnulado = await tx.pago.update({
-        where: { id },
-        data: { estado: "anulado" },
-        include: { concepto: true },
-      });
-
-      const campoPlanilla = this.obtenerCampoPlanilla(pago.mes ?? undefined);
-
-      if (campoPlanilla) {
-        await tx.planillaPagosAcademia.updateMany({
-          where: {
-            deportista_id: pago.deportista_id,
-            anio: pago.anio ?? new Date().getFullYear(),
-          },
-          data: {
-            [campoPlanilla]: false,
-            total_pagado: { decrement: Number(pago.monto) },
-            saldo_pendiente: { increment: Number(pago.monto) },
-          },
-        });
-      }
-
-      return pagoAnulado;
+    const pagoAnulado = await this.prisma.pagos.update({
+      where: { id_pago: id },
+      data: { estado_factura: "Anulado" },
+      include: { conceptos_pago: true },
     });
 
     this.logger.log(`Pago anulado: #${id}`);
 
-    return resultado;
-  }
-
-  private obtenerCampoPlanilla(mes?: number): string | null {
-    const campos: Record<number, string> = {
-      1: "mes_1_pagado",
-      2: "mes_2_pagado",
-      3: "mes_3_pagado",
-      4: "mes_4_pagado",
-      5: "mes_5_pagado",
-      6: "mes_6_pagado",
-      7: "mes_7_pagado",
-      8: "mes_8_pagado",
-      9: "mes_9_pagado",
-    };
-    if (!mes) return "matricula_pagada";
-    return campos[mes] ?? null;
+    return this.mapPago(pagoAnulado);
   }
 }

@@ -59,16 +59,14 @@ export class ComprobanteReservaBuilder {
     this.doc.font('Helvetica-Bold').text('DATOS DEL SOLICITANTE:');
     this.doc.font('Helvetica')
       .text(`Nombre: ${reserva.nombre_solicitante}`)
-      .text(`C.I.: ${reserva.carnet}`)
+      .text(`C.I.: ${reserva.ci}${reserva.complemento ? ' ' + reserva.complemento : ''}`)
       .moveDown();
 
     // Detalles del Espacio
     this.doc.font('Helvetica-Bold').text('DETALLES DE LA RESERVA:');
     this.doc.font('Helvetica')
-      .text(`Espacio: ${reserva.espacio.nombre}`)
-      .text(`Ubicación: ${reserva.espacio.ubicacion}`)
-      .text(`Disciplina: ${reserva.disciplina.nombre}`)
-      .text(`Fecha: ${reserva.fecha.toLocaleDateString("es-BO")}`)
+      .text(`Espacio: ${reserva.espacio_nombre}`)
+      .text(`Fecha: ${new Date(reserva.fecha_reserva).toLocaleDateString("es-BO")}`)
       .text(`Horario: ${reserva.hora_inicio} - ${reserva.hora_fin}`)
       .moveDown();
 

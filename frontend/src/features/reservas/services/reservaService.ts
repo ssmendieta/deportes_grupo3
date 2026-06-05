@@ -34,8 +34,6 @@ const espaciosFallback: Espacio[] = [
   {
     id: 1,
     nombre: "Coliseo Polideportivo",
-    ubicacion: "UCB",
-    capacidad: 40,
     horario_apertura: "14:00",
     horario_cierre: "18:00",
     activo: true,
@@ -43,8 +41,6 @@ const espaciosFallback: Espacio[] = [
   {
     id: 2,
     nombre: "Cancha de Arquitectura",
-    ubicacion: "Arquitectura",
-    capacidad: 20,
     horario_apertura: "14:00",
     horario_cierre: "18:00",
     activo: true,
@@ -52,9 +48,9 @@ const espaciosFallback: Espacio[] = [
 ];
 
 const disciplinasFallback: DisciplinaBasica[] = [
-  { id: 1, nombre: "Voleibol", categorias: "Mayores, Sub-17", mensualidad: 130, activo: true },
-  { id: 2, nombre: "Básquetbol", categorias: "Mayores", mensualidad: 150, activo: true },
-  { id: 3, nombre: "Fútbol", categorias: "Juvenil", mensualidad: 100, activo: true },
+  { id: 1, nombre: "Voleibol", activo: true },
+  { id: 2, nombre: "Básquetbol", activo: true },
+  { id: 3, nombre: "Fútbol", activo: true },
 ];
 
 const reservasFallback: Reserva[] = [
@@ -62,15 +58,16 @@ const reservasFallback: Reserva[] = [
     id: 1,
     espacio_id: 1,
     nombre_solicitante: "Juan Pérez",
-    carnet: "7654321",
-    fecha: "2026-04-25",
+    ci: 7654321,
+    complemento: null,
+    correo_solicitante: null,
+    fecha_reserva: "2026-04-25",
     hora_inicio: "14:00",
     hora_fin: "15:30",
-    disciplina_id: 3,
+    tipo_reserva: "entrenamiento",
     motivo: "Práctica deportiva",
     estado: "confirmada",
     espacio: espaciosFallback[0],
-    disciplina: disciplinasFallback[2],
   },
 ];
 
@@ -86,16 +83,6 @@ function fechaParaAPI(semanaBase: Date, indiceDia: number): string {
 }
 
 export { fechaParaAPI };
-
-/*function buildReservasQuery(params?: { espacioId?: number; fecha?: string }) {
-  const query = new URLSearchParams();
-
-  if (params?.espacioId) query.append("espacioId", String(params.espacioId));
-  if (params?.fecha) query.append("fecha", params.fecha);
-
-  const queryString = query.toString();
-  return queryString ? `/api/reservas?${queryString}` : "/api/reservas";
-}*/
 
 export async function getEspacios(): Promise<Espacio[]> {
   try {
@@ -183,13 +170,13 @@ export async function getReservas(params?: {
       total: number;
       page: number;
       limit: number;
-    }>(endpoint, { requiresAdmin: true });
+    }>(endpoint, { requiresAuth: true });
     return response.data;
   } catch (error) {
     console.warn("Usando reservas fallback", error);
     return reservasFallback.filter((reserva) => {
       const coincideFecha = params?.fecha
-        ? reserva.fecha === params.fecha
+        ? reserva.fecha_reserva === params.fecha
         : true;
       const coincideEspacio = params?.espacioId
         ? reserva.espacio_id === params.espacioId
@@ -203,7 +190,7 @@ export async function crearReserva(datos: CreateReservaDto): Promise<Reserva> {
   try {
     return await apiRequest<Reserva>("/api/reservas", {
       method: "POST",
-      requiresAdmin: true,
+      requiresAuth: true,
       body: JSON.stringify(datos),
     });
   } catch (error) {
@@ -218,9 +205,17 @@ export async function crearReserva(datos: CreateReservaDto): Promise<Reserva> {
     return {
       id: Date.now(),
       estado: "confirmada",
-      ...datos,
+      espacio_id: datos.espacio_id,
+      nombre_solicitante: datos.nombre_solicitante,
+      ci: datos.ci,
+      complemento: datos.complemento,
+      correo_solicitante: datos.correo_solicitante,
+      fecha_reserva: datos.fecha_reserva,
+      hora_inicio: datos.hora_inicio,
+      hora_fin: datos.hora_fin,
+      tipo_reserva: datos.tipo_reserva,
+      motivo: datos.motivo,
       espacio: espaciosFallback.find((e) => e.id === datos.espacio_id),
-      disciplina: disciplinasFallback.find((d) => d.id === datos.disciplina_id),
     };
   }
 }
@@ -229,7 +224,7 @@ export async function cancelarReserva(id: number): Promise<Reserva> {
   try {
     return await apiRequest<Reserva>(`/api/reservas/${id}`, {
       method: "PATCH",
-      requiresAdmin: true,
+      requiresAuth: true,
       body: JSON.stringify({ estado: "cancelada" }),
     });
   } catch (error) {
@@ -245,7 +240,7 @@ export async function habilitarReserva(id: number): Promise<Reserva> {
   try {
     return await apiRequest<Reserva>(`/api/reservas/${id}`, {
       method: "PATCH",
-      requiresAdmin: true,
+      requiresAuth: true,
       body: JSON.stringify({ estado: "confirmada" }),
     });
   } catch (error) {
@@ -264,7 +259,7 @@ export async function editarReserva(
   try {
     return await apiRequest<Reserva>(`/api/reservas/${id}`, {
       method: "PATCH",
-      requiresAdmin: true,
+      requiresAuth: true,
       body: JSON.stringify(datos),
     });
   } catch (error) {

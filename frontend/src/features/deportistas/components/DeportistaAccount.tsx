@@ -27,7 +27,6 @@ function DeportistaAccount({ deportista, onVolver }: Props) {
   const inscripcionActiva = deportista.inscripciones?.find((i) => i.activo);
   const disciplinaNombre = inscripcionActiva?.disciplina?.nombre ?? "—";
   const categoriaNombre = inscripcionActiva?.categoria ?? "—";
-  const nivelNombre = inscripcionActiva?.nivel ?? "—";
 
   const estado: EstadoCuenta = deportista.estadoCuenta ?? "pendiente";
 
@@ -74,8 +73,8 @@ function DeportistaAccount({ deportista, onVolver }: Props) {
             <strong>{deportista.ci}</strong>
           </div>
           <div>
-            <span>Teléfono</span>
-            <strong>{deportista.telefono || "Sin registro"}</strong>
+            <span>Celular</span>
+            <strong>{deportista.celular || "Sin registro"}</strong>
           </div>
           <div>
             <span>Correo</span>
@@ -92,22 +91,12 @@ function DeportistaAccount({ deportista, onVolver }: Props) {
             <strong>{deportista.tipo}</strong>
           </div>
           <div>
-            <span>Nivel</span>
-            <strong>{nivelNombre}</strong>
-          </div>
-          <div>
-            <span>Matrícula</span>
-            <strong>
-              {deportista.matriculaActiva ? "Activa" : "No activa"}
-            </strong>
+            <span>Talla ropa</span>
+            <strong>{deportista.tallaRopa || "—"}</strong>
           </div>
           <div>
             <span>Deuda actual</span>
             <strong>Bs. {deportista.deuda ?? 0}</strong>
-          </div>
-          <div className="full">
-            <span>Dirección</span>
-            <strong>{deportista.direccion || "Sin registro"}</strong>
           </div>
         </div>
       </section>

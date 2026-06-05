@@ -1,43 +1,40 @@
 export type EstadoCuenta = "al_dia" | "pendiente" | "no_aplica";
 
-export type TipoDeportista = "estudiante_ucb" | "academia" | "competitivo";
+export type TipoDeportista = "estudiante_ucb" | "academia" | "competitivo" | "exonerado";
 
 export type DisciplinaRaw = {
   id: number;
   nombre: string;
-  descripcion?: string;
   activo: boolean;
-  orden?: number;
 };
 
 export type InscripcionRaw = {
   id: number;
   deportista_id: number;
   disciplina_id: number;
-  categoria?: string;
-  nivel?: string;
+  categoria?: string | null;
   fecha_inscripcion: string;
-  fecha_baja?: string | null;
-  motivo_baja?: string | null;
   estado: "activo" | "inactivo";
-  disciplina?: DisciplinaRaw;
+  disciplina?: DisciplinaRaw | null;
 };
 
 export type DeportistaRaw = {
   id: number;
-  tipo: TipoDeportista;
-  ci: string;
-  nombre_completo: string;
+  tipo: string;
+  nombres: string | null;
+  ape_paterno: string | null;
+  ape_materno: string | null;
+  ci: number;
+  complemento?: string | null;
+  celular: string;
   fecha_nacimiento?: string | null;
-  genero: string;
-  telefono: string;
-  email: string;
-  direccion?: string | null;
+  email?: string | null;
+  talla_ropa?: string | null;
+  id_carrera?: number | null;
   carrera?: string | null;
   semestre?: number | null;
-  matricula_activa: boolean;
-  talla_camiseta?: string;
-  fecha_ingreso: string;
+  colegio_instituto?: string | null;
+  curso?: string | null;
   activo: boolean;
   inscripciones?: InscripcionRaw[];
   estado_cuenta?: EstadoCuenta;
@@ -54,7 +51,6 @@ export type DeportistasRawResponse = {
 export type Disciplina = {
   id: number;
   nombre: string;
-  descripcion?: string;
   activo: boolean;
 };
 
@@ -62,27 +58,30 @@ export type Inscripcion = {
   id: number;
   deportistaId: number;
   disciplinaId: number;
-  categoria?: string;
-  nivel?: string;
+  categoria?: string | null;
   fechaInscripcion: string;
   activo: boolean;
-  disciplina?: Disciplina;
+  disciplina?: Disciplina | null;
 };
 
 export type Deportista = {
   id: number;
   tipo: TipoDeportista;
-  ci: string;
   nombreCompleto: string;
+  nombres?: string | null;
+  apePaterno?: string | null;
+  apeMaterno?: string | null;
+  ci: string;
+  complemento?: string | null;
+  celular: string;
   fechaNacimiento?: string | null;
-  genero: string;
-  telefono: string;
-  email: string;
-  direccion?: string | null;
+  email?: string | null;
+  tallaRopa?: string | null;
+  idCarrera?: number | null;
   carrera?: string | null;
   semestre?: number | null;
-  matriculaActiva: boolean;
-  tallaCamiseta?: string;
+  colegioInstituto?: string | null;
+  curso?: string | null;
   activo: boolean;
   inscripciones?: Inscripcion[];
   estadoCuenta?: EstadoCuenta;
@@ -90,22 +89,24 @@ export type Deportista = {
 };
 
 export type DeportistaFormData = {
-  nombreCompleto: string;
+  nombres: string;
+  ape_paterno: string;
+  ape_materno: string;
   ci: string;
+  complemento?: string;
+  celular: string;
   fechaNacimiento?: string;
-  genero: string;
-  telefono: string;
-  email: string;
-  direccion?: string;
+  email?: string;
+  tipo: TipoDeportista;
+  tallaRopa?: string;
+  idCarrera?: number;
   carrera?: string;
   semestre?: string;
-  tipo: TipoDeportista;
-  matriculaActiva?: boolean;
-  tallaCamiseta?: string;
+  colegioInstituto?: string;
+  curso?: string;
   activo: boolean;
   disciplinaId?: number;
   categoria?: string;
-  nivel?: string;
 };
 
 export type PagoRaw = {

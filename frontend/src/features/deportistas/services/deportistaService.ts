@@ -16,7 +16,6 @@ function mapInscripcion(raw: InscripcionRaw): Inscripcion {
     deportistaId: raw.deportista_id,
     disciplinaId: raw.disciplina_id,
     categoria: raw.categoria,
-    nivel: raw.nivel,
     fechaInscripcion: raw.fecha_inscripcion,
     activo: raw.estado === "activo",
     disciplina: raw.disciplina,
@@ -26,18 +25,22 @@ function mapInscripcion(raw: InscripcionRaw): Inscripcion {
 function mapDeportista(raw: DeportistaRaw): Deportista {
   return {
     id: raw.id,
-    tipo: raw.tipo,
-    ci: raw.ci,
-    nombreCompleto: raw.nombre_completo,
+    tipo: raw.tipo as Deportista["tipo"],
+    nombreCompleto: `${raw.nombres ?? ""} ${raw.ape_paterno ?? ""} ${raw.ape_materno ?? ""}`.trim(),
+    nombres: raw.nombres,
+    apePaterno: raw.ape_paterno,
+    apeMaterno: raw.ape_materno,
+    ci: String(raw.ci),
+    complemento: raw.complemento,
+    celular: raw.celular,
     fechaNacimiento: raw.fecha_nacimiento,
-    genero: raw.genero,
-    telefono: raw.telefono,
     email: raw.email,
-    direccion: raw.direccion,
+    tallaRopa: raw.talla_ropa,
+    idCarrera: raw.id_carrera,
     carrera: raw.carrera,
     semestre: raw.semestre,
-    matriculaActiva: raw.matricula_activa,
-    tallaCamiseta: raw.talla_camiseta,
+    colegioInstituto: raw.colegio_instituto,
+    curso: raw.curso,
     activo: raw.activo,
     inscripciones: raw.inscripciones?.map(mapInscripcion),
     estadoCuenta: raw.estado_cuenta,
@@ -63,7 +66,7 @@ export async function listarDeportistas(params?: {
   const qs = query.toString();
   const res = await apiRequest<DeportistasRawResponse | DeportistaRaw[]>(
     `/api/deportistas${qs ? `?${qs}` : ""}`,
-    { requiresAdmin: true },
+    { requiresAuth: true },
   );
 
   const rawList = Array.isArray(res) ? res : res.data;
@@ -74,7 +77,7 @@ export async function buscarPorCi(ci: string): Promise<Deportista | null> {
   try {
     const raw = await apiRequest<DeportistaRaw>(
       `/api/deportistas/buscar?ci=${encodeURIComponent(ci)}`,
-      { requiresAdmin: true },
+      { requiresAuth: true },
     );
     return mapDeportista(raw);
   } catch {
@@ -84,7 +87,7 @@ export async function buscarPorCi(ci: string): Promise<Deportista | null> {
 
 export async function obtenerDeportista(id: number): Promise<Deportista> {
   const raw = await apiRequest<DeportistaRaw>(`/api/deportistas/${id}`, {
-    requiresAdmin: true,
+    requiresAuth: true,
   });
   return mapDeportista(raw);
 }
@@ -92,38 +95,30 @@ export async function obtenerDeportista(id: number): Promise<Deportista> {
 export async function crearDeportista(
   data: DeportistaFormData,
 ): Promise<Deportista> {
-  const {
-    disciplinaId,
-    categoria,
-    nivel,
-    semestre,
-    nombreCompleto,
-    tallaCamiseta,
-    fechaNacimiento,
-    matriculaActiva,
-    ...rest
-  } = data;
-
   const raw = await apiRequest<DeportistaRaw>("/api/deportistas", {
     method: "POST",
     body: JSON.stringify({
-      ...rest,
-      nombre_completo: nombreCompleto,
-      fecha_nacimiento: fechaNacimiento,
-      talla_camiseta: tallaCamiseta,
-      matricula_activa: matriculaActiva ?? false,
-      semestre: semestre ? Number(semestre) : undefined,
+      nombres: data.nombres.trim(),
+      ape_paterno: data.ape_paterno.trim(),
+      ape_materno: data.ape_materno.trim(),
+      ci: parseInt(data.ci),
+      complemento: data.complemento?.trim() || undefined,
+      celular: data.celular.trim(),
+      email: data.email?.trim() || undefined,
+      fecha_nacimiento: data.fechaNacimiento || undefined,
+      tipo_deportista: data.tipo,
+      talla_ropa: data.tallaRopa || undefined,
+      disciplinaId: data.disciplinaId,
+      id_categoria: data.categoria ? 1 : undefined,
+      semestre: data.semestre ? Number(data.semestre) : undefined,
+      id_carrera: data.idCarrera,
+      colegio_instituto: data.colegioInstituto?.trim() || undefined,
+      curso: data.curso?.trim() || undefined,
     }),
-    requiresAdmin: true,
+    requiresAuth: true,
   });
 
-  const nuevo = mapDeportista(raw);
-
-  if (disciplinaId) {
-    await inscribirDeportista(nuevo.id, { disciplinaId, categoria, nivel });
-  }
-
-  return nuevo;
+  return mapDeportista(raw);
 }
 
 export async function actualizarDeportista(
@@ -131,31 +126,31 @@ export async function actualizarDeportista(
   data: Partial<DeportistaFormData>,
 ): Promise<Deportista> {
   const body: Record<string, unknown> = {};
-  if (data.nombreCompleto !== undefined)
-    body.nombre_completo = data.nombreCompleto;
-  if (data.ci !== undefined) body.ci = data.ci;
-  if (data.fechaNacimiento !== undefined)
-    body.fecha_nacimiento = data.fechaNacimiento;
-  if (data.genero !== undefined) body.genero = data.genero;
-  if (data.telefono !== undefined) body.telefono = data.telefono;
-  if (data.email !== undefined) body.email = data.email;
-  if (data.direccion !== undefined) body.direccion = data.direccion;
-  if (data.carrera !== undefined) body.carrera = data.carrera;
+  if (data.nombres !== undefined) body.nombres = data.nombres.trim();
+  if (data.ape_paterno !== undefined) body.ape_paterno = data.ape_paterno.trim();
+  if (data.ape_materno !== undefined) body.ape_materno = data.ape_materno.trim();
+  if (data.ci !== undefined) body.ci = parseInt(data.ci);
+  if (data.complemento !== undefined) body.complemento = data.complemento.trim() || null;
+  if (data.celular !== undefined) body.celular = data.celular.trim();
+  if (data.email !== undefined) body.email = data.email.trim() || null;
+  if (data.fechaNacimiento !== undefined) body.fecha_nacimiento = data.fechaNacimiento || null;
+  if (data.tipo !== undefined) body.tipo_deportista = data.tipo;
+  if (data.tallaRopa !== undefined) body.talla_ropa = data.tallaRopa || null;
   if (data.semestre !== undefined)
     body.semestre = data.semestre ? Number(data.semestre) : undefined;
-  if (data.tallaCamiseta !== undefined)
-    body.talla_camiseta = data.tallaCamiseta;
-  if (data.matriculaActiva !== undefined)
-    body.matricula_activa = data.matriculaActiva;
+  if (data.idCarrera !== undefined) body.id_carrera = data.idCarrera;
+  if (data.colegioInstituto !== undefined)
+    body.colegio_instituto = data.colegioInstituto.trim() || null;
+  if (data.curso !== undefined)
+    body.curso = data.curso.trim() || null;
   if (data.activo !== undefined) body.activo = data.activo;
   if (data.disciplinaId !== undefined) body.disciplinaId = data.disciplinaId;
   if (data.categoria !== undefined) body.categoria = data.categoria;
-  if (data.nivel !== undefined) body.nivel = data.nivel;
 
   const raw = await apiRequest<DeportistaRaw>(`/api/deportistas/${id}`, {
     method: "PATCH",
     body: JSON.stringify(body),
-    requiresAdmin: true,
+    requiresAuth: true,
   });
   return mapDeportista(raw);
 }
@@ -167,14 +162,14 @@ export async function cambiarEstadoDeportista(
   const raw = await apiRequest<DeportistaRaw>(`/api/deportistas/${id}/estado`, {
     method: "PATCH",
     body: JSON.stringify({ activo }),
-    requiresAdmin: true,
+    requiresAuth: true,
   });
   return mapDeportista(raw);
 }
 
 export async function inscribirDeportista(
   id: number,
-  body: { disciplinaId: number; categoria?: string; nivel?: string },
+  body: { disciplinaId: number; id_categoria?: number },
 ): Promise<Inscripcion> {
   const raw = await apiRequest<InscripcionRaw>(
     `/api/deportistas/${id}/inscripciones`,
@@ -182,10 +177,9 @@ export async function inscribirDeportista(
       method: "POST",
       body: JSON.stringify({
         disciplinaId: body.disciplinaId,
-        categoria: body.categoria,
-        nivel: body.nivel,
+        id_categoria: body.id_categoria ?? 1,
       }),
-      requiresAdmin: true,
+      requiresAuth: true,
     },
   );
   return mapInscripcion(raw);
@@ -194,7 +188,7 @@ export async function inscribirDeportista(
 export async function obtenerInscripciones(id: number): Promise<Inscripcion[]> {
   const rawList = await apiRequest<InscripcionRaw[]>(
     `/api/deportistas/${id}/inscripciones`,
-    { requiresAdmin: true },
+    { requiresAuth: true },
   );
   return rawList.map(mapInscripcion);
 }
@@ -232,7 +226,7 @@ export async function obtenerPagosDeportista(
   id: number,
 ): Promise<PagoHistorial[]> {
   const rawList = await apiRequest<PagoRaw[]>(`/api/pagos/deportista/${id}`, {
-    requiresAdmin: true,
+    requiresAuth: true,
   });
   return rawList.map(mapPago);
 }

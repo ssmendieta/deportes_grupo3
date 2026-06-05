@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, type JSX } from "react";
 import { NavLink, Link } from "react-router-dom";
 import { getUserFromToken } from "../../features/auth/authStore";
+import { getVisibleRoutes } from "../../config/routes.config";
 
 const IconHamburger = () => (
   <svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="24" height="24">
@@ -40,21 +41,12 @@ const icons: Record<string, () => JSX.Element> = {
       <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0016.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.023 6.023 0 01-2.77.896m0 0a6.023 6.023 0 01-2.77-.896" />
     </svg>
   ),
+  reservas: () => (
+    <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="20" height="20">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-1.5h6M12 15v-3m0 0h.008v.008H12V15z" />
+    </svg>
+  ),
 };
-
-type NavItem = {
-  path: string;
-  label: string;
-  iconKey: string;
-};
-
-const navItems: NavItem[] = [
-  { path: "/dashboard", label: "Dashboard", iconKey: "dashboard" },
-  { path: "/calendario", label: "Calendario", iconKey: "calendario" },
-  { path: "/deportistas", label: "Deportistas", iconKey: "deportistas" },
-  { path: "/pagos", label: "Pagos", iconKey: "pagos" },
-  { path: "/disciplinas", label: "Disciplinas", iconKey: "disciplinas" },
-];
 
 interface SidebarProps {
   onLogout: () => void;
@@ -63,6 +55,7 @@ interface SidebarProps {
 function Sidebar({ onLogout }: SidebarProps) {
   const [open, setOpen] = useState(false);
   const user = getUserFromToken();
+  const visibleRoutes = getVisibleRoutes(user?.rol);
 
   return (
     <>
@@ -81,7 +74,7 @@ function Sidebar({ onLogout }: SidebarProps) {
         </div>
 
         <nav className="sidebar-nav">
-          {navItems.map((item) => (
+          {visibleRoutes.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
@@ -89,7 +82,7 @@ function Sidebar({ onLogout }: SidebarProps) {
               className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
               onClick={() => setOpen(false)}
             >
-              <span className="sidebar-link-icon">{icons[item.iconKey]()}</span>
+              <span className="sidebar-link-icon">{icons[item.iconKey]?.()}</span>
               {item.label}
             </NavLink>
           ))}

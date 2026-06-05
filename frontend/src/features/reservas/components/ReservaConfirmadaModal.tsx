@@ -85,7 +85,7 @@ function ReservaConfirmadaModal({ reserva, abierto, onCerrar }: Props) {
 
           <div>
             <span>Fecha</span>
-            <strong>{formatFechaBO(reserva.fecha)}</strong>
+            <strong>{formatFechaBO(reserva.fecha_reserva)}</strong>
           </div>
 
           <div>

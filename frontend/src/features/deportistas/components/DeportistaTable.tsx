@@ -21,6 +21,14 @@ const estadoTone: Record<EstadoCuenta, "success" | "warning" | "info"> = {
   no_aplica: "info",
 };
 
+function nombreCompleto(d: Deportista) {
+  return `${d.nombres ?? ""} ${d.apePaterno ?? ""} ${d.apeMaterno ?? ""}`.trim();
+}
+
+function ciCompleto(d: Deportista) {
+  return d.complemento ? `${d.ci} ${d.complemento}` : d.ci;
+}
+
 function DeportistaTable({
   deportistas,
   cargando,
@@ -72,10 +80,10 @@ function DeportistaTable({
             return (
               <tr key={item.id}>
                 <td>
-                  <strong>{item.nombreCompleto}</strong>
+                  <strong>{nombreCompleto(item)}</strong>
                   {item.carrera && <span>{item.carrera}</span>}
                 </td>
-                <td>{item.ci}</td>
+                <td>{ciCompleto(item)}</td>
                 <td>{disciplinaNombre}</td>
                 <td style={{ textTransform: "capitalize" }}>{mesActual}</td>
                 <td>

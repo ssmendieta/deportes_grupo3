@@ -1,8 +1,6 @@
 export type Espacio = {
   id: number;
   nombre: string;
-  ubicacion?: string;
-  capacidad?: number;
   horario_apertura: string;
   horario_cierre: string;
   activo: boolean;
@@ -11,11 +9,7 @@ export type Espacio = {
 export type DisciplinaBasica = {
   id: number;
   nombre: string;
-  descripcion?: string | null;
-  categorias?: string | null;
-  mensualidad?: number | null;
   activo?: boolean;
-  orden?: number;
 };
 
 export type BloqueOcupado = {
@@ -39,49 +33,54 @@ export type Reserva = {
   id: number;
   espacio_id: number;
   nombre_solicitante: string;
-  carnet: string;
-  fecha: string;
+  ci: number;
+  complemento?: string | null;
+  correo_solicitante?: string | null;
+  fecha_reserva: string;
   hora_inicio: string;
   hora_fin: string;
-  disciplina_id: number;
+  tipo_reserva: string;
   motivo: string;
   estado: string;
-  espacio?: Espacio;
-  disciplina?: DisciplinaBasica;
+  espacio?: Espacio | null;
 };
 
 export type ReservaFormData = {
   nombre_solicitante: string;
-  carnet: string;
-  email_solicitante: string;
+  ci: string;
+  complemento?: string;
+  correo_solicitante?: string;
   motivo: string;
   espacio_id: string;
-  disciplina_id: string;
-  fecha: string;
+  fecha_reserva: string;
   hora_inicio: string;
   hora_fin: string;
+  tipo_reserva: string;
 };
 
 export type CreateReservaDto = {
   espacio_id: number;
-  fecha: string;
+  fecha_reserva: string;
   hora_inicio: string;
   hora_fin: string;
-  disciplina_id: number;
+  tipo_reserva: string;
   motivo: string;
   nombre_solicitante: string;
-  carnet: string;
-  email_solicitante?: string;
+  ci: number;
+  complemento?: string;
+  correo_solicitante?: string;
 };
 
 export type UpdateReservaDto = {
   estado?: "confirmada" | "cancelada";
-  fecha?: string;
+  fecha_reserva?: string;
   hora_inicio?: string;
   hora_fin?: string;
   nombre_solicitante?: string;
-  carnet?: string;
+  ci?: number;
+  complemento?: string;
+  correo_solicitante?: string;
   motivo?: string;
-  disciplina_id?: number;
+  tipo_reserva?: string;
   espacio_id?: number;
 };

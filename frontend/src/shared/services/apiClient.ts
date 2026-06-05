@@ -3,7 +3,7 @@ export const API_URL = viteApiUrl === "__RELATIVE__" ? "" : (viteApiUrl || "http
 const TOKEN_KEY = "ucb_auth_token";
 
 type RequestOptions = RequestInit & {
-  requiresAdmin?: boolean;
+  requiresAuth?: boolean;
 };
 
 function tokenExpirado(): boolean {
@@ -17,9 +17,9 @@ function tokenExpirado(): boolean {
   }
 }
 
-function authHeaders(requiresAdmin: boolean): Record<string, string> {
+function authHeaders(requiresAuth: boolean): Record<string, string> {
   const base: Record<string, string> = { "Content-Type": "application/json" };
-  if (!requiresAdmin) return base;
+  if (!requiresAuth) return base;
   const token = sessionStorage.getItem(TOKEN_KEY);
   if (token) base["Authorization"] = `Bearer ${token}`;
   return base;
@@ -34,9 +34,9 @@ export async function apiRequest<T>(
   endpoint: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { requiresAdmin = false, headers, ...rest } = options;
+  const { requiresAuth = false, headers, ...rest } = options;
 
-  if (requiresAdmin && tokenExpirado()) {
+  if (requiresAuth && tokenExpirado()) {
     redirectLogin();
     throw new Error("Sesi\u00f3n expirada");
   }
@@ -44,7 +44,7 @@ export async function apiRequest<T>(
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...rest,
     headers: {
-      ...authHeaders(requiresAdmin),
+      ...authHeaders(requiresAuth),
       ...headers,
     },
   });
@@ -56,6 +56,9 @@ export async function apiRequest<T>(
     if (response.status === 401) {
       redirectLogin();
       throw new Error("Sesi\u00f3n expirada");
+    }
+    if (response.status === 403) {
+      throw new Error(data?.message || data?.error || "No tienes permisos para realizar esta acci\u00f3n");
     }
     const message =
       data?.message || data?.error || "Error al consultar el servidor";
