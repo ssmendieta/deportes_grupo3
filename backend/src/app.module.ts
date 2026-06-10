@@ -11,7 +11,7 @@ import { HorariosModule } from "./horarios/horarios.module";
 import { DisciplinasModule } from "./disciplinas/disciplinas.module";
 import { ReservasModule } from "./reservas/reserva.module";
 import { PagosModule } from "./pagos/pagos.module";
-import { AuthMiddleware } from "./middleware/auth.middleware";
+import { AuthMiddleware } from "./auth/middleware/auth.middleware";
 import { AuthModule } from "./auth/auth.module";
 import { DeportistasModule } from './deportistas/deportistas.module';
 import { MailModule } from './mail/mail.module';
