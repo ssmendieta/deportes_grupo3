@@ -79,8 +79,8 @@ export class DisciplinasController {
     const disciplinas = await this.disciplinasService.findAll(activo);
 
     const datosFormateados = disciplinas.map((d: any) => ({
-      id: d.id_disciplina,
-      nombre: d.nombre_disciplina,
+      id: d.id,
+      nombre: d.nombre,
       estado: d.activo ? "Activa" : "Inactiva",
     }));
 

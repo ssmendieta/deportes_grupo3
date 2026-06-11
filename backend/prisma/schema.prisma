@@ -354,7 +354,7 @@ model registros_federacion {
 model reservas {
   id_reserva           Int      @id(map: "reservas_pk") @default(autoincrement())
   id_espacio           Int
-  id_persona_aprobador Int
+  id_persona_aprobador Int?
   fecha_reserva        DateTime @db.Date
   hora_inicio          DateTime @db.Time(6)
   hora_fin             DateTime @db.Time(6)
@@ -367,7 +367,7 @@ model reservas {
   complemento          String?  @db.VarChar(5)
   correo_solicitante   String   @db.VarChar(150)
   espacios             espacios @relation(fields: [id_espacio], references: [id_espacio], onDelete: NoAction, onUpdate: NoAction, map: "reservas_espacios")
-  personas             personas @relation(fields: [id_persona_aprobador], references: [id_persona], onDelete: NoAction, onUpdate: NoAction, map: "reservas_personas_aprobadores")
+  personas             personas? @relation(fields: [id_persona_aprobador], references: [id_persona], onDelete: SetNull, onUpdate: NoAction, map: "reservas_personas_aprobadores")
 }
 
 model roles {

@@ -242,7 +242,7 @@ export class ReservasService {
       return tx.reservas.create({
         data: {
           id_espacio: dto.espacio_id,
-          id_persona_aprobador: dto.id_persona_aprobador,
+          id_persona_aprobador: dto.id_persona_aprobador ?? null,
           fecha_reserva: fechaDate,
           hora_inicio: hInicioDate,
           hora_fin: hFinDate,

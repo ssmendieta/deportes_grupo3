@@ -83,9 +83,11 @@ export class CreateReservaDto {
   @ApiProperty({
     example: 1,
     description: "ID de la persona que aprueba la reserva",
+    required: false,
   })
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @IsPositive()
-  id_persona_aprobador!: number;
+  id_persona_aprobador?: number;
 }
