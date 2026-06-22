@@ -4,17 +4,19 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsEnum,
   Matches,
 } from "class-validator";
+import { EstadoReserva } from "@prisma/client";
 
 export class UpdateReservaDto {
   @ApiPropertyOptional({
     example: "confirmada",
-    enum: ["Pendiente", "confirmada", "cancelada"],
+    enum: ["confirmada", "cancelada"],
   })
   @IsOptional()
-  @IsString()
-  estado?: string;
+  @IsEnum(EstadoReserva)
+  estado?: EstadoReserva;
 
   @ApiPropertyOptional({ example: "2026-06-15" })
   @IsOptional()
@@ -72,4 +74,9 @@ export class UpdateReservaDto {
   @IsOptional()
   @IsInt()
   id_persona_aprobador?: number;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsInt()
+  id_solicitante?: number;
 }

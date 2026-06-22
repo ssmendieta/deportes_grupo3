@@ -55,7 +55,8 @@ interface SidebarProps {
 function Sidebar({ onLogout }: SidebarProps) {
   const [open, setOpen] = useState(false);
   const user = getUserFromToken();
-  const visibleRoutes = getVisibleRoutes(user?.rol);
+  const rol = user?.rol ?? (import.meta.env.VITE_DEV_MODE === "true" ? "admin" : undefined);
+  const visibleRoutes = getVisibleRoutes(rol);
 
   return (
     <>

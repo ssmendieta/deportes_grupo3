@@ -23,10 +23,6 @@ export const mockTx = {
     create: jest.fn(),
     update: jest.fn(),
   },
-  planillaPagosAcademia: {
-    upsert: jest.fn(),
-    updateMany: jest.fn(),
-  },
   deportista: {
     create: jest.fn(),
   },
@@ -38,6 +34,14 @@ export const mockTx = {
   },
   inscripciones: {
     create: jest.fn(),
+  },
+  plantilla_horarios_fijos: {
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+  },
+  espacios: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
   },
 };
 
@@ -103,12 +107,6 @@ export const mockPrisma = {
     update: jest.fn(),
     count: jest.fn(),
   },
-  planillaPagosAcademia: {
-    findMany: jest.fn(),
-    findUnique: jest.fn(),
-    upsert: jest.fn(),
-    updateMany: jest.fn(),
-  },
   pago: {
     findMany: jest.fn(),
     findUnique: jest.fn(),
@@ -147,7 +145,24 @@ export const mockPrisma = {
     findUnique: jest.fn(),
     findMany: jest.fn(),
   },
+  usuarios: {
+    findFirst: jest.fn(),
+    findUnique: jest.fn(),
+  },
+  auditoria: {
+    findMany: jest.fn(),
+    count: jest.fn(),
+    create: jest.fn(),
+  },
+  transaccion_sync: {
+    create: jest.fn(),
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+  },
   $transaction: jest.fn(),
+  $queryRawUnsafe: jest.fn(),
+  $queryRaw: jest.fn(),
 };
 
 export function resetPrismaMocks() {
@@ -160,5 +175,5 @@ export function resetPrismaMocks() {
   };
   reset(mockPrisma);
   reset(mockTx);
-  mockPrisma.$transaction.mockImplementation((cb: (tx: any) => any) => cb(mockTx));
+  mockPrisma.$transaction.mockImplementation((cb: (tx: any) => any, _options?: any) => cb(mockTx));
 }

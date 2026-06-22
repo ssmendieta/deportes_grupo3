@@ -9,7 +9,7 @@ export class ComprobanteReservaBuilder {
   }
 
   generarCabecera() {
-    const logoPath = path.resolve(process.cwd(), 'assets/logo-ucb.png');
+    const logoPath = path.join(__dirname, '..', '..', '..', '..', 'assets', 'logo-ucb.png');
     
     try {
       this.doc.image(logoPath, 50, 45, { width: 80 });

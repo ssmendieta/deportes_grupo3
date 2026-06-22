@@ -6,13 +6,165 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreatePagoDto } from "./dto/create-pago.dto";
-import { MESES_ACADEMICOS, MESES_NOMBRES } from "../common/constants/business.constants";
+import { MESES_ACADEMICOS, MESES_NOMBRES, TIPOS_NO_APLICA_PAGO } from "../common/constants/business.constants";
+import { calcularEstadoCuenta, PlanillaParaEstado } from "../common/helpers/estado-cuenta.helper";
 
 @Injectable()
 export class PagosService {
   private readonly logger = new Logger(PagosService.name);
 
   constructor(private prisma: PrismaService) {}
+
+  /**
+   * Filtro de mes "negativo": el deportista debe tener planilla, haber pagado
+   * matrícula y todos los meses académicos anteriores al seleccionado, y NO
+   * haber pagado el mes seleccionado.
+   *
+   * El mes se interpreta como mes calendario (3=marzo, ..., 9=septiembre).
+   */
+  private cumpleFiltroMes(planilla: PlanillaParaEstado | null | undefined, mes?: number): boolean {
+    if (!mes || mes < 3 || mes > 9) return true;
+    if (!planilla || !planilla.matricula_pagada) return false;
+    for (let m = 3; m < mes; m++) {
+      if (!planilla[`mes_${m}_pagado` as keyof PlanillaParaEstado]) return false;
+    }
+    return !planilla[`mes_${mes}_pagado` as keyof PlanillaParaEstado];
+  }
+
+  private mapPlanilla(planilla: any): any {
+    if (!planilla) return null;
+    return {
+      matricula_pagada: planilla.matricula_pagada,
+      mes_1_pagado: planilla.mes_1_pagado,
+      mes_2_pagado: planilla.mes_2_pagado,
+      mes_3_pagado: planilla.mes_3_pagado,
+      mes_4_pagado: planilla.mes_4_pagado,
+      mes_5_pagado: planilla.mes_5_pagado,
+      mes_6_pagado: planilla.mes_6_pagado,
+      mes_7_pagado: planilla.mes_7_pagado,
+      mes_8_pagado: planilla.mes_8_pagado,
+      mes_9_pagado: planilla.mes_9_pagado,
+      total_pagado: Number(planilla.total_pagado),
+      saldo_pendiente: Number(planilla.saldo_pendiente),
+    };
+  }
+
+  private mapCuentaItem(d: any, planilla: PlanillaParaEstado | null) {
+    const { estado_cuenta, deuda } = calcularEstadoCuenta(d.tipo_deportista, planilla);
+    return {
+      id: d.id_deportista,
+      nombreCompleto: `${d.persona?.nombres ?? ""} ${d.persona?.ape_paterno ?? ""} ${d.persona?.ape_materno ?? ""}`.trim(),
+      ci: String(d.persona?.ci ?? ""),
+      tipo: d.tipo_deportista,
+      inscripciones: (d.inscripciones ?? []).map((i: any) => ({
+        activo: i.estado === "activo",
+        disciplinaId: i.id_disciplina,
+        disciplinaNombre: i.disciplinas?.nombre_disciplina ?? null,
+      })),
+      estadoCuenta: estado_cuenta,
+      deuda,
+      planilla: this.mapPlanilla(planilla),
+    };
+  }
+
+  /**
+   * Lista de cuentas de academia con paginación real y filtros aplicados en la
+   * base de datos. No carga todos los deportistas en memoria: primero obtiene
+   * los IDs candidatos, carga solo sus planillas, filtra por mes/estado y luego
+   * pagina los datos completos.
+   */
+  async getCuentasAcademia(params: {
+    page?: number;
+    limit?: number;
+    busqueda?: string;
+    disciplinaId?: number;
+    mes?: number;
+    anio?: number;
+    estado?: string;
+  }) {
+    const page = params.page ?? 1;
+    const limit = params.limit ?? 7;
+    const anio = params.anio ?? new Date().getFullYear();
+
+    const where: any = { tipo_deportista: "academia", activo: true };
+
+    if (params.disciplinaId) {
+      where.inscripciones = {
+        some: { id_disciplina: params.disciplinaId, estado: "activo" },
+      };
+    }
+
+    if (params.busqueda) {
+      const ci = parseInt(params.busqueda, 10);
+      if (!isNaN(ci)) {
+        const persona = await this.prisma.personas.findUnique({
+          where: { ci },
+          select: { id_persona: true },
+        });
+        where.id_persona = persona ? persona.id_persona : -1;
+      } else {
+        where.id_persona = -1;
+      }
+    }
+
+    const candidatos = await this.prisma.deportistas.findMany({
+      where,
+      select: { id_deportista: true },
+      orderBy: { id_deportista: "asc" },
+    });
+
+    const ids = candidatos.map((d: any) => d.id_deportista);
+
+    if (ids.length === 0) {
+      return { data: [], total: 0, page, limit, totalPages: 0 };
+    }
+
+    const planillas: any[] = await this.prisma.$queryRaw`
+      SELECT * FROM "PlanillaPagosAcademia"
+      WHERE deportista_id = ANY(${ids}::int[])
+      AND gestion = ${anio}
+    `;
+    const planillaMap = new Map<number, PlanillaParaEstado>(
+      planillas.map((p: any) => [p.deportista_id, p as PlanillaParaEstado]),
+    );
+
+    const idsFiltrados = ids.filter((id) => {
+      const planilla = planillaMap.get(id);
+      if (params.mes && !this.cumpleFiltroMes(planilla, params.mes)) {
+        return false;
+      }
+      if (params.estado && params.estado !== "todos") {
+        const { estado_cuenta } = calcularEstadoCuenta("academia", planilla);
+        if (estado_cuenta !== params.estado) return false;
+      }
+      return true;
+    });
+
+    const total = idsFiltrados.length;
+    const paginatedIds = idsFiltrados.slice((page - 1) * limit, page * limit);
+
+    if (paginatedIds.length === 0) {
+      return { data: [], total, page, limit, totalPages: Math.ceil(total / limit) };
+    }
+
+    const deportistas = await this.prisma.deportistas.findMany({
+      where: { id_deportista: { in: paginatedIds } },
+      include: {
+        persona: true,
+        inscripciones: {
+          where: { estado: "activo" },
+          include: { disciplinas: true },
+        },
+      },
+      orderBy: { id_deportista: "asc" },
+    });
+
+    const data = deportistas.map((d: any) =>
+      this.mapCuentaItem(d, planillaMap.get(d.id_deportista) ?? null),
+    );
+
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
 
   async findAll(page = 1, limit = 20) {
     const [pagos, total] = await Promise.all([
@@ -32,21 +184,58 @@ export class PagosService {
     };
   }
 
+  /**
+   * Versión del listado de pagos pensada para reportes. Aplica los filtros de
+   * rango de fecha directamente en la base de datos y permite paginación real,
+   * evitando traer miles de registros a memoria.
+   */
+  async findAllParaReporte(params: {
+    page?: number;
+    limit?: number;
+    fechaDesde?: Date;
+    fechaHasta?: Date;
+  }) {
+    const page = params.page ?? 1;
+    const limit = params.limit ?? 1000;
+
+    const where: any = {};
+    if (params.fechaDesde || params.fechaHasta) {
+      where.fecha_pago = {};
+      if (params.fechaDesde) where.fecha_pago.gte = params.fechaDesde;
+      if (params.fechaHasta) where.fecha_pago.lt = params.fechaHasta;
+    }
+
+    const [pagos, total] = await Promise.all([
+      this.prisma.pagos.findMany({
+        where,
+        include: { conceptos_pago: true },
+        orderBy: { fecha_pago: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.pagos.count({ where }),
+    ]);
+
+    return {
+      data: pagos.map((p: any) => this.mapPago(p)),
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
   private mapPago(p: any) {
     return {
-      id: p.id_pago,
       id_pago: p.id_pago,
       id_persona_pago: p.id_persona_pago,
       id_deportista_beneficiario: p.id_deportista_beneficiario,
       id_concepto: p.id_concepto,
       id_transaccion_caja: p.id_transaccion_caja,
       monto_pagado: Number(p.monto_pagado),
-      monto: Number(p.monto_pagado),
       fecha_pago: p.fecha_pago,
       mes_correspondiente: p.mes_correspondiente,
       gestion: p.gestion,
       estado_factura: p.estado_factura,
-      estado: p.estado_factura,
       concepto: p.conceptos_pago
         ? { id: p.conceptos_pago.id_concepto, nombre: p.conceptos_pago.nombre }
         : null,
@@ -78,18 +267,22 @@ export class PagosService {
         id_disciplina: disciplina_id,
         estado: "activo",
       },
+      include: {
+        deportistas: {
+          include: { persona: true },
+        },
+      },
     });
 
     const deportistaIds = inscripciones.map((i: any) => i.id_deportista);
 
     if (deportistaIds.length === 0) return [];
 
-    const registros = await this.prisma.planillaPagosAcademia.findMany({
-      where: {
-        deportista_id: { in: deportistaIds },
-        gestion,
-      },
-    });
+    const registros: any[] = await this.prisma.$queryRaw`
+      SELECT * FROM "PlanillaPagosAcademia"
+      WHERE deportista_id = ANY(${deportistaIds}::int[])
+      AND gestion = ${gestion}
+    `;
 
     const registrosMap = new Map(
       registros.map((r: any) => [r.deportista_id, r]),
@@ -101,6 +294,10 @@ export class PagosService {
         deportista_id: inscripcion.id_deportista,
         planilla: registro ?? {
           deportista_id: inscripcion.id_deportista,
+          nombre_completo: inscripcion.deportistas?.persona
+            ? `${inscripcion.deportistas.persona.nombres ?? ""} ${inscripcion.deportistas.persona.ape_paterno ?? ""} ${inscripcion.deportistas.persona.ape_materno ?? ""}`.trim()
+            : null,
+          tipo_deportista: inscripcion.deportistas?.tipo_deportista ?? null,
           gestion,
           matricula_pagada: false,
           mes_1_pagado: false,
@@ -122,25 +319,30 @@ export class PagosService {
   async getMorosos(disciplina_id?: number, gestion?: number) {
     const gestionConsulta = gestion ?? new Date().getFullYear();
 
-    let registros: any[] = await this.prisma.planillaPagosAcademia.findMany({
-      where: {
-        gestion: gestionConsulta,
-        OR: [
-          { matricula_pagada: false },
-          ...MESES_ACADEMICOS.map((m) => ({ [`mes_${m}_pagado`]: false })),
-        ],
-      },
-    });
+    const condicionesMes = MESES_ACADEMICOS
+      .map(m => `"mes_${m}_pagado" = false`)
+      .join(' OR ');
+    const queryBase = `
+      SELECT * FROM "PlanillaPagosAcademia"
+      WHERE gestion = ${gestionConsulta}
+        AND ("matricula_pagada" = false OR ${condicionesMes})
+    `;
 
-    let deportistaIdsFilter: number[] | null = null;
+    let registros: any[];
     if (disciplina_id) {
       const inscripciones = await this.prisma.inscripciones.findMany({
         where: { id_disciplina: disciplina_id, estado: "activo" },
       });
-      deportistaIdsFilter = inscripciones.map((i: any) => i.id_deportista);
-      registros = registros.filter((r: any) =>
-        deportistaIdsFilter!.includes(r.deportista_id),
-      );
+      const deportistaIds = inscripciones.map((i: any) => i.id_deportista);
+      if (deportistaIds.length === 0) {
+        registros = [];
+      } else {
+        registros = await this.prisma.$queryRawUnsafe(`
+          ${queryBase} AND deportista_id = ANY('{${deportistaIds.join(',')}}'::int[])
+        `);
+      }
+    } else {
+      registros = await this.prisma.$queryRawUnsafe(queryBase);
     }
 
     const resultado = registros.map((r: any) => {
@@ -273,5 +475,16 @@ export class PagosService {
     this.logger.log(`Pago anulado: #${id}`);
 
     return this.mapPago(pagoAnulado);
+  }
+
+  async getTotalRecaudado(gestion?: number) {
+    const result = await this.prisma.pagos.aggregate({
+      where: {
+        estado_factura: "Activa",
+        ...(gestion ? { gestion } : {}),
+      },
+      _sum: { monto_pagado: true },
+    });
+    return { total: Number(result._sum.monto_pagado ?? 0) };
   }
 }

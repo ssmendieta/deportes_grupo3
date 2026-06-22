@@ -63,24 +63,24 @@ model delegados_carrera {
 }
 
 model deportistas {
-  id_deportista                                   Int                               @id(map: "deportistas_pk") @default(autoincrement())
-  id_persona                                      Int
-  id_persona_tutor                                Int?
-  tipo_deportista                                 String                            @db.VarChar(20)
-  talla_ropa                                      String?                           @db.VarChar(10)
-  url_foto                                        String?
-  activo                                          Boolean                           @default(true)
-  persona                                personas                          @relation("deportistas_persona", fields: [id_persona], references: [id_persona], onDelete: NoAction, onUpdate: NoAction, map: "deportistas_personas")
-  persona_tutor                          personas?                         @relation("deportistas_persona_tutor", fields: [id_persona_tutor], references: [id_persona], onDelete: NoAction, onUpdate: NoAction, map: "deportistas_personas_tutor")
-  deportistas_externos                            deportistas_externos[]
-  deportistas_ucb                                 deportistas_ucb[]
-  equipo_jugadores                                equipo_jugadores[]
-  estadisticas_partido_jugador                    estadisticas_partido_jugador[]
-  fichas_medicas                                  fichas_medicas[]
-  historial_experiencia_deportiva                 historial_experiencia_deportiva[]
-  inscripciones                                   inscripciones[]
-  pagos                                           pagos[]
-  registros_federacion                            registros_federacion[]
+  id_deportista                   Int                               @id(map: "deportistas_pk") @default(autoincrement())
+  id_persona                      Int
+  id_persona_tutor                Int?
+  tipo_deportista                 String                            @db.VarChar(20)
+  talla_ropa                      String?                           @db.VarChar(10)
+  url_foto                        String?
+  activo                          Boolean                           @default(true)
+  persona                         personas                          @relation("deportistas_persona", fields: [id_persona], references: [id_persona], onDelete: NoAction, onUpdate: NoAction, map: "deportistas_personas")
+  persona_tutor                   personas?                         @relation("deportistas_persona_tutor", fields: [id_persona_tutor], references: [id_persona], onDelete: NoAction, onUpdate: NoAction, map: "deportistas_personas_tutor")
+  deportistas_externos            deportistas_externos[]
+  deportistas_ucb                 deportistas_ucb[]
+  equipo_jugadores                equipo_jugadores[]
+  estadisticas_partido_jugador    estadisticas_partido_jugador[]
+  fichas_medicas                  fichas_medicas[]
+  historial_experiencia_deportiva historial_experiencia_deportiva[]
+  inscripciones                   inscripciones[]
+  pagos                           pagos[]
+  registros_federacion            registros_federacion[]
 }
 
 model deportistas_externos {
@@ -266,20 +266,44 @@ model noticias_imagenes {
   noticias    noticias @relation(fields: [id_noticia], references: [id_noticia], onDelete: NoAction, onUpdate: NoAction, map: "noticias_imagenes_noticias")
 }
 
+model transaccion_sync {
+  id_sync_transaccion   Int      @id @default(autoincrement())
+  id_transaccion_caja   String   @unique @db.VarChar(100)
+  nit_ci_cliente        Int
+  nombre_titular        String   @db.VarChar(200)
+  monto_total           Decimal  @db.Decimal(10, 2)
+  detalle               String?  @db.Text
+  concepto              String   @db.VarChar(200)
+  fecha_pago            DateTime @db.Date
+  estado_factura        String   @default("Activa") @db.VarChar(20)
+  fecha_recepcion       DateTime @default(now())
+  estado_sync           String   @default("pendiente") @db.VarChar(20)
+  persona               personas? @relation(fields: [id_persona_pagador], references: [id_persona], onDelete: NoAction, onUpdate: NoAction)
+  id_persona_pagador    Int?
+  pagos                 pagos[]
+
+  @@map("transaccion_sync")
+}
+
 model pagos {
-  id_pago                    Int            @id(map: "pagos_pk") @default(autoincrement())
+  id_pago                    Int              @id(map: "pagos_pk") @default(autoincrement())
   id_persona_pago            Int
   id_deportista_beneficiario Int
   id_concepto                Int
-  id_transaccion_caja        String         @db.VarChar(100)
-  monto_pagado               Decimal        @db.Decimal(10, 2)
-  fecha_pago                 DateTime       @db.Date
+  id_transaccion_caja        String           @db.VarChar(100)
+  monto_pagado               Decimal          @db.Decimal(10, 2)
+  fecha_pago                 DateTime         @db.Date
   mes_correspondiente        Int
   gestion                    Int
-  estado_factura             String         @default("Activa") @db.VarChar(20)
-  conceptos_pago             conceptos_pago @relation(fields: [id_concepto], references: [id_concepto], onDelete: NoAction, onUpdate: NoAction, map: "pagos_conceptos_pago")
-  deportistas                deportistas    @relation(fields: [id_deportista_beneficiario], references: [id_deportista], onDelete: NoAction, onUpdate: NoAction, map: "pagos_deportistas")
-  personas                   personas       @relation(fields: [id_persona_pago], references: [id_persona], onDelete: NoAction, onUpdate: NoAction, map: "pagos_personas")
+  estado_factura             String           @default("Activa") @db.VarChar(20)
+  id_transaccion_sync        Int?
+  conceptos_pago             conceptos_pago   @relation(fields: [id_concepto], references: [id_concepto], onDelete: NoAction, onUpdate: NoAction, map: "pagos_conceptos_pago")
+  deportistas                deportistas      @relation(fields: [id_deportista_beneficiario], references: [id_deportista], onDelete: NoAction, onUpdate: NoAction, map: "pagos_deportistas")
+  personas                   personas         @relation(fields: [id_persona_pago], references: [id_persona], onDelete: NoAction, onUpdate: NoAction, map: "pagos_personas")
+  transaccion_sync           transaccion_sync? @relation(fields: [id_transaccion_sync], references: [id_sync_transaccion], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_deportista_beneficiario, gestion, estado_factura], map: "idx_pagos_deportista_gestion_estado")
+  @@index([mes_correspondiente], map: "idx_pagos_mes_correspondiente")
 }
 
 model partidos {
@@ -304,20 +328,22 @@ model partidos {
 }
 
 model personas {
-  id_persona                                         Int           @id(map: "personas_pk") @default(autoincrement())
-  nombres                                            String        @db.VarChar(100)
-  ape_paterno                                        String        @db.VarChar(50)
-  ape_materno                                        String        @db.VarChar(50)
-  fecha_nacimiento                                   DateTime      @db.Date
-  celular                                            String        @db.VarChar(20)
-  ci                                                 Int           @unique(map: "personas_ci_unique")
-  complemento                                        String?       @db.VarChar(5)
+  id_persona        Int           @id(map: "personas_pk") @default(autoincrement())
+  nombres           String        @db.VarChar(100)
+  ape_paterno       String        @db.VarChar(50)
+  ape_materno       String        @db.VarChar(50)
+  fecha_nacimiento  DateTime      @db.Date
+  celular           String        @db.VarChar(20)
+  ci                Int           @unique(map: "personas_ci_unique")
+  complemento       String?       @db.VarChar(5)
   deportistas       deportistas[] @relation("deportistas_persona")
   deportistas_tutor deportistas[] @relation("deportistas_persona_tutor")
-  equipos                                            equipos[]
-  pagos                                              pagos[]
-  reservas                                           reservas[]
-  usuarios                                           usuarios[]
+  equipos             equipos[]
+  pagos               pagos[]
+  reservas_aprobador   reservas[] @relation("reservas_aprobador")
+  reservas_solicitante reservas[] @relation("reservas_solicitante")
+  transaccion_sync     transaccion_sync[]
+  usuarios            usuarios[]
 }
 
 model plantilla_horarios_fijos {
@@ -352,22 +378,24 @@ model registros_federacion {
 }
 
 model reservas {
-  id_reserva           Int      @id(map: "reservas_pk") @default(autoincrement())
+  id_reserva           Int            @id(map: "reservas_pk") @default(autoincrement())
   id_espacio           Int
   id_persona_aprobador Int?
-  fecha_reserva        DateTime @db.Date
-  hora_inicio          DateTime @db.Time(6)
-  hora_fin             DateTime @db.Time(6)
-  tipo_reserva         String   @db.VarChar(50)
-  motivo               String?  @db.VarChar(200)
-  estado               String   @default("Pendiente") @db.VarChar(20)
-  ruta_comprobante_pdf String?  @db.VarChar(255)
-  nombre_solicitante   String   @db.VarChar(255)
+  id_solicitante       Int?
+  fecha_reserva        DateTime       @db.Date
+  hora_inicio          DateTime       @db.Time(6)
+  hora_fin             DateTime       @db.Time(6)
+  tipo_reserva         String         @db.VarChar(50)
+  motivo               String?        @db.VarChar(200)
+  estado               EstadoReserva  @default(confirmada)
+  ruta_comprobante_pdf String?        @db.VarChar(255)
+  nombre_solicitante   String         @db.VarChar(255)
   ci                   Int
-  complemento          String?  @db.VarChar(5)
-  correo_solicitante   String   @db.VarChar(150)
-  espacios             espacios @relation(fields: [id_espacio], references: [id_espacio], onDelete: NoAction, onUpdate: NoAction, map: "reservas_espacios")
-  personas             personas? @relation(fields: [id_persona_aprobador], references: [id_persona], onDelete: SetNull, onUpdate: NoAction, map: "reservas_personas_aprobadores")
+  complemento          String?        @db.VarChar(5)
+  correo_solicitante   String?        @db.VarChar(150)
+  espacios             espacios       @relation(fields: [id_espacio], references: [id_espacio], onDelete: NoAction, onUpdate: NoAction, map: "reservas_espacios")
+  personas_aprobador   personas?      @relation("reservas_aprobador", fields: [id_persona_aprobador], references: [id_persona], onUpdate: NoAction, map: "reservas_personas_aprobadores")
+  personas_solicitante personas?      @relation("reservas_solicitante", fields: [id_solicitante], references: [id_persona], onUpdate: NoAction, map: "reservas_personas_solicitante")
 }
 
 model roles {
@@ -414,39 +442,21 @@ model usuarios {
   roles              roles                @relation(fields: [id_rol], references: [id_rol], onDelete: NoAction, onUpdate: NoAction, map: "usuarios_roles")
 }
 
-model PlanillaPagosAcademia {
-  deportista_id    Int
-  nombre_completo  String
-  tipo_deportista  String
-  gestion          Int
-  matricula_pagada Boolean
-  mes_1_pagado     Boolean
-  mes_2_pagado     Boolean
-  mes_3_pagado     Boolean
-  mes_4_pagado     Boolean
-  mes_5_pagado     Boolean
-  mes_6_pagado     Boolean
-  mes_7_pagado     Boolean
-  mes_8_pagado     Boolean
-  mes_9_pagado     Boolean
-  total_pagado     Decimal    @db.Decimal(10, 2)
-  saldo_pendiente  Decimal    @db.Decimal(10, 2)
-
-  @@id([deportista_id, gestion])
+enum EstadoReserva {
+  confirmada
+  cancelada
 }
 
 model auditoria {
-  id              Int      @id @default(autoincrement()) @map("id_auditoria")
-  fecha           DateTime @default(now()) @db.Timestamp(6)
-  usuario_email   String   @db.VarChar(150)
-  usuario_rol     String   @db.VarChar(50)
-  accion          String   @db.VarChar(50)
-  entidad         String   @db.VarChar(50)
-  entidad_id      Int
-  detalle_antes   Json?
-  detalle_despues Json?
-  ip              String?  @db.VarChar(45)
-  correlation_id  String?  @db.VarChar(50)
-
-  @@map("auditoria")
+  id_auditoria    Int      @id(map: "auditoria_pk") @default(autoincrement())
+  tabla           String   @db.VarChar(100)
+  registro_id     Int
+  accion          String   @db.VarChar(20)
+  datos_anteriores Json?
+  datos_nuevos    Json?
+  id_usuario      Int?
+  fecha_auditoria DateTime @default(now()) @db.Timestamp(6)
+  ip_address      String?  @db.VarChar(45)
 }
+
+

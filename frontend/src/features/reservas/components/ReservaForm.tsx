@@ -7,10 +7,19 @@ import {
 } from "../services/reservaService";
 import type { Espacio, Reserva, ReservaFormData } from "../types/reserva.types";
 import {
+  SLOT_PASO_MINUTOS,
+  FALLBACK_SLOTS_DESDE,
+  FALLBACK_SLOTS_HASTA,
+  MAX_RESERVA_HORAS,
+  CI_MAX_LENGTH,
+  NOMBRE_MAX_LENGTH,
+  EMAIL_MAX_LENGTH,
+  COMPLEMENTOS,
+} from "../constants/reservas.constants";
+import {
   validarCI,
   validarEmail,
   validarNombreCompleto,
-  validarRequerido,
   type ErroresForm,
   mostrarError,
 } from "../../../shared/utils/validators";
@@ -23,6 +32,32 @@ function soloDigitos(v: string) {
 
 function hoyString() {
   return new Date().toISOString().split("T")[0];
+}
+
+function extraerHHMM(valor: string): string {
+  if (/^\d{2}:\d{2}$/.test(valor)) return valor;
+  const d = new Date(valor);
+  if (!isNaN(d.getTime())) {
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  }
+  return "";
+}
+
+function generarSlots(desde: string, hasta: string, pasoMin = 30): string[] {
+  const d = extraerHHMM(desde);
+  const h = extraerHHMM(hasta);
+  if (!d || !h) return [];
+  const [h0, m0] = d.split(":").map(Number);
+  const [h1, m1] = h.split(":").map(Number);
+  const inicio = h0 * 60 + m0;
+  const fin = h1 * 60 + m1;
+  const slots: string[] = [];
+  for (let t = inicio; t <= fin; t += pasoMin) {
+    const hh = String(Math.floor(t / 60)).padStart(2, "0");
+    const mm = String(t % 60).padStart(2, "0");
+    slots.push(`${hh}:${mm}`);
+  }
+  return slots;
 }
 
 type Props = {
@@ -41,8 +76,6 @@ const formInicial: ReservaFormData = {
   hora_fin: "",
   tipo_reserva: "entrenamiento",
 };
-
-const horasDisponibles = ["14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00"];
 
 function horaAMinutos(hora: string) {
   const [h, m] = hora.split(":").map(Number);
@@ -73,17 +106,33 @@ function ReservaForm({ onReservaCreada }: Props) {
     return () => window.clearTimeout(tarea);
   }, []);
 
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, hora_inicio: "", hora_fin: "" }));
+  }, [formData.espacio_id]);
+
+  const espacioSeleccionado = useMemo(
+    () => espacios.find((e) => e.id === Number(formData.espacio_id)),
+    [espacios, formData.espacio_id],
+  );
+
+  const slotsDisponibles = useMemo(() => {
+    const apertura = espacioSeleccionado?.horario_apertura;
+    const cierre = espacioSeleccionado?.horario_cierre;
+    const slots = apertura && cierre ? generarSlots(apertura, cierre, SLOT_PASO_MINUTOS) : [];
+    return slots.length > 0 ? slots : generarSlots(FALLBACK_SLOTS_DESDE, FALLBACK_SLOTS_HASTA, SLOT_PASO_MINUTOS);
+  }, [espacioSeleccionado]);
+
   const duracionHoras = useMemo(() => {
     if (!formData.hora_inicio || !formData.hora_fin) return 0;
     return (horaAMinutos(formData.hora_fin) - horaAMinutos(formData.hora_inicio)) / 60;
   }, [formData.hora_fin, formData.hora_inicio]);
 
   const horasFinDisponibles = useMemo(() => {
-    if (!formData.hora_inicio) return horasDisponibles;
-    return horasDisponibles.filter(
+    if (!formData.hora_inicio) return slotsDisponibles;
+    return slotsDisponibles.filter(
       (h) => horaAMinutos(h) > horaAMinutos(formData.hora_inicio),
     );
-  }, [formData.hora_inicio]);
+  }, [formData.hora_inicio, slotsDisponibles]);
 
   const handleChange = (campo: keyof ReservaFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [campo]: value }));
@@ -94,7 +143,6 @@ function ReservaForm({ onReservaCreada }: Props) {
       case "nombre_solicitante": return validarNombreCompleto(valor, "El nombre del solicitante");
       case "ci": return validarCI(valor);
       case "correo_solicitante": return valor.trim() ? validarEmail(valor) : null;
-      case "motivo": return validarRequerido(valor, "El motivo");
       case "espacio_id": return valor ? null : "Debes seleccionar un espacio.";
       case "fecha_reserva": return valor ? null : "La fecha es obligatoria.";
       case "tipo_reserva": return valor ? null : "Selecciona un tipo de reserva.";
@@ -117,7 +165,6 @@ function ReservaForm({ onReservaCreada }: Props) {
       nombre_solicitante: validarNombreCompleto(formData.nombre_solicitante, "El nombre del solicitante"),
       ci: validarCI(formData.ci),
       correo_solicitante: (formData.correo_solicitante ?? "").trim() ? validarEmail(formData.correo_solicitante ?? "") : null,
-      motivo: validarRequerido(formData.motivo, "El motivo"),
       espacio_id: formData.espacio_id ? null : "Debes seleccionar un espacio.",
       fecha_reserva: formData.fecha_reserva ? null : "La fecha es obligatoria.",
       tipo_reserva: formData.tipo_reserva ? null : "Selecciona un tipo de reserva.",
@@ -125,11 +172,11 @@ function ReservaForm({ onReservaCreada }: Props) {
       hora_fin: formData.hora_fin ? null : "La hora de fin es obligatoria.",
     };
     setErrores(nuevosErrores);
-    setTocado({ nombre_solicitante: true, ci: true, correo_solicitante: true, motivo: true, espacio_id: true, fecha_reserva: true, tipo_reserva: true, hora_inicio: true, hora_fin: true });
+    setTocado({ nombre_solicitante: true, ci: true, correo_solicitante: true, espacio_id: true, fecha_reserva: true, tipo_reserva: true, hora_inicio: true, hora_fin: true });
     if (Object.values(nuevosErrores).some(Boolean)) return;
 
-    if (duracionHoras <= 0 || duracionHoras > 3) {
-      setError("La reserva debe durar máximo 3 horas y la hora final debe ser mayor a la inicial.");
+    if (duracionHoras <= 0 || duracionHoras > MAX_RESERVA_HORAS) {
+      setError(`La reserva debe durar máximo ${MAX_RESERVA_HORAS} horas y la hora final debe ser mayor a la inicial.`);
       return;
     }
 
@@ -141,17 +188,18 @@ function ReservaForm({ onReservaCreada }: Props) {
         hora_inicio: formData.hora_inicio,
         hora_fin: formData.hora_fin,
         tipo_reserva: formData.tipo_reserva,
+        motivo: "Solicitud desde formulario",
         nombre_solicitante: formData.nombre_solicitante.trim(),
         ci: formData.ci ? parseInt(formData.ci) : 0,
         complemento: formData.complemento?.trim() || undefined,
-        motivo: formData.motivo.trim(),
         ...((formData.correo_solicitante ?? "").trim() && { correo_solicitante: (formData.correo_solicitante ?? "").trim() }),
       });
       setReservaCreada(reserva);
       onReservaCreada?.(reserva);
       setFormData(formInicial);
-    } catch {
-      setError("No se pudo crear la reserva. Verifica los datos e intenta de nuevo.");
+    } catch (err) {
+      const mensaje = err instanceof Error ? err.message : "Error desconocido";
+      setError(mensaje);
     } finally {
       setGuardando(false);
     }
@@ -169,31 +217,27 @@ function ReservaForm({ onReservaCreada }: Props) {
       <form className="form-grid" onSubmit={handleSubmit} noValidate>
         <label className="field full">
           <span>Nombre del solicitante *</span>
-          <input id="res-nombre" value={formData.nombre_solicitante} onChange={(e) => { handleChange("nombre_solicitante", e.target.value); setErrores((p) => ({ ...p, nombre_solicitante: null })); }} onBlur={() => handleBlur("nombre_solicitante")} placeholder="Ej. Juan Pérez" required maxLength={100} aria-describedby={tocado.nombre_solicitante && mostrarError(errores, "nombre_solicitante") ? "error-res-nombre" : undefined} />
+          <input id="res-nombre" value={formData.nombre_solicitante} onChange={(e) => { handleChange("nombre_solicitante", e.target.value); setErrores((p) => ({ ...p, nombre_solicitante: null })); }} onBlur={() => handleBlur("nombre_solicitante")} placeholder="Ej. Juan Pérez" required maxLength={NOMBRE_MAX_LENGTH} aria-describedby={tocado.nombre_solicitante && mostrarError(errores, "nombre_solicitante") ? "error-res-nombre" : undefined} />
           {tocado.nombre_solicitante && mostrarError(errores, "nombre_solicitante") && <small id="error-res-nombre" className="field-error">{mostrarError(errores, "nombre_solicitante")}</small>}
         </label>
 
-        <label className="field full">
+        <label className="field" style={{ flex: "1 1 0" }}>
           <span>CI *</span>
-          <input id="res-ci" value={formData.ci} onChange={(e) => { handleChange("ci", soloDigitos(e.target.value)); setErrores((p) => ({ ...p, ci: null })); }} onBlur={() => handleBlur("ci")} placeholder="Ej. 1234567" inputMode="numeric" required maxLength={8} aria-describedby={tocado.ci && mostrarError(errores, "ci") ? "error-res-ci" : undefined} />
+          <input id="res-ci" value={formData.ci} onChange={(e) => { handleChange("ci", soloDigitos(e.target.value)); setErrores((p) => ({ ...p, ci: null })); }} onBlur={() => handleBlur("ci")} placeholder="Ej. 1234567" inputMode="numeric" required maxLength={CI_MAX_LENGTH} aria-describedby={tocado.ci && mostrarError(errores, "ci") ? "error-res-ci" : undefined} />
           {tocado.ci && mostrarError(errores, "ci") && <small id="error-res-ci" className="field-error">{mostrarError(errores, "ci")}</small>}
         </label>
 
-        <label className="field full">
+        <label className="field" style={{ flex: "0 0 130px" }}>
           <span>Complemento</span>
-          <input id="res-complemento" value={formData.complemento ?? ""} onChange={(e) => handleChange("complemento", e.target.value)} placeholder="Ej. LP" maxLength={5} />
+          <select id="res-complemento" value={formData.complemento ?? ""} onChange={(e) => handleChange("complemento", e.target.value)}>
+            {COMPLEMENTOS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+          </select>
         </label>
 
         <label className="field full">
-          <span>Correo electrónico <small>(opcional — para recibir el comprobante)</small></span>
-          <input id="res-email" type="email" value={formData.correo_solicitante} onChange={(e) => { handleChange("correo_solicitante", e.target.value); setErrores((p) => ({ ...p, correo_solicitante: null })); }} onBlur={() => handleBlur("correo_solicitante")} placeholder="Ej. juan.perez@ucb.edu.bo" maxLength={120} aria-describedby={tocado.correo_solicitante && mostrarError(errores, "correo_solicitante") ? "error-res-email" : undefined} />
+          <span>Correo electrónico *</span>
+          <input id="res-email" type="email" value={formData.correo_solicitante} onChange={(e) => { handleChange("correo_solicitante", e.target.value); setErrores((p) => ({ ...p, correo_solicitante: null })); }} onBlur={() => handleBlur("correo_solicitante")} placeholder="Ej. juan.perez@ucb.edu.bo" required maxLength={EMAIL_MAX_LENGTH} aria-describedby={tocado.correo_solicitante && mostrarError(errores, "correo_solicitante") ? "error-res-email" : undefined} />
           {tocado.correo_solicitante && mostrarError(errores, "correo_solicitante") && <small id="error-res-email" className="field-error">{mostrarError(errores, "correo_solicitante")}</small>}
-        </label>
-
-        <label className="field full">
-          <span>Motivo *</span>
-          <input id="res-motivo" value={formData.motivo} onChange={(e) => { handleChange("motivo", e.target.value); setErrores((p) => ({ ...p, motivo: null })); }} onBlur={() => handleBlur("motivo")} placeholder="Ej. Práctica de Fútsal" required maxLength={300} aria-describedby={tocado.motivo && mostrarError(errores, "motivo") ? "error-res-motivo" : undefined} />
-          {tocado.motivo && mostrarError(errores, "motivo") && <small id="error-res-motivo" className="field-error">{mostrarError(errores, "motivo")}</small>}
         </label>
 
         <label className="field">
@@ -225,7 +269,7 @@ function ReservaForm({ onReservaCreada }: Props) {
           <span>Desde *</span>
           <select id="res-hora-inicio" value={formData.hora_inicio} onChange={(e) => { handleChange("hora_inicio", e.target.value); setErrores((p) => ({ ...p, hora_inicio: null })); }} onBlur={() => handleBlur("hora_inicio")} required aria-describedby={tocado.hora_inicio && mostrarError(errores, "hora_inicio") ? "error-res-hora-inicio" : undefined}>
             <option value="">Seleccionar hora</option>
-            {horasDisponibles.slice(0, -1).map((hora) => <option key={hora} value={hora}>{hora}</option>)}
+            {slotsDisponibles.slice(0, -1).map((hora) => <option key={hora} value={hora}>{hora}</option>)}
           </select>
           {tocado.hora_inicio && mostrarError(errores, "hora_inicio") && <small id="error-res-hora-inicio" className="field-error">{mostrarError(errores, "hora_inicio")}</small>}
         </label>
@@ -239,8 +283,8 @@ function ReservaForm({ onReservaCreada }: Props) {
           {tocado.hora_fin && mostrarError(errores, "hora_fin") && <small id="error-res-hora-fin" className="field-error">{mostrarError(errores, "hora_fin")}</small>}
         </label>
 
-        {duracionHoras > 3 && (
-          <div className="form-error full">La reserva no puede durar más de 3 horas.</div>
+        {duracionHoras > MAX_RESERVA_HORAS && (
+          <div className="form-error full">La reserva no puede durar más de {MAX_RESERVA_HORAS} horas.</div>
         )}
 
         {error && <div className="form-error full">{error}</div>}

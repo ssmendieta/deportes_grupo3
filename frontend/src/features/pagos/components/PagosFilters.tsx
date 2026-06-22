@@ -23,6 +23,7 @@ function PagosFilters({
 }: Props) {
   const [disciplinas, setDisciplinas] =
     useState<DisciplinaOpcion[]>([]);
+  const [busquedaInput, setBusquedaInput] = useState(filtros.busqueda);
 
   useEffect(() => {
     apiRequest<DisciplinaOpcion[]>(
@@ -36,6 +37,22 @@ function PagosFilters({
         setDisciplinas([])
       );
   }, []);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (busquedaInput !== filtros.busqueda) {
+        onChange({ ...filtros, busqueda: busquedaInput });
+      }
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [busquedaInput, filtros, onChange]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setBusquedaInput(filtros.busqueda);
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [filtros.busqueda]);
 
   return (
     <section className="panel-card">
@@ -57,19 +74,16 @@ function PagosFilters({
         {/* BUSQUEDA */}
         <label className="field">
           <span>
-            Buscar por nombre o CI
+            Buscar por CI
           </span>
 
           <input
-            value={filtros.busqueda}
+            value={busquedaInput}
             onChange={(e) =>
-              onChange({
-                ...filtros,
-                busqueda:
-                  e.target.value,
-              })
+              setBusquedaInput(e.target.value.replace(/\D/g, ""))
             }
-            placeholder="Buscar..."
+            placeholder="Buscar por CI..."
+            inputMode="numeric"
           />
         </label>
 
@@ -171,57 +185,16 @@ function PagosFilters({
               })
             }
           >
-            <option value="todos">
-              Todos
-            </option>
-
-            <option value="enero">
-              Enero
-            </option>
-
-            <option value="febrero">
-              Febrero
-            </option>
-
-            <option value="marzo">
-              Marzo
-            </option>
-
-            <option value="abril">
-              Abril
-            </option>
-
-            <option value="mayo">
-              Mayo
-            </option>
-
-            <option value="junio">
-              Junio
-            </option>
-
-            <option value="julio">
-              Julio
-            </option>
-
-            <option value="agosto">
-              Agosto
-            </option>
-
-            <option value="septiembre">
-              Septiembre
-            </option>
-
-            <option value="octubre">
-              Octubre
-            </option>
-
-            <option value="noviembre">
-              Noviembre
-            </option>
-
-            <option value="diciembre">
-              Diciembre
-            </option>
+            <option value="todos">Todos</option>
+            <option value="1">Enero</option>
+            <option value="2">Febrero</option>
+            <option value="3">Marzo</option>
+            <option value="4">Abril</option>
+            <option value="5">Mayo</option>
+            <option value="6">Junio</option>
+            <option value="7">Julio</option>
+            <option value="8">Agosto</option>
+            <option value="9">Septiembre</option>
           </select>
         </label>
 

@@ -8,6 +8,7 @@ import {
   fechaParaAPI,
 } from "../../reservas/services/reservaService";
 import type { Espacio } from "../../reservas/types/reserva.types";
+import { DIAS_CALENDARIO } from "../../reservas/constants/reservas.constants";
 import AlertasCalendario from "../components/AlertasCalendario";
 import EncabezadoCalendario from "../components/EncabezadoCalendario";
 import GrillaCalendarioSemanal, { clasePorEspacio } from "../components/GrillaCalendarioSemanal";
@@ -50,10 +51,10 @@ function CalendarioAdminPage() {
   }, []);
 
   useEffect(() => {
-    const fechas = Array.from({ length: 6 }, (_, i) => fechaParaAPI(semanaBase, i));
+    const fechas = Array.from({ length: DIAS_CALENDARIO }, (_, i) => fechaParaAPI(semanaBase, i));
     Promise.all(fechas.map((f) => getReservas({ fecha: f })))
       .then((resultados) => {
-        setTotalReservas(resultados.reduce((sum, r) => sum + r.length, 0));
+        setTotalReservas(resultados.reduce((sum, r) => sum + r.data.length, 0));
       });
   }, [semanaBase]);
 
@@ -73,7 +74,6 @@ function CalendarioAdminPage() {
 
       <section className="stats-grid compact">
         <StatCard label="Reservas registradas" value={totalReservas} />
-        <StatCard label="Horario visible" value="14:00 - 18:00" />
       </section>
 
       <div className="gc-toolbar">

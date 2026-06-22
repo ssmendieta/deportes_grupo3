@@ -1,15 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import Spinner from "../../../shared/components/Spinner";
 import {
-  DIAS_SEMANA,
   fechaParaAPI,
   getDisponibilidad,
   getEspacios,
 } from "../../reservas/services/reservaService";
+import { apiRequest } from "../../../shared/services/apiClient";
 import type {
   BloqueOcupado,
   Espacio,
 } from "../../reservas/types/reserva.types";
+import {
+  DIAS_SEMANA,
+  DIA_ABREV,
+  HORAS_GRID_FALLBACK,
+  GRID_SLOT_PASO_MINUTOS,
+} from "../../reservas/constants/reservas.constants";
 
 type Props = {
   semanaBase: Date;
@@ -55,7 +61,7 @@ type BloqueConFilas = {
   spanRows: number;
 };
 
-function calcularBloquesConFilas(bloques: BloqueOcupado[]): BloqueConFilas[] {
+function calcularBloquesConFilas(bloques: BloqueOcupado[], horasGrid: string[]): BloqueConFilas[] {
   return bloques.flatMap((bloque) => {
     const inicioB = horaAMinutos(bloque.hora_inicio);
     const finB = horaAMinutos(bloque.hora_fin);
@@ -63,7 +69,7 @@ function calcularBloquesConFilas(bloques: BloqueOcupado[]): BloqueConFilas[] {
     let startRow = -1;
     let endRow = -1;
 
-    HORAS_GRID.forEach((hora, idx) => {
+    horasGrid.forEach((hora, idx) => {
       const inicioSlot = horaAMinutos(hora);
       const finSlot = inicioSlot + 30;
       if (inicioB < finSlot && finB > inicioSlot) {
@@ -77,25 +83,23 @@ function calcularBloquesConFilas(bloques: BloqueOcupado[]): BloqueConFilas[] {
   });
 }
 
-const HORAS_GRID = [
-  "12:00",
-  "13:00",
-  "14:00",
-  "15:00",
-  "16:00",
-  "17:00",
-  "18:00",
-  "19:00",
-];
 
-const DIA_ABREV: Record<string, string> = {
-  Lunes: "LUN",
-  Martes: "MAR",
-  Miércoles: "MIÉ",
-  Jueves: "JUE",
-  Viernes: "VIE",
-  Sábado: "SÁB",
-};
+
+function generarSlotsGrid(desde: string, hasta: string, pasoMin = GRID_SLOT_PASO_MINUTOS): string[] {
+  const [h0, m0] = desde.split(":").map(Number);
+  const [h1, m1] = hasta.split(":").map(Number);
+  const inicio = h0 * 60 + m0;
+  const fin = h1 * 60 + m1;
+  const slots: string[] = [];
+  for (let t = inicio; t <= fin; t += pasoMin) {
+    const hh = String(Math.floor(t / 60)).padStart(2, "0");
+    const mm = String(t % 60).padStart(2, "0");
+    slots.push(`${hh}:${mm}`);
+  }
+  return slots.length > 1 ? slots : HORAS_GRID_FALLBACK;
+}
+
+
 
 function GrillaCalendarioSemanal({
   semanaBase,
@@ -108,6 +112,16 @@ function GrillaCalendarioSemanal({
     Record<string, BloqueOcupado[]>
   >({});
   const [cargando, setCargando] = useState(false);
+  const [horasGrid, setHorasGrid] = useState<string[]>(HORAS_GRID_FALLBACK);
+
+  useEffect(() => {
+    apiRequest<{ min: string; max: string }>("/api/espacios/rango-horario")
+      .then((r) => {
+        const generados = generarSlotsGrid(r.min, r.max, 60);
+        if (generados.length > 1) setHorasGrid(generados);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -117,14 +131,25 @@ function GrillaCalendarioSemanal({
           const espaciosData = await getEspacios();
           setEspacios(espaciosData);
 
+          const espaciosACargar = espacioId
+            ? espaciosData.filter((e) => e.id === espacioId)
+            : espaciosData;
+
+          const resultados = await Promise.all(
+            DIAS_SEMANA.flatMap((_, i) => {
+              const fecha = fechaParaAPI(semanaBase, i);
+              return espaciosACargar.map((espacio) =>
+                getDisponibilidad(espacio.id, fecha).then((disp) => ({
+                  key: `${espacio.id}-${DIAS_SEMANA[i]}`,
+                  bloques: disp.bloques_ocupados || [],
+                })),
+              );
+            }),
+          );
+
           const nuevosBloques: Record<string, BloqueOcupado[]> = {};
-          for (let i = 0; i < DIAS_SEMANA.length; i += 1) {
-            const fecha = fechaParaAPI(semanaBase, i);
-            for (const espacio of espaciosData) {
-              const disponibilidad = await getDisponibilidad(espacio.id, fecha);
-              nuevosBloques[`${espacio.id}-${DIAS_SEMANA[i]}`] =
-                disponibilidad.bloques_ocupados || [];
-            }
+          for (const { key, bloques } of resultados) {
+            nuevosBloques[key] = bloques;
           }
           setBloquesOcupados(nuevosBloques);
         } finally {
@@ -135,7 +160,7 @@ function GrillaCalendarioSemanal({
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [semanaBase]);
+  }, [semanaBase, espacioId]);
 
   const espaciosMostrados = useMemo(
     () => (espacioId ? espacios.filter((e) => e.id === espacioId) : espacios),
@@ -177,7 +202,7 @@ function GrillaCalendarioSemanal({
                   );
                 })}
 
-                {HORAS_GRID.map((hora, rowIdx) => (
+                {horasGrid.map((hora, rowIdx) => (
                   <div key={hora} style={{ display: "contents" }}>
                     <div
                       className="gc-time"
@@ -185,12 +210,11 @@ function GrillaCalendarioSemanal({
                     >
                       {hora}
                     </div>
-
                     {DIAS_SEMANA.map((dia, colIdx) => {
                       const col = colIdx + 2;
                       const row = rowIdx + 2;
                       const bloques = obtenerBloquesDeDia(espacio.id, dia);
-                      const bloquesConFilas = calcularBloquesConFilas(bloques);
+                      const bloquesConFilas = calcularBloquesConFilas(bloques, horasGrid);
                       const filasOcupadas = new Set(
                         bloquesConFilas.flatMap(({ startRow, spanRows }) =>
                           Array.from(

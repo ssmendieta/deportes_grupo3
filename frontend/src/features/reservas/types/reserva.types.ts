@@ -32,6 +32,8 @@ export type DisponibilidadEspacio = {
 export type Reserva = {
   id: number;
   espacio_id: number;
+  id_persona_aprobador?: number | null;
+  id_solicitante?: number | null;
   nombre_solicitante: string;
   ci: number;
   complemento?: string | null;
@@ -43,6 +45,8 @@ export type Reserva = {
   motivo: string;
   estado: string;
   espacio?: Espacio | null;
+  aprobador_nombre?: string | null;
+  solicitante_nombre?: string | null;
 };
 
 export type ReservaFormData = {
@@ -69,6 +73,7 @@ export type CreateReservaDto = {
   ci: number;
   complemento?: string;
   correo_solicitante?: string;
+  id_solicitante?: number;
 };
 
 export type UpdateReservaDto = {
@@ -83,4 +88,5 @@ export type UpdateReservaDto = {
   motivo?: string;
   tipo_reserva?: string;
   espacio_id?: number;
+  id_solicitante?: number;
 };

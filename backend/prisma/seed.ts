@@ -406,9 +406,11 @@ async function main() {
 
   // ── Verificar vista ──────────────────────────────────────
   const deportistaIds = [dMartín.id_deportista, dValeria.id_deportista, dRodrigo.id_deportista, dCamila.id_deportista, dNelson.id_deportista, dPatricia.id_deportista, dDiego.id_deportista, dLucía.id_deportista, dAndrés.id_deportista, dSofía.id_deportista];
-  const registros: any[] = await prisma.planillaPagosAcademia.findMany({
-    where: { deportista_id: { in: deportistaIds }, gestion },
-  });
+  const registros: any[] = await prisma.$queryRaw`
+    SELECT * FROM "PlanillaPagosAcademia"
+    WHERE deportista_id = ANY(${deportistaIds}::int[])
+    AND gestion = ${gestion}
+  `;
   console.log(`\nVista PlanillaPagosAcademia: ${registros.length} registros encontrados`);
   for (const r of registros) {
     console.log(`  #${r.deportista_id} ${r.nombre_completo.padEnd(25)} matrícula=${r.matricula_pagada ? "✓" : "✗"} meses pagados=${[1, 2, 3, 4, 5, 6, 7, 8, 9].filter((m) => r[`mes_${m}_pagado`]).length} total=${r.total_pagado} saldo=${r.saldo_pendiente}`);

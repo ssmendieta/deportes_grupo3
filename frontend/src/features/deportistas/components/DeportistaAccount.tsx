@@ -31,10 +31,22 @@ function DeportistaAccount({ deportista, onVolver }: Props) {
   const estado: EstadoCuenta = deportista.estadoCuenta ?? "pendiente";
 
   useEffect(() => {
-    obtenerPagosDeportista(deportista.id)
-      .then(setPagos)
-      .catch(() => setPagos([]))
-      .finally(() => setCargandoPagos(false));
+    let cancelled = false;
+    const cargar = async () => {
+      setCargandoPagos(true);
+      try {
+        const data = await obtenerPagosDeportista(deportista.id);
+        if (!cancelled) setPagos(data);
+      } catch {
+        if (!cancelled) setPagos([]);
+      } finally {
+        if (!cancelled) setCargandoPagos(false);
+      }
+    };
+    cargar();
+    return () => {
+      cancelled = true;
+    };
   }, [deportista.id]);
 
   return (

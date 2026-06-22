@@ -49,7 +49,8 @@ captureTokenFromUrl();
 
 function RoleBasedRedirect() {
   const user = getUserFromToken();
-  const defaultRoute = getDefaultRouteForRole(user?.rol);
+  const rol = user?.rol ?? (import.meta.env.VITE_DEV_MODE === "true" ? "admin" : undefined);
+  const defaultRoute = getDefaultRouteForRole(rol);
   return <Navigate to={defaultRoute} replace />;
 }
 
@@ -57,14 +58,15 @@ function ProtectedLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  if (!isAuthenticated()) {
+  if (!isAuthenticated() && import.meta.env.VITE_DEV_MODE !== "true") {
     return <Navigate to="/login" replace />;
   }
 
   const user = getUserFromToken();
+  const rol = user?.rol ?? (import.meta.env.VITE_DEV_MODE === "true" ? "admin" : undefined);
 
-  if (!canAccessRoute(user?.rol, location.pathname)) {
-    return <Navigate to={getDefaultRouteForRole(user?.rol)} replace />;
+  if (rol && !canAccessRoute(rol, location.pathname)) {
+    return <Navigate to={getDefaultRouteForRole(rol)} replace />;
   }
 
   async function handleLogout() {

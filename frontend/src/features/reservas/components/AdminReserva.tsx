@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import EmptyState from "../../../shared/components/EmptyState";
 import StatusBadge from "../../../shared/components/StatusBadge";
@@ -16,6 +16,7 @@ import type {
   Reserva,
   UpdateReservaDto,
 } from "../types/reserva.types";
+import { POR_PAGINA } from "../constants/reservas.constants";
 
 import { ExportarReporteButton } from "../../../shared/components/ExportarReporteButton";
 import Spinner from "../../../shared/components/Spinner";
@@ -33,6 +34,7 @@ function AdminReserva() {
   const navigate = useNavigate();
   const toast = useToast();
   const [reservas, setReservas] = useState<Reserva[]>([]);
+  const [totalReservas, setTotalReservas] = useState(0);
   const [seleccionadaId, setSeleccionadaId] = useState<number | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [filtroFecha, setFiltroFecha] = useState("");
@@ -40,6 +42,7 @@ function AdminReserva() {
   const [tab, setTab] = useState<TabReservas>("activas");
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const [pagina, setPagina] = useState(1);
 
   const [modoEdicion, setModoEdicion] = useState(false);
   const [formEdicion, setFormEdicion] = useState<UpdateReservaDto>({});
@@ -51,31 +54,41 @@ function AdminReserva() {
 
   const [espacios, setEspacios] = useState<Espacio[]>([]);
 
+  const estadoServer = tab === "activas" ? "confirmada" : "cancelada";
+
+  const cargarReservas = useCallback(() => {
+    setCargando(true);
+    setError("");
+
+    getReservas({
+      fecha: filtroFecha || undefined,
+      espacioId: filtroEspacio ? Number(filtroEspacio) : undefined,
+      estado: estadoServer,
+      busqueda: busqueda || undefined,
+      page: pagina,
+      limit: POR_PAGINA,
+    })
+      .then((resp) => {
+        setReservas(resp.data);
+        setTotalReservas(resp.total);
+        setSeleccionadaId((actual) => {
+          if (actual && resp.data.some((r) => r.id === actual)) return actual;
+          return resp.data[0]?.id ?? null;
+        });
+      })
+      .catch((err: unknown) => {
+        setError(
+          err instanceof Error ? err.message : "Error al cargar reservas",
+        );
+      })
+      .finally(() => setCargando(false));
+  }, [pagina, filtroFecha, filtroEspacio, estadoServer, busqueda]);
+
   useEffect(() => {
-    const tarea = window.setTimeout(() => {
-      setCargando(true);
-      setError("");
-
-      getReservas({ fecha: filtroFecha || undefined })
-        .then((data) => {
-          setReservas(data);
-          setSeleccionadaId((actual) => {
-            if (actual && data.some((reserva) => reserva.id === actual)) {
-              return actual;
-            }
-            return data[0]?.id ?? null;
-          });
-        })
-        .catch((err: unknown) => {
-          setError(
-            err instanceof Error ? err.message : "Error al cargar reservas",
-          );
-        })
-        .finally(() => setCargando(false));
-    }, 0);
-
+    const delay = busqueda ? 300 : 0;
+    const tarea = window.setTimeout(cargarReservas, delay);
     return () => window.clearTimeout(tarea);
-  }, [filtroFecha]);
+  }, [cargarReservas]);
 
   useEffect(() => {
     getEspacios()
@@ -83,32 +96,11 @@ function AdminReserva() {
       .catch(() => setEspacios([]));
   }, []);
 
-  const reservasFiltradas = useMemo(() => {
-    return reservas.filter((reserva) => {
-      const texto = `${reserva.nombre_solicitante} ${reserva.ci} ${
-        reserva.complemento ?? ""
-      } ${reserva.motivo} ${reserva.espacio?.nombre ?? ""}`.toLowerCase();
+  useEffect(() => {
+    setPagina(1);
+  }, [filtroFecha, filtroEspacio, tab, busqueda]);
 
-      const coincideBusqueda = texto.includes(busqueda.toLowerCase());
-      const coincideEspacio = filtroEspacio
-        ? String(reserva.espacio_id) === filtroEspacio
-        : true;
-      const coincideTab =
-        tab === "activas"
-          ? reserva.estado !== "cancelada"
-          : reserva.estado === "cancelada";
-
-      return coincideBusqueda && coincideEspacio && coincideTab;
-    });
-  }, [busqueda, filtroEspacio, reservas, tab]);
-
-  const reservasActivas = reservas.filter(
-    (reserva) => reserva.estado !== "cancelada",
-  ).length;
-
-  const reservasCanceladas = reservas.filter(
-    (reserva) => reserva.estado === "cancelada",
-  ).length;
+  const totalPaginas = Math.max(1, Math.ceil(totalReservas / POR_PAGINA));
 
   const seleccionada =
     reservas.find((reserva) => reserva.id === seleccionadaId) ?? null;
@@ -233,10 +225,9 @@ function AdminReserva() {
       reemplazarReserva(actualizada);
       limpiarEdicion();
       toast.success("Cambios guardados correctamente.");
-    } catch {
-      setError(
-        "No se pudieron guardar los cambios. Verifica los datos e intenta de nuevo.",
-      );
+    } catch (err) {
+      const mensaje = err instanceof Error ? err.message : "Error desconocido";
+      setError(mensaje);
     } finally {
       setGuardando(false);
     }
@@ -325,6 +316,21 @@ function AdminReserva() {
             >
               + Crear
             </button>
+            {(busqueda || filtroFecha || filtroEspacio) && (
+              <button
+                type="button"
+                className="btn btn-danger xsmall"
+                onClick={() => {
+                  setBusqueda("");
+                  setFiltroFecha("");
+                  setFiltroEspacio("");
+                  setSeleccionadaId(null);
+                  limpiarEdicion();
+                }}
+              >
+                Limpiar
+              </button>
+            )}
           </div>
         </div>
 
@@ -334,7 +340,7 @@ function AdminReserva() {
             <input
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Nombre, CI o motivo"
+              placeholder="Buscar por nombre"
             />
           </label>
 
@@ -369,6 +375,7 @@ function AdminReserva() {
               ))}
             </select>
           </label>
+
         </div>
 
         <div className="segmented-inline reserva-tabs">
@@ -381,7 +388,7 @@ function AdminReserva() {
               limpiarEdicion();
             }}
           >
-            Activas <span>{reservasActivas}</span>
+            Activas
           </button>
 
           <button
@@ -393,13 +400,13 @@ function AdminReserva() {
               limpiarEdicion();
             }}
           >
-            Canceladas <span>{reservasCanceladas}</span>
+            Canceladas
           </button>
         </div>
 
         {error && <p className="form-error">{error}</p>}
         {cargando && <Spinner texto="Cargando reservas..." />}
-        {!cargando && reservasFiltradas.length === 0 && (
+        {!cargando && reservas.length === 0 && (
           <EmptyState
             title={
               tab === "activas"
@@ -410,7 +417,7 @@ function AdminReserva() {
         )}
 
         <div className="list-stack">
-          {reservasFiltradas.map((reserva) => (
+          {reservas.map((reserva) => (
             <button
               key={reserva.id}
               className={
@@ -437,6 +444,30 @@ function AdminReserva() {
             </button>
           ))}
         </div>
+
+        {totalReservas > POR_PAGINA && (
+          <div className="pagination">
+            <button
+              type="button"
+              className="btn btn-ghost small"
+              disabled={pagina <= 1}
+              onClick={() => setPagina((p) => p - 1)}
+            >
+              ← Anterior
+            </button>
+            <span className="pagination-info">
+              {totalReservas} reservas · Pág. {pagina} de {totalPaginas}
+            </span>
+            <button
+              type="button"
+              className="btn btn-ghost small"
+              disabled={pagina >= totalPaginas}
+              onClick={() => setPagina((p) => p + 1)}
+            >
+              Siguiente →
+            </button>
+          </div>
+        )}
       </aside>
 
       <main className="panel-card detail-panel">
@@ -452,7 +483,7 @@ function AdminReserva() {
                 <span className="section-label">
                   {modoEdicion
                     ? "Editar información de la reserva"
-                    : "Información de la solicitud"}
+                    : "Información de la reserva"}
                 </span>
                 <h2>{seleccionada.nombre_solicitante}</h2>
                 <p>UCB - Dirección de Deportes</p>
@@ -697,10 +728,6 @@ function AdminReserva() {
                     </strong>
                   </div>
                   <div>
-                    <span>Tipo reserva</span>
-                    <strong>{seleccionada.tipo_reserva}</strong>
-                  </div>
-                  <div>
                     <span>Fecha y horario</span>
                     <strong>
                       {formatFechaBO(seleccionada.fecha_reserva)} ·{" "}
@@ -708,8 +735,8 @@ function AdminReserva() {
                     </strong>
                   </div>
                   <div className="full">
-                    <span>Motivo</span>
-                    <strong>{seleccionada.motivo}</strong>
+                    <span>Tipo de reserva</span>
+                    <strong style={{ textTransform: "capitalize" }}>{seleccionada.tipo_reserva}</strong>
                   </div>
                 </div>
 

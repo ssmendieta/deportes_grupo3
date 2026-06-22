@@ -46,12 +46,12 @@ describe("ReservasController", () => {
         data: [],
         total: 0,
         page: 1,
-        limit: 50,
+        limit: 7,
       });
 
-      await controller.findAll("1", "2026-05-22", "1", "50");
+      await controller.findAll("1", "2026-05-22", "1", "7");
 
-      expect(spy).toHaveBeenCalledWith(1, "2026-05-22", 1, 50);
+      expect(spy).toHaveBeenCalledWith(1, "2026-05-22", 1, 7, undefined, undefined);
     });
 
     it("debe usar valores por defecto si no se envian parametros", async () => {
@@ -59,12 +59,12 @@ describe("ReservasController", () => {
         data: [],
         total: 0,
         page: 1,
-        limit: 50,
+        limit: 7,
       });
 
       await controller.findAll();
 
-      expect(spy).toHaveBeenCalledWith(undefined, undefined, 1, 50);
+      expect(spy).toHaveBeenCalledWith(undefined, undefined, 1, 7, undefined, undefined);
     });
   });
 });

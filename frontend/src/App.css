@@ -200,8 +200,21 @@ button {
   padding: 8px 12px;
   font-size: 0.88rem;
 }
+.btn.xsmall {
+  padding: 4px 8px;
+  font-size: 0.78rem;
+}
 .btn-primary {
   background: var(--azul-oceano);
+  color: var(--blanco);
+}
+.btn-danger {
+  background: transparent;
+  color: var(--rojo);
+  border: 1px solid var(--rojo);
+}
+.btn-danger:hover {
+  background: var(--rojo);
   color: var(--blanco);
 }
 .btn-ghost {
@@ -564,6 +577,9 @@ button {
   align-items: center;
   flex-wrap: wrap;
 }
+.reserva-tabs {
+  margin-top: 14px;
+}
 .segmented-inline span {
   font-weight: 900;
 }
@@ -795,6 +811,19 @@ button {
   flex-direction: column;
   gap: 10px;
   margin-top: 14px;
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--gris-borde);
+}
+.pagination-info {
+  font-size: 0.85rem;
+  color: var(--texto-secundario);
 }
 .list-card {
   width: 100%;

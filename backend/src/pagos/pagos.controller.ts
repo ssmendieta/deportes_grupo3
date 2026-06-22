@@ -12,6 +12,7 @@ import {
 import { Response } from "express";
 import { ApiOperation, ApiTags, ApiQuery } from "@nestjs/swagger";
 import { PagosService } from "./pagos.service";
+import { PagosSyncService } from "./pagos-sync.service";
 import { CreatePagoDto } from "./dto/create-pago.dto";
 import { ReportesService } from "../reportes/reportes.service";
 import { Roles } from "../auth/decorators/roles.decorator";
@@ -22,7 +23,8 @@ import { MESES_MAP } from "../common/constants/business.constants";
 export class PagosController {
   constructor(
     private readonly pagosService: PagosService,
-    private readonly reportesService: ReportesService
+    private readonly pagosSyncService: PagosSyncService,
+    private readonly reportesService: ReportesService,
   ) {}
 
   @Get()
@@ -35,6 +37,28 @@ export class PagosController {
     @Query("limit", new ParseIntPipe({ optional: true })) limit?: number,
   ) {
     return this.pagosService.findAll(page, limit);
+  }
+
+  @Get("cuentas-academia")
+  @Roles("admin", "entrenador")
+  @ApiOperation({ summary: "Cuentas academia con paginación, filtros y planilla" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiQuery({ name: "busqueda", required: false, type: String })
+  @ApiQuery({ name: "disciplinaId", required: false, type: Number })
+  @ApiQuery({ name: "mes", required: false, type: Number })
+  @ApiQuery({ name: "anio", required: false, type: Number })
+  @ApiQuery({ name: "estado", required: false, type: String })
+  getCuentasAcademia(
+    @Query("page", new ParseIntPipe({ optional: true })) page?: number,
+    @Query("limit", new ParseIntPipe({ optional: true })) limit?: number,
+    @Query("busqueda") busqueda?: string,
+    @Query("disciplinaId", new ParseIntPipe({ optional: true })) disciplinaId?: number,
+    @Query("mes", new ParseIntPipe({ optional: true })) mes?: number,
+    @Query("anio", new ParseIntPipe({ optional: true })) anio?: number,
+    @Query("estado") estado?: string,
+  ) {
+    return this.pagosService.getCuentasAcademia({ page, limit, busqueda, disciplinaId, mes, anio, estado });
   }
 
   @Get("conceptos")
@@ -84,27 +108,43 @@ export class PagosController {
     @Query("mes") mes?: string,
     @Query("anio") anio?: string
   ) {
-    const result = await this.pagosService.findAll(1, 10000);
-    let pagos: any[] = result.data;
-
     const numeroMes = mes ? (MESES_MAP[mes.toLowerCase()] ?? parseInt(mes)) : undefined;
+    const anioNum = anio ? parseInt(anio) : undefined;
 
-    if (numeroMes !== undefined || anio) {
-      pagos = pagos.filter((p) => {
-        if (!p.fecha_pago) return false;
-        const f = new Date(p.fecha_pago);
-        const coincideMes = numeroMes !== undefined ? (f.getUTCMonth() + 1) === numeroMes : true;
-        const coincideAnio = anio ? f.getUTCFullYear() === parseInt(anio) : true;
-        return coincideMes && coincideAnio;
-      });
+    let fechaDesde: Date | undefined;
+    let fechaHasta: Date | undefined;
+    if (numeroMes !== undefined && !isNaN(numeroMes)) {
+      const year = anioNum ?? new Date().getFullYear();
+      fechaDesde = new Date(Date.UTC(year, numeroMes - 1, 1));
+      fechaHasta = new Date(Date.UTC(year, numeroMes, 1));
+    } else if (anioNum !== undefined) {
+      fechaDesde = new Date(Date.UTC(anioNum, 0, 1));
+      fechaHasta = new Date(Date.UTC(anioNum + 1, 0, 1));
     }
 
+    const CHUNK = 1000;
+    let pagos: any[] = [];
+    let page = 1;
+    let totalPages = 1;
+
+    do {
+      const result = await this.pagosService.findAllParaReporte({
+        page,
+        limit: CHUNK,
+        fechaDesde,
+        fechaHasta,
+      });
+      pagos = pagos.concat(result.data);
+      totalPages = result.totalPages;
+      page++;
+    } while (page <= totalPages);
+
     const datosFormateados = pagos.map((p) => ({
-      id: p.id,
-      monto: `${p.monto} Bs.`,
+      id: p.id_pago,
+      monto: `${p.monto_pagado} Bs.`,
       concepto: p.concepto?.nombre || "Mensualidad",
-      fecha: new Date(p.fecha_pago).toLocaleDateString("es-BO"),
-      estado: p.estado ? p.estado.toUpperCase() : "COMPLETADO",
+      fecha: p.fecha_pago ? new Date(p.fecha_pago).toLocaleDateString("es-BO") : "—",
+      estado: p.estado_factura ? p.estado_factura.toUpperCase() : "ACTIVA",
     }));
 
     const columnas = [
@@ -142,6 +182,13 @@ export class PagosController {
     return this.pagosService.getPagosDeportista(id);
   }
 
+  @Get("total-recaudado")
+  @Roles("admin", "entrenador")
+  @ApiOperation({ summary: "Total recaudado en pagos activos" })
+  getTotalRecaudado(@Query("anio") anio?: string) {
+    return this.pagosService.getTotalRecaudado(anio ? parseInt(anio) : undefined);
+  }
+
   @Post()
   @Roles("admin")
   @ApiOperation({ summary: "Registrar un pago manual" })
@@ -154,5 +201,29 @@ export class PagosController {
   @ApiOperation({ summary: "Anular un pago" })
   anularPago(@Param("id", ParseIntPipe) id: number) {
     return this.pagosService.anularPago(id);
+  }
+
+  @Post("sync")
+  @Roles("admin")
+  @ApiOperation({ summary: "Ejecutar sincronización con caja externa (usa datos mock)" })
+  async ejecutarSync() {
+    return this.pagosSyncService.sync();
+  }
+
+  @Get("sync/pendientes")
+  @Roles("admin")
+  @ApiOperation({ summary: "Listar transacciones externas pendientes de asignación" })
+  async getSyncPendientes() {
+    return this.pagosSyncService.getPendientes();
+  }
+
+  @Post("sync/:id/asignar")
+  @Roles("admin")
+  @ApiOperation({ summary: "Asignar un pago parcial a un deportista" })
+  async asignarPago(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() data: { id_deportista: number; id_concepto: number; mes_correspondiente: number; monto: number },
+  ) {
+    return this.pagosSyncService.asignarPago(id, data);
   }
 }

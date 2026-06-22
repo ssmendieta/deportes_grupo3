@@ -22,7 +22,7 @@ function mapInscripcion(raw: InscripcionRaw): Inscripcion {
   };
 }
 
-function mapDeportista(raw: DeportistaRaw): Deportista {
+export function mapDeportista(raw: DeportistaRaw): Deportista {
   return {
     id: raw.id,
     tipo: raw.tipo as Deportista["tipo"],
@@ -209,16 +209,15 @@ const MESES: Record<number, string> = {
 };
 
 function mapPago(raw: PagoRaw): PagoHistorial {
+  const esMatricula = raw.mes_correspondiente === 0;
   return {
-    id: raw.id,
-    mes: raw.mes ? (MESES[raw.mes] ?? `Mes ${raw.mes}`) : "Matrícula",
-    anio: raw.anio ?? new Date().getFullYear(),
-    concepto: raw.concepto.nombre,
-    monto: Number(raw.monto),
-    estado: raw.estado,
+    id: raw.id_pago,
+    mes: esMatricula ? "Matrícula" : (MESES[raw.mes_correspondiente] ?? `Mes ${raw.mes_correspondiente}`),
+    anio: raw.gestion,
+    concepto: raw.concepto?.nombre ?? "—",
+    monto: Number(raw.monto_pagado),
     fechaPago: raw.fecha_pago,
-    observaciones: raw.observaciones ?? undefined,
-    anulado: raw.estado === "anulado",
+    anulado: raw.estado_factura.toLowerCase() === "anulado",
   };
 }
 

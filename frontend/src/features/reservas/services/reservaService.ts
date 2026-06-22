@@ -1,4 +1,9 @@
 import { apiRequest, API_URL } from "../../../shared/services/apiClient";
+import {
+  FALLBACK_HORARIO_APERTURA,
+  FALLBACK_HORARIO_CIERRE,
+  POR_PAGINA,
+} from "../constants/reservas.constants";
 import type {
   BloqueOcupado,
   CreateReservaDto,
@@ -9,40 +14,21 @@ import type {
   UpdateReservaDto,
 } from "../types/reserva.types";
 
-export const DIAS_SEMANA = [
-  "Lunes",
-  "Martes",
-  "Miércoles",
-  "Jueves",
-  "Viernes",
-  "Sábado",
-];
 
-export const HORAS_CALENDARIO = [
-  "14:00",
-  "14:30",
-  "15:00",
-  "15:30",
-  "16:00",
-  "16:30",
-  "17:00",
-  "17:30",
-  "18:00",
-];
 
 const espaciosFallback: Espacio[] = [
   {
     id: 1,
     nombre: "Coliseo Polideportivo",
-    horario_apertura: "14:00",
-    horario_cierre: "18:00",
+    horario_apertura: FALLBACK_HORARIO_APERTURA,
+    horario_cierre: FALLBACK_HORARIO_CIERRE,
     activo: true,
   },
   {
     id: 2,
     nombre: "Cancha de Arquitectura",
-    horario_apertura: "14:00",
-    horario_cierre: "18:00",
+    horario_apertura: FALLBACK_HORARIO_APERTURA,
+    horario_cierre: FALLBACK_HORARIO_CIERRE,
     activo: true,
   },
 ];
@@ -84,23 +70,31 @@ function fechaParaAPI(semanaBase: Date, indiceDia: number): string {
 
 export { fechaParaAPI };
 
+const esDesarrollo = import.meta.env.DEV === true;
+
 export async function getEspacios(): Promise<Espacio[]> {
   try {
     const data = await apiRequest<Espacio[]>("/api/espacios");
-    return data.length ? data : espaciosFallback;
+    return data.length ? data : [];
   } catch (error) {
-    console.warn("Usando espacios fallback", error);
-    return espaciosFallback;
+    if (esDesarrollo) {
+      console.warn("Usando espacios fallback (DEV)", error);
+      return espaciosFallback;
+    }
+    throw error;
   }
 }
 
 export async function getDisciplinasReserva(): Promise<DisciplinaBasica[]> {
   try {
     const data = await apiRequest<DisciplinaBasica[]>("/api/disciplinas");
-    return data.length ? data : disciplinasFallback;
+    return data.length ? data : [];
   } catch (error) {
-    console.warn("Usando disciplinas fallback para reserva", error);
-    return disciplinasFallback;
+    if (esDesarrollo) {
+      console.warn("Usando disciplinas fallback (DEV)", error);
+      return disciplinasFallback;
+    }
+    throw error;
   }
 }
 
@@ -113,111 +107,104 @@ export async function getDisponibilidad(
       `/api/horarios-disponibles/${espacioId}?fecha=${fecha}`,
     );
   } catch (error) {
-    console.warn("Usando disponibilidad fallback", error);
-    const dia = new Date(`${fecha}T12:00:00.000Z`).getUTCDay();
-    const bloques: BloqueOcupado[] = [];
+    if (esDesarrollo) {
+      console.warn("Usando disponibilidad fallback (DEV)", error);
+      const dia = new Date(`${fecha}T12:00:00.000Z`).getUTCDay();
+      const bloques: BloqueOcupado[] = [];
 
-    if (espacioId === 1 && dia === 1) {
-      bloques.push({
-        hora_inicio: "14:00",
-        hora_fin: "15:30",
-        tipo: "clase",
-        motivo: "Clase / entrenamiento",
-      });
-    }
-    if (espacioId === 2 && dia === 2) {
-      bloques.push({
-        hora_inicio: "15:00",
-        hora_fin: "16:30",
-        tipo: "clase",
-        motivo: "Clase / entrenamiento",
-      });
-    }
-    if (espacioId === 2 && dia === 5) {
-      bloques.push({
-        hora_inicio: "14:30",
-        hora_fin: "16:00",
-        tipo: "reserva",
-        motivo: "Reserva previa",
-      });
-    }
+      if (espacioId === 1 && dia === 1) {
+        bloques.push({
+          hora_inicio: "14:00",
+          hora_fin: "15:30",
+          tipo: "clase",
+          motivo: "Clase / entrenamiento",
+        });
+      }
+      if (espacioId === 2 && dia === 2) {
+        bloques.push({
+          hora_inicio: "15:00",
+          hora_fin: "16:30",
+          tipo: "clase",
+          motivo: "Clase / entrenamiento",
+        });
+      }
+      if (espacioId === 2 && dia === 5) {
+        bloques.push({
+          hora_inicio: "14:30",
+          hora_fin: "16:00",
+          tipo: "reserva",
+          motivo: "Reserva previa",
+        });
+      }
 
-    return {
-      espacio: {
-        nombre:
-          espaciosFallback.find((e) => e.id === espacioId)?.nombre || "Espacio",
-        horario_apertura: "14:00",
-        horario_cierre: "18:00",
-      },
-      bloques_ocupados: bloques,
-    };
+      return {
+        espacio: {
+          nombre:
+            espaciosFallback.find((e) => e.id === espacioId)?.nombre || "Espacio",
+          horario_apertura: FALLBACK_HORARIO_APERTURA,
+          horario_cierre: FALLBACK_HORARIO_CIERRE,
+        },
+        bloques_ocupados: bloques,
+      };
+    }
+    throw error;
   }
 }
 
 export async function getReservas(params?: {
   espacioId?: number;
   fecha?: string;
-}): Promise<Reserva[]> {
+  page?: number;
+  limit?: number;
+  estado?: string;
+  busqueda?: string;
+}): Promise<{ data: Reserva[]; total: number; page: number; limit: number }> {
   try {
     const query = new URLSearchParams();
     if (params?.fecha) query.append("fecha", params.fecha);
     if (params?.espacioId) query.append("espacioId", String(params.espacioId));
-    query.append("limit", "200");
-    const qs = query.toString();
-    const endpoint = qs ? `/api/reservas?${qs}` : "/api/reservas";
+    if (params?.estado) query.append("estado", params.estado);
+    if (params?.busqueda) query.append("busqueda", params.busqueda);
+    query.append("page", String(params?.page ?? 1));
+    query.append("limit", String(params?.limit ?? POR_PAGINA));
+    const endpoint = `/api/reservas?${query.toString()}`;
     const response = await apiRequest<{
       data: Reserva[];
       total: number;
       page: number;
       limit: number;
     }>(endpoint, { requiresAuth: true });
-    return response.data;
+    return response;
   } catch (error) {
-    console.warn("Usando reservas fallback", error);
-    return reservasFallback.filter((reserva) => {
-      const coincideFecha = params?.fecha
-        ? reserva.fecha_reserva === params.fecha
-        : true;
-      const coincideEspacio = params?.espacioId
-        ? reserva.espacio_id === params.espacioId
-        : true;
-      return coincideFecha && coincideEspacio;
-    });
+    if (esDesarrollo) {
+      console.warn("Usando reservas fallback (DEV)", error);
+      const page = params?.page ?? 1;
+      const limit = params?.limit ?? POR_PAGINA;
+      const filtradas = reservasFallback.filter((reserva) => {
+        if (params?.fecha && reserva.fecha_reserva !== params.fecha) return false;
+        if (params?.espacioId && reserva.espacio_id !== params.espacioId) return false;
+        if (params?.estado === "confirmada" && reserva.estado === "cancelada") return false;
+        if (params?.estado === "cancelada" && reserva.estado !== "cancelada") return false;
+        if (params?.busqueda) {
+          const texto = `${reserva.nombre_solicitante} ${reserva.ci}`.toLowerCase();
+          if (!texto.includes(params.busqueda.toLowerCase())) return false;
+        }
+        return true;
+      });
+      const total = filtradas.length;
+      const data = filtradas.slice((page - 1) * limit, page * limit);
+      return { data, total, page, limit };
+    }
+    throw error;
   }
 }
 
 export async function crearReserva(datos: CreateReservaDto): Promise<Reserva> {
-  try {
-    return await apiRequest<Reserva>("/api/reservas", {
-      method: "POST",
-      requiresAuth: true,
-      body: JSON.stringify(datos),
-    });
-  } catch (error) {
-    if (error instanceof Error && error.message) {
-      throw error;
-    }
-
-    console.warn(
-      "Backend de reservas no disponible, se simula respuesta",
-      error,
-    );
-    return {
-      id: Date.now(),
-      estado: "confirmada",
-      espacio_id: datos.espacio_id,
-      nombre_solicitante: datos.nombre_solicitante,
-      ci: datos.ci,
-      complemento: datos.complemento,
-      correo_solicitante: datos.correo_solicitante,
-      fecha_reserva: datos.fecha_reserva,
-      hora_inicio: datos.hora_inicio,
-      hora_fin: datos.hora_fin,
-      tipo_reserva: datos.tipo_reserva,
-      motivo: datos.motivo,
-      espacio: espaciosFallback.find((e) => e.id === datos.espacio_id),
-    };
-  }
+  return await apiRequest<Reserva>("/api/reservas", {
+    method: "POST",
+    requiresAuth: true,
+    body: JSON.stringify(datos),
+  });
 }
 
 export async function cancelarReserva(id: number): Promise<Reserva> {

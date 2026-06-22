@@ -1,5 +1,15 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+
+type EspacioDisponibilidad = Pick<
+  Prisma.espaciosGetPayload<{}>,
+  "nombre_espacio" | "hora_apertura" | "horario_cierre"
+>;
+
+type ClaseConBloque = Prisma.plantilla_horarios_fijosGetPayload<{
+  include: { tipos_bloqueo: true };
+}>;
 
 @Injectable()
 export class HorariosService {
@@ -13,7 +23,7 @@ export class HorariosService {
   }
 
   async getDisponibilidad(espacioId: number, fecha: string) {
-    const espacio: any = await this.prisma.espacios.findUnique({
+    const espacio = await this.prisma.espacios.findUnique({
       where: { id_espacio: espacioId },
       select: {
         nombre_espacio: true,
@@ -29,8 +39,7 @@ export class HorariosService {
     const fechaDate = new Date(`${fecha}T12:00:00.000Z`);
     const diaSemana = fechaDate.getUTCDay();
 
-    const clases: any[] = await (this.prisma
-      .plantilla_horarios_fijos as any).findMany({
+    const clases = await this.prisma.plantilla_horarios_fijos.findMany({
       where: {
         id_espacio: espacioId,
         dia_semana: diaSemana,
@@ -45,11 +54,11 @@ export class HorariosService {
     const fechaFin = new Date(fecha);
     fechaFin.setUTCHours(23, 59, 59, 999);
 
-    const reservas: any[] = await this.prisma.reservas.findMany({
+    const reservas = await this.prisma.reservas.findMany({
       where: {
         id_espacio: espacioId,
         fecha_reserva: { gte: fechaInicio, lte: fechaFin },
-        estado: { in: ["Pendiente", "confirmada"] },
+        estado: "confirmada",
       },
       select: {
         hora_inicio: true,
@@ -68,16 +77,16 @@ export class HorariosService {
           : null,
       },
       bloques_ocupados: [
-        ...clases.map((c: any) => ({
+        ...clases.map((c) => ({
           hora_inicio: this.formatTime(c.hora_inicio),
           hora_fin: this.formatTime(c.hora_fin),
           tipo: c.tipos_bloqueo?.nombre_bloqueo ?? "clase",
           motivo: c.tipos_bloqueo?.nombre_bloqueo ?? "Horario de clases",
         })),
-        ...reservas.map((r: any) => ({
+        ...reservas.map((r) => ({
           hora_inicio: this.formatTime(r.hora_inicio),
           hora_fin: this.formatTime(r.hora_fin),
-          tipo: "reserva",
+          tipo: "reserva" as const,
           estado: r.estado,
           motivo: r.motivo,
         })),

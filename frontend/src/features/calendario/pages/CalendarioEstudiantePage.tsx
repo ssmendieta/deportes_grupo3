@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import StatCard from "../../../shared/components/StatCard";
 import { formatFechaBO } from "../../../shared/services/apiClient";
 import { getEspacios } from "../../reservas/services/reservaService";
 import type { Espacio } from "../../reservas/types/reserva.types";
@@ -58,9 +57,7 @@ function CalendarioEstudiantePage() {
         subtitulo="Consulta disponibilidad de canchas. Las reservas se realizan de forma presencial."
       />
 
-      <section className="stats-grid compact">
-        <StatCard label="Horario visible" value="14:00 - 18:00" />
-      </section>
+
 
       <div className="gc-toolbar">
         <NavegacionSemana

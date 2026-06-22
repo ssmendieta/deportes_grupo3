@@ -22,7 +22,7 @@ const estadoTone: Record<EstadoCuenta, "success" | "warning" | "info"> = {
 };
 
 function nombreCompleto(d: Deportista) {
-  return `${d.nombres ?? ""} ${d.apePaterno ?? ""} ${d.apeMaterno ?? ""}`.trim();
+  return d.nombreCompleto || `${d.nombres ?? ""} ${d.apePaterno ?? ""} ${d.apeMaterno ?? ""}`.trim();
 }
 
 function ciCompleto(d: Deportista) {

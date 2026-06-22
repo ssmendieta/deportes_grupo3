@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Res,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 
 import { Response } from "express";
 import { ReservasService } from "./reservas.service";
@@ -21,6 +22,7 @@ import { Roles } from "../auth/decorators/roles.decorator";
 @ApiTags("reservas")
 @ApiSecurity("permisos-rol")
 @Controller("api/reservas")
+@Throttle({ default: { limit: 30, ttl: 60000 } })
 export class ReservasController {
   constructor(
     private readonly reservasService: ReservasService,
@@ -39,12 +41,16 @@ export class ReservasController {
     @Query("fecha") fecha?: string,
     @Query("page") page?: string,
     @Query("limit") limit?: string,
+    @Query("estado") estado?: string,
+    @Query("busqueda") busqueda?: string,
   ) {
     return this.reservasService.findAll(
       espacioId ? parseInt(espacioId) : undefined,
       fecha,
       page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 50,
+      limit ? parseInt(limit) : 7,
+      estado,
+      busqueda,
     );
   }
 
@@ -65,30 +71,16 @@ export class ReservasController {
     @Query("hasta") hasta?: string,
     @Query("estado") estado?: string,
   ) {
-    const result = await this.reservasService.findAll();
-    let reservas = result.data;
-
-    if (desde) {
-      const fechaDesde = new Date(`${desde}T00:00:00.000Z`);
-      reservas = reservas.filter((r: any) => new Date(r.fecha_reserva) >= fechaDesde);
-    }
-    if (hasta) {
-      const fechaHasta = new Date(`${hasta}T23:59:59.999Z`);
-      reservas = reservas.filter((r: any) => new Date(r.fecha_reserva) <= fechaHasta);
-    }
-
-    if (estado && estado !== "todos" && estado !== "activas") {
-      reservas = reservas.filter((r: any) => r.estado === estado);
-    }
+    const reservas = await this.reservasService.getReservasForReport({ desde, hasta, estado });
 
     const datosFormateados = reservas.map((r: any) => ({
       id: r.id_reserva,
-      solicitante: r.nombre_solicitante || "N/A",
-      espacio: r.espacio_nombre || "Desconocido",
+      solicitante: r.nombre_solicitante,
+      espacio: r.espacio_nombre,
       fecha: r.fecha_reserva ? new Date(r.fecha_reserva).toLocaleDateString("es-BO") : "N/A",
       horario: `${r.hora_inicio} - ${r.hora_fin}`,
-      motivo: r.motivo || "",
-      estado: r.estado.toUpperCase(),
+      motivo: r.motivo,
+      estado: r.estado,
     }));
 
     const columnas = [

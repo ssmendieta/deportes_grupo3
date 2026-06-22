@@ -5,11 +5,13 @@ import {
   IsPositive,
   IsString,
   IsDateString,
+  IsEnum,
   Matches,
   MinLength,
   MaxLength,
 } from "class-validator";
 import { Type } from "class-transformer";
+import { EstadoReserva } from "@prisma/client";
 
 export class CreateReservaDto {
   @ApiProperty({ example: 1, description: "ID del espacio a reservar" })
@@ -42,11 +44,13 @@ export class CreateReservaDto {
   @ApiProperty({
     example: "Entrenamiento de equipo",
     description: "Razón de la reserva",
+    required: false,
   })
+  @IsOptional()
   @IsString()
   @MinLength(3)
   @MaxLength(200)
-  motivo!: string;
+  motivo?: string;
 
   @ApiProperty({
     example: "Juan Pérez",
@@ -90,4 +94,15 @@ export class CreateReservaDto {
   @IsInt()
   @IsPositive()
   id_persona_aprobador?: number;
+
+  @ApiProperty({
+    example: 1,
+    description: "ID de la persona solicitante (se resuelve automáticamente desde el correo)",
+    required: false,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsPositive()
+  id_solicitante?: number;
 }

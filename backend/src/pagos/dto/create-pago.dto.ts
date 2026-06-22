@@ -41,10 +41,10 @@ export class CreatePagoDto {
   @IsDateString()
   fecha_pago!: string;
 
-  @ApiProperty({ example: 3, description: "Mes correspondiente (1-12)" })
+  @ApiProperty({ example: 3, description: "Mes correspondiente (0=matrícula, 1-12=mensualidad)" })
   @Type(() => Number)
   @IsInt()
-  @Min(1)
+  @Min(0)
   @Max(12)
   mes_correspondiente!: number;
 

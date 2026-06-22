@@ -6,78 +6,36 @@ import {
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateDeportistaDto } from "./dto/create-deportista.dto";
 import {
-  CAMPOS_MESES_PAGADO,
-  TIPOS_NO_APLICA_PAGO,
   DEPORTISTA_ROL,
 } from "../common/constants/business.constants";
+import { calcularEstadoCuenta, PlanillaParaEstado } from "../common/helpers/estado-cuenta.helper";
 
-type PlanillaEntry = {
-  matricula_pagada: boolean;
-  saldo_pendiente: number;
-  mes_1_pagado: boolean;
-  mes_2_pagado: boolean;
-  mes_3_pagado: boolean;
-  mes_4_pagado: boolean;
-  mes_5_pagado: boolean;
-  mes_6_pagado: boolean;
-  mes_7_pagado: boolean;
-  mes_8_pagado: boolean;
-  mes_9_pagado: boolean;
-};
-
-type PlanillaMap = Map<number, PlanillaEntry>;
+type PlanillaMap = Map<number, PlanillaParaEstado>;
 
 @Injectable()
 export class DeportistasService {
   constructor(private prisma: PrismaService) {}
 
-  private calcularEstadoCuenta(
-    deportistaId: number,
-    tipo: string,
-    planillaMap: PlanillaMap,
-  ): { estado_cuenta: string; deuda: number } {
-    const tiposNoAplica = TIPOS_NO_APLICA_PAGO;
-    if (tiposNoAplica.includes(tipo)) {
-      return { estado_cuenta: "no_aplica", deuda: 0 };
-    }
-
-    const planilla = planillaMap.get(deportistaId);
-    if (!planilla) return { estado_cuenta: "pendiente", deuda: 0 };
-
-    const mesActual = new Date().getMonth();
-    const indiceMesAcademico = mesActual - 2;
-    const mesesDebidos = CAMPOS_MESES_PAGADO.slice(
-      0,
-      Math.max(0, indiceMesAcademico + 1),
-    );
-    const mesesPendientes = mesesDebidos.filter((campo) => !planilla[campo]);
-    const deuda = Number(planilla.saldo_pendiente);
-
-    if (mesesPendientes.length === 0 && planilla.matricula_pagada) {
-      return { estado_cuenta: "al_dia", deuda: 0 };
-    }
-
-    return { estado_cuenta: "pendiente", deuda };
-  }
-
   private async cargarPlanillas(deportistaIds: number[]): Promise<PlanillaMap> {
     if (deportistaIds.length === 0) return new Map();
     const gestion = new Date().getFullYear();
-    const planillas = await this.prisma.planillaPagosAcademia.findMany({
-      where: { deportista_id: { in: deportistaIds }, gestion },
-    });
+    const planillas: any[] = await this.prisma.$queryRaw`
+      SELECT * FROM "PlanillaPagosAcademia"
+      WHERE deportista_id = ANY(${deportistaIds}::int[])
+      AND gestion = ${gestion}
+    `;
     const map: PlanillaMap = new Map();
     for (const p of planillas) {
-      map.set(p.deportista_id, p as unknown as PlanillaEntry);
+      map.set(p.deportista_id, p as unknown as PlanillaParaEstado);
     }
     return map;
   }
 
   private mapDeportistaRaw(raw: any, planillaMap: PlanillaMap) {
-    const { estado_cuenta, deuda } = this.calcularEstadoCuenta(
-      raw.id_deportista,
+    const planilla = planillaMap.get(raw.id_deportista) ?? null;
+    const { estado_cuenta, deuda } = calcularEstadoCuenta(
       raw.tipo_deportista,
-      planillaMap,
+      planilla,
     );
     const persona = raw.persona;
     return {
@@ -122,7 +80,7 @@ export class DeportistasService {
           : null,
       })) ?? [],
       estado_cuenta,
-      deuda: estado_cuenta === "al_dia" ? 0 : deuda,
+      deuda,
     };
   }
 

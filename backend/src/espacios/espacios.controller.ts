@@ -23,6 +23,15 @@ export class EspaciosController {
     return this.espaciosService.findAll();
   }
 
+  @Get("rango-horario")
+  @ApiOperation({
+    summary: "Rango horario global",
+    description: "Retorna el horario mínimo de apertura y máximo de cierre entre todos los espacios activos.",
+  })
+  rangoHorario() {
+    return this.espaciosService.getRangoHorario();
+  }
+
   @Get(":id")
   @ApiOperation({ summary: "Ver detalle de un espacio" })
   @ApiParam({ name: "id", example: 1 })

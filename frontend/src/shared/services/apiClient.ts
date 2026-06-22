@@ -1,4 +1,5 @@
 const viteApiUrl = import.meta.env.VITE_API_URL;
+const esDevMode = import.meta.env.VITE_DEV_MODE === "true";
 export const API_URL = viteApiUrl === "__RELATIVE__" ? "" : (viteApiUrl || "http://localhost:4000");
 const TOKEN_KEY = "ucb_auth_token";
 
@@ -20,6 +21,7 @@ function tokenExpirado(): boolean {
 function authHeaders(requiresAuth: boolean): Record<string, string> {
   const base: Record<string, string> = { "Content-Type": "application/json" };
   if (!requiresAuth) return base;
+  if (esDevMode) return base;
   const token = sessionStorage.getItem(TOKEN_KEY);
   if (token) base["Authorization"] = `Bearer ${token}`;
   return base;
@@ -36,7 +38,7 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const { requiresAuth = false, headers, ...rest } = options;
 
-  if (requiresAuth && tokenExpirado()) {
+  if (requiresAuth && !esDevMode && tokenExpirado()) {
     redirectLogin();
     throw new Error("Sesi\u00f3n expirada");
   }
@@ -73,6 +75,12 @@ export function toDateInputValue(date: Date) {
 }
 
 export function formatFechaBO(date: Date | string) {
+  if (typeof date === "string") {
+    const parts = date.split("T")[0].split("-").map(Number);
+    if (parts.length === 3 && !isNaN(parts[0])) {
+      return `${String(parts[2]).padStart(2, "0")}/${String(parts[1]).padStart(2, "0")}/${parts[0]}`;
+    }
+  }
   const parsed = typeof date === "string" ? new Date(date) : date;
   const dia = String(parsed.getDate()).padStart(2, "0");
   const mes = String(parsed.getMonth() + 1).padStart(2, "0");

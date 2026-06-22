@@ -7,6 +7,8 @@ const AUDITED_ENTITIES: Record<string, string> = {
   '/api/deportistas': 'deportista',
   '/api/pagos': 'pago',
   '/api/disciplinas': 'disciplina',
+  '/api/espacios': 'espacio',
+  '/api/horarios': 'horario',
 };
 
 @Injectable()
@@ -27,29 +29,37 @@ export class AuditoriaMiddleware implements NestMiddleware {
     }
 
     const user = (req as any).user;
-    const correlationId = (req as any).correlationId;
-
     const accion = this.determinarAccion(method, req.originalUrl);
     const entidadId = this.extraerEntidadId(req.originalUrl);
 
-    const registro = {
-      usuario_email: user?.email ?? 'desconocido',
-      usuario_rol: user?.rol ?? 'desconocido',
-      accion,
-      entidad,
-      entidad_id: entidadId ?? 0,
-      ip: req.ip || req.socket?.remoteAddress,
-      correlation_id: correlationId,
-    };
+    let datosAnteriores: unknown = undefined;
+
+    if (entidadId !== null && (method === 'PATCH' || method === 'DELETE')) {
+      this.auditoriaService
+        .obtenerDatosAnteriores(entidad, entidadId)
+        .then((data) => {
+          datosAnteriores = data ?? undefined;
+        })
+        .catch(() => {});
+    }
 
     const originalJson = res.json.bind(res);
     res.json = (body: any) => {
       if (res.statusCode < 400 && body) {
+        const registroId =
+          body.id ?? body.id_pago ?? body.id_reserva ??
+          body.id_deportista ?? body.id_disciplina ??
+          body.id_espacio ?? entidadId ?? 0;
+
         this.auditoriaService.registrar({
-          ...registro,
-          entidad_id: body.id ?? body.id_pago ?? body.id_reserva ?? body.id_deportista ?? body.id_disciplina ?? entidadId ?? 0,
-          detalle_despues: body,
-        });
+          id_usuario: user?.id ?? undefined,
+          accion,
+          tabla: entidad,
+          registro_id: typeof registroId === 'number' ? registroId : Number(registroId) || 0,
+          datos_anteriores: datosAnteriores,
+          datos_nuevos: body,
+          ip_address: req.ip || req.socket?.remoteAddress,
+        }).catch(() => {});
       }
       return originalJson(body);
     };
@@ -65,17 +75,24 @@ export class AuditoriaMiddleware implements NestMiddleware {
   }
 
   private determinarAccion(method: string, url: string): string {
+    if (url.includes('/anular')) return 'ANULAR';
+    if (url.includes('/inscripciones')) return 'INSCRIBIR';
     if (method === 'POST') return 'CREAR';
     if (method === 'DELETE') return 'ELIMINAR';
-    if (url.includes('/anular')) return 'ANULAR';
     if (url.includes('/estado')) return 'ACTUALIZAR_ESTADO';
-    if (url.includes('/inscripciones')) return 'INSCRIBIR';
     return 'ACTUALIZAR';
   }
 
   private extraerEntidadId(url: string): number | null {
-    const parts = url.split('/').filter(Boolean);
-    const idPart = parts.find((p, i) => i > 0 && /^\d+$/.test(p));
-    return idPart ? parseInt(idPart) : null;
+    const segments = url.split('/').filter(Boolean);
+    for (let i = 1; i < segments.length; i++) {
+      if (/^\d+$/.test(segments[i])) {
+        const prefix = '/' + segments.slice(0, i).join('/');
+        if (AUDITED_ENTITIES[prefix]) {
+          return parseInt(segments[i], 10);
+        }
+      }
+    }
+    return null;
   }
 }

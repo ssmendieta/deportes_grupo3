@@ -35,7 +35,7 @@ export class MailService {
 
   private getTemplate(): handlebars.TemplateDelegate {
     if (!this.compiledTemplate) {
-      const tplPath = path.join(process.cwd(), 'src', 'mail', 'templates', 'reserva-confirmada.hbs');
+      const tplPath = path.join(__dirname, '..', '..', 'src', 'mail', 'templates', 'reserva-confirmada.hbs');
       const source = fs.readFileSync(tplPath, 'utf8');
       this.compiledTemplate = handlebars.compile(source);
     }
@@ -71,7 +71,7 @@ export class MailService {
       estado: reserva.estado,
     });
 
-    const logoPath = path.join(process.cwd(), '..', 'frontend', 'src', 'assets', 'logo ucb.png');
+    const logoPath = path.join(__dirname, '..', '..', 'assets', 'logo-ucb.png');
 
     await this.transporter.sendMail({
       from: `"Sistema de Reservas UCB" <${mailConfig.from}>`,

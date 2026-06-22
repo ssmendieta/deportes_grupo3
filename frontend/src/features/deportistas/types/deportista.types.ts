@@ -64,6 +64,21 @@ export type Inscripcion = {
   disciplina?: Disciplina | null;
 };
 
+export type PlanillaEntry = {
+  matricula_pagada: boolean;
+  mes_1_pagado: boolean;
+  mes_2_pagado: boolean;
+  mes_3_pagado: boolean;
+  mes_4_pagado: boolean;
+  mes_5_pagado: boolean;
+  mes_6_pagado: boolean;
+  mes_7_pagado: boolean;
+  mes_8_pagado: boolean;
+  mes_9_pagado: boolean;
+  total_pagado: number;
+  saldo_pendiente: number;
+};
+
 export type Deportista = {
   id: number;
   tipo: TipoDeportista;
@@ -86,6 +101,7 @@ export type Deportista = {
   inscripciones?: Inscripcion[];
   estadoCuenta?: EstadoCuenta;
   deuda?: number;
+  planilla?: PlanillaEntry;
 };
 
 export type DeportistaFormData = {
@@ -110,23 +126,20 @@ export type DeportistaFormData = {
 };
 
 export type PagoRaw = {
-  id: number;
-  deportista_id: number;
-  concepto_id: number;
-  monto: number | string;
-  mes: number | null;
-  anio: number | null;
+  id_pago: number;
+  id_persona_pago: number;
+  id_deportista_beneficiario: number;
+  id_concepto: number;
+  id_transaccion_caja: string;
+  monto_pagado: number;
   fecha_pago: string;
-  comprobante: string | null;
-  origen: string;
-  estado: "confirmado" | "anulado";
-  observaciones: string | null;
+  mes_correspondiente: number;
+  gestion: number;
+  estado_factura: string;
   concepto: {
     id: number;
     nombre: string;
-    monto: number | string;
-    periodicidad: string | null;
-  };
+  } | null;
 };
 
 export type PagoHistorial = {
@@ -135,7 +148,6 @@ export type PagoHistorial = {
   anio: number;
   concepto: string;
   monto: number;
-  estado: "confirmado" | "anulado";
   fechaPago?: string;
   observaciones?: string;
   anulado: boolean;

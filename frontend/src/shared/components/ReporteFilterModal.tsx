@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { descargarReporte } from "../services/reporteService";
 
 export type FiltroConfig = {
@@ -44,7 +45,7 @@ function ReporteFilterModal({
     }
   };
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" role="dialog" aria-modal="true">
       <section className="modal-card" style={{ backgroundColor: "#fff" }}>
         <button className="modal-close" onClick={onClose}>
@@ -110,7 +111,8 @@ function ReporteFilterModal({
           </button>
         </div>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

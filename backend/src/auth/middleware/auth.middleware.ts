@@ -39,6 +39,12 @@ export class AuthMiddleware implements NestMiddleware {
       throw new Error("public.pem no configurado. Establezca ALLOW_DEV_MOCK=true para modo desarrollo.");
     }
 
+    if (process.env.ALLOW_DEV_MOCK === "true" && !req.headers.authorization) {
+      this.logger.warn("Modo mock ALLOW_DEV_MOCK activado. Inyectando usuario de desarrollo.");
+      req.user = { rol: "admin", id: 0, email: "dev@localhost" };
+      return next();
+    }
+
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
