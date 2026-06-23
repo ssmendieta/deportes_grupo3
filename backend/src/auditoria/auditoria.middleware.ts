@@ -19,7 +19,7 @@ export class AuditoriaMiddleware implements NestMiddleware {
 
   use(req: Request, res: Response, next: NextFunction) {
     const method = req.method;
-    if (!['POST', 'PATCH', 'DELETE'].includes(method)) {
+    if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
       return next();
     }
 
