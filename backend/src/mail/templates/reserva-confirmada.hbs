@@ -135,11 +135,14 @@
             <tr><td><strong>C.I.</strong></td><td>{{carnet}}</td></tr>
             <tr><td><strong>Espacio</strong></td><td
               >{{espacio_nombre}}</td></tr>
+            <tr><td><strong>Tipo</strong></td><td>{{tipo_reserva}}</td></tr>
             <tr><td><strong>Fecha</strong></td><td>{{fecha}}</td></tr>
             <tr><td><strong>Horario</strong></td><td>{{hora_inicio}}
                 –
                 {{hora_fin}}</td></tr>
-            <tr><td><strong>Motivo</strong></td><td>{{motivo}}</td></tr>
+            {{#if aprobador_nombre}}
+              <tr><td><strong>Aprobado por</strong></td><td>{{aprobador_nombre}}</td></tr>
+            {{/if}}
             <tr><td><strong>Estado</strong></td><td><span
                   class="badge"
                 >{{estado}}</span></td></tr>

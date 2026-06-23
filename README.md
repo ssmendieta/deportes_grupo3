@@ -262,6 +262,24 @@ El frontend estará disponible en: `http://localhost:5173`
 
 ---
 
+## Modo desarrollo sin autenticación
+
+Para facilitar las pruebas locales, el proyecto incluye un modo de desarrollo que evita depender del servidor OAuth institucional.
+
+### Variables necesarias
+
+- **Backend (`backend/.env`)**: `ALLOW_DEV_MOCK=true`
+- **Frontend (`frontend/.env`)**: `VITE_DEV_MODE=true`
+
+### Cómo funciona
+
+- `ALLOW_DEV_MOCK=true` hace que el backend, si no recibe un header `Authorization`, inyecte automáticamente un usuario `admin` (`dev@localhost`).
+- `VITE_DEV_MODE=true` hace que el frontend no envíe el header `Authorization` y no redirija al login por expiración de token.
+
+> ⚠️ **Nunca uses estas variables en producción.** Solo están pensadas para desarrollo local.
+
+---
+
 ## API Reference
 
 **Base URL:** `http://localhost:4000`

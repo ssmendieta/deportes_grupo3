@@ -14,6 +14,12 @@ export type PlanillaParaEstado = {
   saldo_pendiente: number;
 };
 
+export type PlanillaVistaRow = PlanillaParaEstado & {
+  deportista_id: number;
+  nombre_completo: string;
+  tipo_deportista: string;
+};
+
 export type EstadoCuentaResult = {
   estado_cuenta: "al_dia" | "pendiente" | "no_aplica";
   deuda: number;

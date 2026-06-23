@@ -1,5 +1,6 @@
 import PDFDocument from 'pdfkit';
 import * as path from 'path';
+import { formatFechaBO } from '../../common/utils/response-mapper';
 
 export class ComprobanteReservaBuilder {
   private doc: PDFKit.PDFDocument;
@@ -9,8 +10,8 @@ export class ComprobanteReservaBuilder {
   }
 
   generarCabecera() {
-    const logoPath = path.join(__dirname, '..', '..', '..', '..', 'assets', 'logo-ucb.png');
-    
+    const logoPath = path.join(__dirname, '..', '..', '..', 'assets', 'logo-ucb.png');
+
     try {
       this.doc.image(logoPath, 50, 45, { width: 80 });
     } catch (e) {
@@ -25,12 +26,10 @@ export class ComprobanteReservaBuilder {
       .fontSize(10)
       .text('SISTEMA DE GESTIÓN DEPORTIVA', 140, 70, { align: 'right' })
       .moveDown();
-    
-    // Línea separadora ajustada (de 95 a 135) para no cortar el logo
+
     this.doc.rect(50, 135, 500, 2).fill('#003366');
   }
 
-  // Tarea 3: Numeración RES-YYYY-NNNNNN
   generarNumeracion(id: number) {
     const anio = new Date().getFullYear();
     const idFormateado = id.toString().padStart(6, '0');
@@ -40,49 +39,50 @@ export class ComprobanteReservaBuilder {
       .fillColor('#444444')
       .fontSize(10)
       .font('Helvetica')
-      // Texto ajustado (de 105 a 145)
       .text(`NRO. CONTROL: ${correlativo}`, 50, 145, { align: 'right' });
-    
+
     this.doc
       .fillColor('black')
       .fontSize(14)
       .font('Helvetica-Bold')
-      // Título ajustado (de 130 a 170)
       .text('COMPROBANTE DE RESERVA', 50, 170, { align: 'center' })
       .moveDown();
   }
 
   generarContenido(reserva: any) {
     this.doc.font('Helvetica').fontSize(11);
-    
-    // Datos del Solicitante
+
     this.doc.font('Helvetica-Bold').text('DATOS DEL SOLICITANTE:');
     this.doc.font('Helvetica')
       .text(`Nombre: ${reserva.nombre_solicitante}`)
       .text(`C.I.: ${reserva.ci}${reserva.complemento ? ' ' + reserva.complemento : ''}`)
       .moveDown();
 
-    // Detalles del Espacio
     this.doc.font('Helvetica-Bold').text('DETALLES DE LA RESERVA:');
     this.doc.font('Helvetica')
       .text(`Espacio: ${reserva.espacio_nombre}`)
-      .text(`Fecha: ${new Date(reserva.fecha_reserva).toLocaleDateString("es-BO")}`)
+      .text(`Tipo: ${reserva.tipo_reserva}`)
+      .text(`Estado: ${reserva.estado}`)
+      .text(`Fecha: ${formatFechaBO(reserva.fecha_reserva)}`)
       .text(`Horario: ${reserva.hora_inicio} - ${reserva.hora_fin}`)
       .moveDown();
 
-    // Motivo
-    this.doc.font('Helvetica-Bold').text('MOTIVO:');
-    this.doc.font('Helvetica').text(`${reserva.motivo}`);
+    if (reserva.aprobador_nombre) {
+      this.doc.font('Helvetica-Bold').text('APROBADO POR:');
+      this.doc.font('Helvetica').text(`${reserva.aprobador_nombre}`).moveDown();
+    }
+
+    this.doc.font('Helvetica-Bold').text('NOTA:');
+    this.doc.font('Helvetica').text('Favor presentarse 10 minutos antes del horario reservado con su carnet de identidad.');
   }
 
-  // Tarea 4: Pie de página, Dirección y Validez
   generarPiePagina() {
-    const fechaEmision = new Date().toLocaleString('es-BO');
+    const fechaEmision = formatFechaBO(new Date());
     const range = this.doc.bufferedPageRange();
 
     for (let i = range.start; i < range.start + range.count; i++) {
       this.doc.switchToPage(i);
-      
+
       this.doc
         .fontSize(8)
         .fillColor('#888888')

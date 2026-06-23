@@ -20,7 +20,6 @@ import { CarrerasModule } from './carreras/carreras.module';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { HealthModule } from './health/health.module';
 import { AuditoriaModule } from './auditoria/auditoria.module';
-import { AuditoriaMiddleware } from './auditoria/auditoria.middleware'; 
 
 @Module({
   imports: [
@@ -49,7 +48,7 @@ import { AuditoriaMiddleware } from './auditoria/auditoria.middleware';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(AuthMiddleware, AuditoriaMiddleware)
+      .apply(AuthMiddleware)
       .forRoutes('*');
   }
 }

@@ -388,7 +388,6 @@ model reservas {
   tipo_reserva         String         @db.VarChar(50)
   motivo               String?        @db.VarChar(200)
   estado               EstadoReserva  @default(confirmada)
-  ruta_comprobante_pdf String?        @db.VarChar(255)
   nombre_solicitante   String         @db.VarChar(255)
   ci                   Int
   complemento          String?        @db.VarChar(5)
@@ -457,6 +456,10 @@ model auditoria {
   id_usuario      Int?
   fecha_auditoria DateTime @default(now()) @db.Timestamp(6)
   ip_address      String?  @db.VarChar(45)
+
+  @@index([tabla, fecha_auditoria])
+  @@index([id_usuario])
+  @@index([accion])
 }
 
 

@@ -1,14 +1,26 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
 
 const TABLA_TO_TABLE: Record<string, { table: string; pk: string }> = {
-  reserva: { table: 'reservas', pk: 'id_reserva' },
-  deportista: { table: 'deportistas', pk: 'id_deportista' },
-  pago: { table: 'pagos', pk: 'id_pago' },
-  disciplina: { table: 'disciplinas', pk: 'id_disciplina' },
-  espacio: { table: 'espacios', pk: 'id_espacio' },
-  horario: { table: 'plantilla_horarios_fijos', pk: 'id_plantilla' },
+  reserva: { table: "reservas", pk: "id_reserva" },
+  deportista: { table: "deportistas", pk: "id_deportista" },
+  inscripcion: { table: "inscripciones", pk: "id_inscripcion" },
+  pago: { table: "pagos", pk: "id_pago" },
+  disciplina: { table: "disciplinas", pk: "id_disciplina" },
+  espacio: { table: "espacios", pk: "id_espacio" },
+  horario: { table: "plantilla_horarios_fijos", pk: "id_plantilla" },
 };
+
+const SENSITIVE_FIELDS = new Set([
+  "password",
+  "hash_password",
+  "token",
+  "refresh_token",
+  "secret",
+  "contrasena",
+  "contraseña",
+]);
 
 type AuditoriaQuery = {
   entidad?: string;
@@ -38,8 +50,18 @@ export class AuditoriaService {
     }
     if (query.desde || query.hasta) {
       where.fecha_auditoria = {};
-      if (query.desde) (where.fecha_auditoria as Record<string, unknown>).gte = new Date(`${query.desde}T00:00:00.000Z`);
-      if (query.hasta) (where.fecha_auditoria as Record<string, unknown>).lte = new Date(`${query.hasta}T23:59:59.999Z`);
+      if (query.desde) {
+        const desde = new Date(`${query.desde}T00:00:00.000Z`);
+        if (!Number.isNaN(desde.getTime())) {
+          (where.fecha_auditoria as Record<string, unknown>).gte = desde;
+        }
+      }
+      if (query.hasta) {
+        const hasta = new Date(`${query.hasta}T23:59:59.999Z`);
+        if (!Number.isNaN(hasta.getTime())) {
+          (where.fecha_auditoria as Record<string, unknown>).lte = hasta;
+        }
+      }
     }
 
     const [data, total] = await Promise.all([
@@ -47,7 +69,7 @@ export class AuditoriaService {
         where,
         skip,
         take: limit,
-        orderBy: { fecha_auditoria: 'desc' },
+        orderBy: { fecha_auditoria: "desc" },
       }),
       this.prisma.auditoria.count({ where }),
     ]);
@@ -86,27 +108,71 @@ export class AuditoriaService {
           accion: data.accion,
           tabla: data.tabla,
           registro_id: data.registro_id,
-          datos_anteriores: data.datos_anteriores ?? undefined,
-          datos_nuevos: data.datos_nuevos ?? undefined,
+          datos_anteriores: this.sanitizar(data.datos_anteriores) as Prisma.InputJsonValue,
+          datos_nuevos: this.sanitizar(data.datos_nuevos) as Prisma.InputJsonValue,
           ip_address: data.ip_address ?? null,
         },
       });
     } catch (error) {
-      this.logger.error(`Error al registrar auditoría: ${(error as Error).message}`, (error as Error).stack);
+      this.logger.error(
+        `Error al registrar auditoría: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
     }
   }
 
-  async obtenerDatosAnteriores(tabla: string, registroId: number): Promise<Record<string, unknown> | null> {
+  async obtenerDatosAnteriores(
+    tabla: string,
+    registroId: number,
+  ): Promise<Record<string, unknown> | null> {
     const mapping = TABLA_TO_TABLE[tabla];
     if (!mapping || !registroId) return null;
-    try {
-      return await this.prisma.$queryRawUnsafe<Record<string, unknown>[]>(
-        `SELECT * FROM "${mapping.table}" WHERE "${mapping.pk}" = $1`,
-        registroId,
-      ).then((rows) => rows[0] ?? null);
-    } catch (error) {
-      this.logger.warn(`No se pudo obtener datos anteriores para ${tabla}#${registroId}: ${(error as Error).message}`);
+
+    const modelMap: Record<string, any> = {
+      reservas: this.prisma.reservas,
+      deportistas: this.prisma.deportistas,
+      inscripciones: this.prisma.inscripciones,
+      pagos: this.prisma.pagos,
+      disciplinas: this.prisma.disciplinas,
+      espacios: this.prisma.espacios,
+      plantilla_horarios_fijos: this.prisma.plantilla_horarios_fijos,
+    };
+
+    const model = modelMap[mapping.table];
+    if (!model) {
+      this.logger.warn(`No hay modelo Prisma mapeado para ${mapping.table}`);
       return null;
     }
+
+    try {
+      const row = await model.findUnique({
+        where: { [mapping.pk]: registroId },
+      });
+      return row ? (row as Record<string, unknown>) : null;
+    } catch (error) {
+      this.logger.warn(
+        `No se pudieron obtener datos anteriores para ${tabla}#${registroId}: ${(error as Error).message}`,
+      );
+      return null;
+    }
+  }
+
+  private sanitizar(value: unknown): unknown {
+    if (value === null || value === undefined) return undefined;
+    if (Array.isArray(value)) {
+      return value.map((item) => this.sanitizar(item));
+    }
+    if (typeof value === "object") {
+      const result: Record<string, unknown> = {};
+      for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+        if (SENSITIVE_FIELDS.has(key.toLowerCase())) {
+          result[key] = "***";
+        } else {
+          result[key] = this.sanitizar(val);
+        }
+      }
+      return result;
+    }
+    return value;
   }
 }

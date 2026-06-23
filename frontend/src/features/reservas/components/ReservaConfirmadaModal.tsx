@@ -68,8 +68,8 @@ function ReservaConfirmadaModal({ reserva, abierto, onCerrar }: Props) {
         <span className="section-label">Reserva confirmada</span>
         <h2>Comprobante generado correctamente</h2>
         <p>
-          Comprobante enviado a tu correo si lo proporcionaste. También puedes
-          descargarlo ahora en formato PDF.
+          Te enviamos el comprobante a tu correo. También puedes descargarlo
+          ahora en formato PDF.
         </p>
 
         <div className="info-grid">

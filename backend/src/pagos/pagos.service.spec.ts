@@ -2,7 +2,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { NotFoundException, ConflictException } from "@nestjs/common";
 import { PagosService } from "./pagos.service";
 import { PrismaService } from "../prisma/prisma.service";
-import { mockPrisma, resetPrismaMocks } from "../prisma/__mocks__/prisma.service";
+import { mockPrisma, mockTx, resetPrismaMocks } from "../prisma/__mocks__/prisma.service";
 
 describe("PagosService", () => {
   let service: PagosService;
@@ -262,7 +262,7 @@ describe("PagosService", () => {
   // ========================
   describe("getMorosos", () => {
     it("debe retornar lista de morosos", async () => {
-      (mockPrisma.$queryRawUnsafe as any).mockResolvedValue([
+      (mockPrisma.$queryRaw as any).mockResolvedValue([
         {
           deportista_id: 1,
           nombre_completo: "Juan Pérez",
@@ -326,11 +326,11 @@ describe("PagosService", () => {
     };
 
     it("debe registrar un pago exitosamente", async () => {
-      (mockPrisma.deportistas as any).findUnique.mockResolvedValue({ id_deportista: 1 });
-      (mockPrisma.conceptos_pago as any).findUnique.mockResolvedValue({ id_concepto: 1 });
-      (mockPrisma.personas as any).findUnique.mockResolvedValue({ id_persona: 1 });
-      (mockPrisma.pagos as any).findFirst.mockResolvedValue(null);
-      (mockPrisma.pagos as any).create.mockResolvedValue(pagoMock);
+      (mockTx.deportistas as any).findUnique.mockResolvedValue({ id_deportista: 1 });
+      (mockTx.conceptos_pago as any).findUnique.mockResolvedValue({ id_concepto: 1 });
+      (mockTx.personas as any).findUnique.mockResolvedValue({ id_persona: 1 });
+      (mockTx.pagos as any).findFirst.mockResolvedValue(null);
+      (mockTx.pagos as any).create.mockResolvedValue(pagoMock);
 
       const result = await service.registrarPago(dtoValido);
 
@@ -338,23 +338,23 @@ describe("PagosService", () => {
     });
 
     it("debe lanzar NotFoundException si el deportista no existe", async () => {
-      (mockPrisma.deportistas as any).findUnique.mockResolvedValue(null);
+      (mockTx.deportistas as any).findUnique.mockResolvedValue(null);
 
       await expect(service.registrarPago(dtoValido)).rejects.toThrow(NotFoundException);
     });
 
     it("debe lanzar NotFoundException si el concepto no existe", async () => {
-      (mockPrisma.deportistas as any).findUnique.mockResolvedValue({ id_deportista: 1 });
-      (mockPrisma.conceptos_pago as any).findUnique.mockResolvedValue(null);
+      (mockTx.deportistas as any).findUnique.mockResolvedValue({ id_deportista: 1 });
+      (mockTx.conceptos_pago as any).findUnique.mockResolvedValue(null);
 
       await expect(service.registrarPago(dtoValido)).rejects.toThrow(NotFoundException);
     });
 
     it("debe lanzar ConflictException si ya existe pago para el mismo mes/anio", async () => {
-      (mockPrisma.deportistas as any).findUnique.mockResolvedValue({ id_deportista: 1 });
-      (mockPrisma.conceptos_pago as any).findUnique.mockResolvedValue({ id_concepto: 1 });
-      (mockPrisma.personas as any).findUnique.mockResolvedValue({ id_persona: 1 });
-      (mockPrisma.pagos as any).findFirst.mockResolvedValue({ id_pago: 5 });
+      (mockTx.deportistas as any).findUnique.mockResolvedValue({ id_deportista: 1 });
+      (mockTx.conceptos_pago as any).findUnique.mockResolvedValue({ id_concepto: 1 });
+      (mockTx.personas as any).findUnique.mockResolvedValue({ id_persona: 1 });
+      (mockTx.pagos as any).findFirst.mockResolvedValue({ id_pago: 5 });
 
       await expect(service.registrarPago(dtoValido)).rejects.toThrow(ConflictException);
     });
@@ -365,11 +365,11 @@ describe("PagosService", () => {
   // ========================
   describe("anularPago", () => {
     it("debe anular un pago exitosamente", async () => {
-      (mockPrisma.pagos as any).findUnique.mockResolvedValue({
+      (mockTx.pagos as any).findUnique.mockResolvedValue({
         id_pago: 1,
         estado_factura: "Activa",
       });
-      (mockPrisma.pagos as any).update.mockResolvedValue({
+      (mockTx.pagos as any).update.mockResolvedValue({
         id_pago: 1,
         estado_factura: "Anulado",
       });
@@ -380,13 +380,13 @@ describe("PagosService", () => {
     });
 
     it("debe lanzar NotFoundException si el pago no existe", async () => {
-      (mockPrisma.pagos as any).findUnique.mockResolvedValue(null);
+      (mockTx.pagos as any).findUnique.mockResolvedValue(null);
 
       await expect(service.anularPago(999)).rejects.toThrow(NotFoundException);
     });
 
     it("debe lanzar ConflictException si el pago ya esta anulado", async () => {
-      (mockPrisma.pagos as any).findUnique.mockResolvedValue({
+      (mockTx.pagos as any).findUnique.mockResolvedValue({
         id_pago: 1,
         estado_factura: "Anulado",
       });

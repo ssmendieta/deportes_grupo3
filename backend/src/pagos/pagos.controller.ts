@@ -17,6 +17,7 @@ import { CreatePagoDto } from "./dto/create-pago.dto";
 import { ReportesService } from "../reportes/reportes.service";
 import { Roles } from "../auth/decorators/roles.decorator";
 import { MESES_MAP } from "../common/constants/business.constants";
+import { OptionalParseIntPipe } from "../common/pipes/optional-parse-int.pipe";
 
 @ApiTags("pagos")
 @Controller("api/pagos")
@@ -64,10 +65,8 @@ export class PagosController {
   @Get("conceptos")
   @Roles("admin", "entrenador")
   @ApiOperation({ summary: "Listar conceptos de pago" })
-  getConceptos(@Query("disciplinaId") disciplinaId?: string) {
-    return this.pagosService.getConceptos(
-      disciplinaId ? parseInt(disciplinaId) : undefined,
-    );
+  getConceptos(@Query("disciplinaId", new OptionalParseIntPipe()) disciplinaId?: number) {
+    return this.pagosService.getConceptos(disciplinaId);
   }
 
   @Get("planilla")
@@ -84,13 +83,10 @@ export class PagosController {
   @Roles("admin", "entrenador")
   @ApiOperation({ summary: "Listar deportistas con pagos pendientes" })
   getMorosos(
-    @Query("disciplinaId") disciplinaId?: string,
-    @Query("anio") anio?: string,
+    @Query("disciplinaId", new OptionalParseIntPipe()) disciplinaId?: number,
+    @Query("anio", new OptionalParseIntPipe()) anio?: number,
   ) {
-    return this.pagosService.getMorosos(
-      disciplinaId ? parseInt(disciplinaId) : undefined,
-      anio ? parseInt(anio) : undefined,
-    );
+    return this.pagosService.getMorosos(disciplinaId, anio);
   }
 
   @Get("reporte")
@@ -113,11 +109,11 @@ export class PagosController {
 
     let fechaDesde: Date | undefined;
     let fechaHasta: Date | undefined;
-    if (numeroMes !== undefined && !isNaN(numeroMes)) {
-      const year = anioNum ?? new Date().getFullYear();
+    if (numeroMes !== undefined && !Number.isNaN(numeroMes)) {
+      const year = anioNum && !Number.isNaN(anioNum) ? anioNum : new Date().getFullYear();
       fechaDesde = new Date(Date.UTC(year, numeroMes - 1, 1));
       fechaHasta = new Date(Date.UTC(year, numeroMes, 1));
-    } else if (anioNum !== undefined) {
+    } else if (anioNum !== undefined && !Number.isNaN(anioNum)) {
       fechaDesde = new Date(Date.UTC(anioNum, 0, 1));
       fechaHasta = new Date(Date.UTC(anioNum + 1, 0, 1));
     }
@@ -185,8 +181,8 @@ export class PagosController {
   @Get("total-recaudado")
   @Roles("admin", "entrenador")
   @ApiOperation({ summary: "Total recaudado en pagos activos" })
-  getTotalRecaudado(@Query("anio") anio?: string) {
-    return this.pagosService.getTotalRecaudado(anio ? parseInt(anio) : undefined);
+  getTotalRecaudado(@Query("anio", new OptionalParseIntPipe()) anio?: number) {
+    return this.pagosService.getTotalRecaudado(anio);
   }
 
   @Post()

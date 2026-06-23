@@ -20,6 +20,9 @@ export const mockTx = {
     update: jest.fn(),
   },
   pagos: {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
   },
@@ -27,16 +30,34 @@ export const mockTx = {
     create: jest.fn(),
   },
   deportistas: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
     create: jest.fn(),
+  },
+  conceptos_pago: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+  },
+  personas: {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
   },
   inscripcion: {
     create: jest.fn(),
   },
   inscripciones: {
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
     create: jest.fn(),
+  },
+  transaccion_sync: {
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
   },
   plantilla_horarios_fijos: {
     findFirst: jest.fn(),
+    findUnique: jest.fn(),
     findMany: jest.fn(),
   },
   espacios: {
@@ -91,6 +112,7 @@ export const mockPrisma = {
   },
   plantilla_horarios_fijos: {
     findFirst: jest.fn(),
+    findUnique: jest.fn(),
     findMany: jest.fn(),
   },
   deportista: {
@@ -139,6 +161,7 @@ export const mockPrisma = {
   inscripciones: {
     findMany: jest.fn(),
     findFirst: jest.fn(),
+    findUnique: jest.fn(),
     create: jest.fn(),
   },
   personas: {

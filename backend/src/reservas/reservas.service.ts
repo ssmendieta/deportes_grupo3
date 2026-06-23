@@ -35,12 +35,14 @@ export class ReservasService {
     estado?: string,
     busqueda?: string,
   ) {
-    page = Math.max(1, Number(page));
-    limit = Math.min(200, Math.max(1, Number(limit)));
+    page = Math.max(1, Number.isNaN(Number(page)) ? 1 : Number(page));
+    limit = Math.min(200, Math.max(1, Number.isNaN(Number(limit)) ? 7 : Number(limit)));
     const where: Record<string, unknown> = {};
     const skip = (page - 1) * limit;
 
-    if (espacioId) where.id_espacio = espacioId;
+    if (espacioId !== undefined && !Number.isNaN(Number(espacioId))) {
+      where.id_espacio = Number(espacioId);
+    }
 
     if (estado) where.estado = estado;
 
@@ -112,7 +114,6 @@ export class ReservasService {
       tipo_reserva: r.tipo_reserva,
       motivo: r.motivo,
       estado: r.estado,
-      ruta_comprobante_pdf: r.ruta_comprobante_pdf,
       nombre_solicitante: r.nombre_solicitante,
       ci: r.ci,
       complemento: r.complemento,
@@ -300,18 +301,7 @@ export class ReservasService {
 
         this.logger.log(`Reserva creada: #${nuevaReserva.id_reserva}`);
 
-        try {
-          const pdfBuffer = await this.generarComprobante(nuevaReserva.id_reserva);
-          await this.mailService.sendReservaConfirmada(
-            nuevaReserva as unknown as ReservaConRelaciones,
-            pdfBuffer,
-          );
-        } catch (err) {
-          const mensaje = err instanceof Error ? err.message : "Error desconocido";
-          this.logger.warn(
-            `No se pudo enviar el correo de confirmación para reserva #${nuevaReserva.id_reserva}: ${mensaje}`,
-          );
-        }
+        this.enviarComprobanteEnSegundoPlano(nuevaReserva);
 
         return this.mapReserva(nuevaReserva);
       } catch (err) {
@@ -350,6 +340,12 @@ export class ReservasService {
 
         if (!reserva) {
           throw new NotFoundException(`Reserva con id ${id} no encontrada`);
+        }
+
+        if (reserva.estado === "cancelada") {
+          throw new ConflictException(
+            `La reserva #${id} está cancelada y no puede modificarse`,
+          );
         }
 
         const espacioId = dto.espacio_id ?? reserva.id_espacio;
@@ -459,13 +455,8 @@ export class ReservasService {
           }
         }
 
-        if (dto.estado !== undefined) {
-          if (reserva.estado === "cancelada" && dto.estado === "cancelada") {
-            throw new ConflictException(`La reserva #${id} ya se encuentra cancelada`);
-          }
-          if (reserva.estado === "confirmada" && dto.estado === "confirmada") {
-            return this.mapReserva(reserva);
-          }
+        if (dto.estado !== undefined && dto.estado === reserva.estado) {
+          return this.mapReserva(reserva);
         }
 
         const updateData: Record<string, unknown> = {};
@@ -531,6 +522,17 @@ export class ReservasService {
       motivo: r.motivo || "",
       estado: r.estado.toUpperCase(),
     }));
+  }
+
+  private enviarComprobanteEnSegundoPlano(reserva: ReservaConRelaciones): void {
+    this.generarComprobante(reserva.id_reserva)
+      .then((pdfBuffer) => this.mailService.sendReservaConfirmada(reserva, pdfBuffer))
+      .catch((err) => {
+        const mensaje = err instanceof Error ? err.message : "Error desconocido";
+        this.logger.warn(
+          `No se pudo enviar el correo de confirmación para reserva #${reserva.id_reserva}: ${mensaje}`,
+        );
+      });
   }
 
   async generarComprobante(reservaId: number): Promise<Buffer> {

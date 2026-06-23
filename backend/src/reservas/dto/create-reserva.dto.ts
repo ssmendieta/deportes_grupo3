@@ -5,13 +5,14 @@ import {
   IsPositive,
   IsString,
   IsDateString,
-  IsEnum,
   Matches,
   MinLength,
   MaxLength,
+  IsEmail,
 } from "class-validator";
 import { Type } from "class-transformer";
-import { EstadoReserva } from "@prisma/client";
+
+const HORA_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 export class CreateReservaDto {
   @ApiProperty({ example: 1, description: "ID del espacio a reservar" })
@@ -26,12 +27,12 @@ export class CreateReservaDto {
 
   @ApiProperty({ example: "14:00", description: "Hora de inicio (HH:MM)" })
   @IsString()
-  @Matches(/^\d{2}:\d{2}$/, { message: "hora_inicio debe ser HH:MM" })
+  @Matches(HORA_REGEX, { message: "hora_inicio debe ser una hora válida en formato HH:MM" })
   hora_inicio!: string;
 
   @ApiProperty({ example: "16:00", description: "Hora de fin (HH:MM)" })
   @IsString()
-  @Matches(/^\d{2}:\d{2}$/, { message: "hora_fin debe ser HH:MM" })
+  @Matches(HORA_REGEX, { message: "hora_fin debe ser una hora válida en formato HH:MM" })
   hora_fin!: string;
 
   @ApiProperty({
@@ -81,7 +82,7 @@ export class CreateReservaDto {
     required: false,
   })
   @IsOptional()
-  @IsString()
+  @IsEmail({}, { message: "correo_solicitante debe ser un email válido" })
   correo_solicitante?: string;
 
   @ApiProperty({

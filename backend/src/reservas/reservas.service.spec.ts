@@ -35,31 +35,9 @@ describe("ReservasService", () => {
     motivo: "Entrenamiento",
     estado: "confirmada",
     correo_solicitante: null,
-    ruta_comprobante_pdf: null,
     espacios: { nombre_espacio: "Coliseo UCB" },
     personas_aprobador: { nombres: "Admin", ape_paterno: "Sistema", ape_materno: null },
     personas_solicitante: null,
-  };
-
-  const mappedReserva = {
-    id: 1,
-    espacio_id: 1,
-    id_persona_aprobador: 1,
-    id_solicitante: null,
-    fecha_reserva: new Date(`${fechaFuturaStr}T12:00:00.000Z`),
-    hora_inicio: "14:00",
-    hora_fin: "16:00",
-    tipo_reserva: "entrenamiento",
-    motivo: "Entrenamiento",
-    estado: "confirmada",
-    ruta_comprobante_pdf: null,
-    nombre_solicitante: "Juan Pérez",
-    ci: 12345678,
-    complemento: null,
-    correo_solicitante: null,
-    espacio_nombre: "Coliseo UCB",
-    aprobador_nombre: "Admin Sistema",
-    solicitante_nombre: null,
   };
 
   beforeEach(async () => {
@@ -277,6 +255,47 @@ describe("ReservasService", () => {
       await expect(
         service.update(1, { hora_inicio: "15:00", hora_fin: "17:00" }),
       ).rejects.toThrow(ConflictException);
+    });
+
+    it("debe rechazar reactivar una reserva cancelada", async () => {
+      const canceladaMock = { ...reservaMock, estado: "cancelada", espacios: espacioMock };
+      (mockTx.reservas as any).findUnique.mockResolvedValue(canceladaMock);
+
+      await expect(service.update(1, { estado: "confirmada" })).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it("debe rechazar editar otros campos de una reserva cancelada", async () => {
+      const canceladaMock = { ...reservaMock, estado: "cancelada", espacios: espacioMock };
+      (mockTx.reservas as any).findUnique.mockResolvedValue(canceladaMock);
+
+      await expect(service.update(1, { motivo: "Otro" })).rejects.toThrow(
+        ConflictException,
+      );
+    });
+  });
+
+  describe("findAll sanitiza paginación", () => {
+    it("debe usar valores por defecto si page/limit son inválidos", async () => {
+      (mockPrisma.reservas as any).findMany.mockResolvedValue([]);
+      (mockPrisma.reservas as any).count.mockResolvedValue(0);
+
+      const result = await service.findAll(undefined, undefined, NaN, NaN);
+
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(7);
+    });
+  });
+
+  describe("generarComprobante", () => {
+    it("debe generar un buffer PDF", async () => {
+      (mockPrisma.reservas as any).findUnique.mockResolvedValue(reservaMock);
+
+      const buffer = await service.generarComprobante(1);
+
+      expect(buffer.length).toBeGreaterThan(0);
+      expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
     });
   });
 });

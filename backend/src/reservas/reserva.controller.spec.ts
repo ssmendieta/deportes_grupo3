@@ -49,7 +49,7 @@ describe("ReservasController", () => {
         limit: 7,
       });
 
-      await controller.findAll("1", "2026-05-22", "1", "7");
+      await controller.findAll(1, "2026-05-22", 1, 7);
 
       expect(spy).toHaveBeenCalledWith(1, "2026-05-22", 1, 7, undefined, undefined);
     });
@@ -64,7 +64,7 @@ describe("ReservasController", () => {
 
       await controller.findAll();
 
-      expect(spy).toHaveBeenCalledWith(undefined, undefined, 1, 7, undefined, undefined);
+      expect(spy).toHaveBeenCalledWith(undefined, undefined, undefined, undefined, undefined, undefined);
     });
   });
 });

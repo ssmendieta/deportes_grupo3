@@ -129,19 +129,18 @@ describe("AuditoriaService", () => {
   describe("obtenerDatosAnteriores", () => {
     it("debe retornar datos anteriores de una entidad", async () => {
       const oldData = { id_reserva: 10, estado: "Pendiente", motivo: "test" };
-      (mockPrisma.$queryRawUnsafe as jest.Mock).mockResolvedValue([oldData]);
+      (mockPrisma.reservas as any).findUnique.mockResolvedValue(oldData);
 
       const result = await service.obtenerDatosAnteriores("reserva", 10);
 
       expect(result).toEqual(oldData);
-      expect(mockPrisma.$queryRawUnsafe).toHaveBeenCalledWith(
-        'SELECT * FROM "reservas" WHERE "id_reserva" = $1',
-        10,
+      expect((mockPrisma.reservas as any).findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id_reserva: 10 } }),
       );
     });
 
     it("debe retornar null si no hay registro", async () => {
-      (mockPrisma.$queryRawUnsafe as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.reservas as any).findUnique.mockResolvedValue(null);
 
       const result = await service.obtenerDatosAnteriores("reserva", 999);
 
@@ -152,6 +151,27 @@ describe("AuditoriaService", () => {
       const result = await service.obtenerDatosAnteriores("unknown", 1);
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe("sanitizar", () => {
+    it("debe ocultar campos sensibles al registrar", async () => {
+      (mockPrisma.auditoria as any).create.mockResolvedValue(auditDbMock);
+
+      await service.registrar({
+        accion: "CREAR",
+        tabla: "reserva",
+        registro_id: 1,
+        datos_nuevos: { id: 1, password: "secreto", estado: "ok" },
+      });
+
+      expect((mockPrisma.auditoria as any).create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            datos_nuevos: { id: 1, password: "***", estado: "ok" },
+          }),
+        }),
+      );
     });
   });
 });

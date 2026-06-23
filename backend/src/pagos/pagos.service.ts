@@ -5,9 +5,19 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { Prisma } from "@prisma/client";
 import { CreatePagoDto } from "./dto/create-pago.dto";
-import { MESES_ACADEMICOS, MESES_NOMBRES, TIPOS_NO_APLICA_PAGO } from "../common/constants/business.constants";
-import { calcularEstadoCuenta, PlanillaParaEstado } from "../common/helpers/estado-cuenta.helper";
+import { MESES_ACADEMICOS, MESES_NOMBRES } from "../common/constants/business.constants";
+import { calcularEstadoCuenta, PlanillaParaEstado, PlanillaVistaRow } from "../common/helpers/estado-cuenta.helper";
+
+type DeportistaConCuenta = Prisma.deportistasGetPayload<{
+  include: {
+    persona: true;
+    inscripciones: { where: { estado: "activo" }; include: { disciplinas: true } };
+  };
+}>;
+
+type PagoConConcepto = Prisma.pagosGetPayload<{ include: { conceptos_pago: true } }>;
 
 @Injectable()
 export class PagosService {
@@ -31,7 +41,7 @@ export class PagosService {
     return !planilla[`mes_${mes}_pagado` as keyof PlanillaParaEstado];
   }
 
-  private mapPlanilla(planilla: any): any {
+  private mapPlanilla(planilla: PlanillaParaEstado | null | undefined): PlanillaParaEstado | null {
     if (!planilla) return null;
     return {
       matricula_pagada: planilla.matricula_pagada,
@@ -44,19 +54,18 @@ export class PagosService {
       mes_7_pagado: planilla.mes_7_pagado,
       mes_8_pagado: planilla.mes_8_pagado,
       mes_9_pagado: planilla.mes_9_pagado,
-      total_pagado: Number(planilla.total_pagado),
       saldo_pendiente: Number(planilla.saldo_pendiente),
     };
   }
 
-  private mapCuentaItem(d: any, planilla: PlanillaParaEstado | null) {
+  private mapCuentaItem(d: DeportistaConCuenta, planilla: PlanillaParaEstado | null) {
     const { estado_cuenta, deuda } = calcularEstadoCuenta(d.tipo_deportista, planilla);
     return {
       id: d.id_deportista,
       nombreCompleto: `${d.persona?.nombres ?? ""} ${d.persona?.ape_paterno ?? ""} ${d.persona?.ape_materno ?? ""}`.trim(),
       ci: String(d.persona?.ci ?? ""),
       tipo: d.tipo_deportista,
-      inscripciones: (d.inscripciones ?? []).map((i: any) => ({
+      inscripciones: (d.inscripciones ?? []).map((i) => ({
         activo: i.estado === "activo",
         disciplinaId: i.id_disciplina,
         disciplinaNombre: i.disciplinas?.nombre_disciplina ?? null,
@@ -82,11 +91,11 @@ export class PagosService {
     anio?: number;
     estado?: string;
   }) {
-    const page = params.page ?? 1;
-    const limit = params.limit ?? 7;
+    const page = Math.max(1, Number.isNaN(Number(params.page)) ? 1 : Number(params.page));
+    const limit = Math.min(200, Math.max(1, Number.isNaN(Number(params.limit)) ? 7 : Number(params.limit)));
     const anio = params.anio ?? new Date().getFullYear();
 
-    const where: any = { tipo_deportista: "academia", activo: true };
+    const where: Record<string, unknown> = { tipo_deportista: "academia", activo: true };
 
     if (params.disciplinaId) {
       where.inscripciones = {
@@ -119,13 +128,13 @@ export class PagosService {
       return { data: [], total: 0, page, limit, totalPages: 0 };
     }
 
-    const planillas: any[] = await this.prisma.$queryRaw`
+    const planillas = await this.prisma.$queryRaw<PlanillaVistaRow[]>`
       SELECT * FROM "PlanillaPagosAcademia"
-      WHERE deportista_id = ANY(${ids}::int[])
+      WHERE deportista_id = ANY(${ids})
       AND gestion = ${anio}
     `;
-    const planillaMap = new Map<number, PlanillaParaEstado>(
-      planillas.map((p: any) => [p.deportista_id, p as PlanillaParaEstado]),
+    const planillaMap = new Map<number, PlanillaVistaRow>(
+      planillas.map((p) => [p.deportista_id, p]),
     );
 
     const idsFiltrados = ids.filter((id) => {
@@ -177,7 +186,7 @@ export class PagosService {
       this.prisma.pagos.count(),
     ]);
     return {
-      data: pagos.map((p: any) => this.mapPago(p)),
+      data: pagos.map((p) => this.mapPago(p)),
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -195,14 +204,15 @@ export class PagosService {
     fechaDesde?: Date;
     fechaHasta?: Date;
   }) {
-    const page = params.page ?? 1;
-    const limit = params.limit ?? 1000;
+    const page = Math.max(1, Number.isNaN(Number(params.page)) ? 1 : Number(params.page));
+    const limit = Math.min(2000, Math.max(1, Number.isNaN(Number(params.limit)) ? 1000 : Number(params.limit)));
 
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     if (params.fechaDesde || params.fechaHasta) {
-      where.fecha_pago = {};
-      if (params.fechaDesde) where.fecha_pago.gte = params.fechaDesde;
-      if (params.fechaHasta) where.fecha_pago.lt = params.fechaHasta;
+      const filtroFecha: Record<string, Date> = {};
+      if (params.fechaDesde) filtroFecha.gte = params.fechaDesde;
+      if (params.fechaHasta) filtroFecha.lt = params.fechaHasta;
+      where.fecha_pago = filtroFecha;
     }
 
     const [pagos, total] = await Promise.all([
@@ -217,14 +227,14 @@ export class PagosService {
     ]);
 
     return {
-      data: pagos.map((p: any) => this.mapPago(p)),
+      data: pagos.map((p) => this.mapPago(p)),
       total,
       page,
       totalPages: Math.ceil(total / limit),
     };
   }
 
-  private mapPago(p: any) {
+  private mapPago(p: PagoConConcepto) {
     return {
       id_pago: p.id_pago,
       id_persona_pago: p.id_persona_pago,
@@ -278,17 +288,17 @@ export class PagosService {
 
     if (deportistaIds.length === 0) return [];
 
-    const registros: any[] = await this.prisma.$queryRaw`
+    const registros = await this.prisma.$queryRaw<PlanillaVistaRow[]>`
       SELECT * FROM "PlanillaPagosAcademia"
-      WHERE deportista_id = ANY(${deportistaIds}::int[])
+      WHERE deportista_id = ANY(${deportistaIds})
       AND gestion = ${gestion}
     `;
 
     const registrosMap = new Map(
-      registros.map((r: any) => [r.deportista_id, r]),
+      registros.map((r) => [r.deportista_id, r]),
     );
 
-    return inscripciones.map((inscripcion: any) => {
+    return inscripciones.map((inscripcion) => {
       const registro = registrosMap.get(inscripcion.id_deportista);
       return {
         deportista_id: inscripcion.id_deportista,
@@ -320,35 +330,37 @@ export class PagosService {
     const gestionConsulta = gestion ?? new Date().getFullYear();
 
     const condicionesMes = MESES_ACADEMICOS
-      .map(m => `"mes_${m}_pagado" = false`)
-      .join(' OR ');
-    const queryBase = `
-      SELECT * FROM "PlanillaPagosAcademia"
-      WHERE gestion = ${gestionConsulta}
-        AND ("matricula_pagada" = false OR ${condicionesMes})
-    `;
+      .map((m) => `"mes_${m}_pagado" = false`)
+      .join(" OR ");
 
-    let registros: any[];
+    let deportistaIds: number[] | undefined;
     if (disciplina_id) {
       const inscripciones = await this.prisma.inscripciones.findMany({
         where: { id_disciplina: disciplina_id, estado: "activo" },
       });
-      const deportistaIds = inscripciones.map((i: any) => i.id_deportista);
+      deportistaIds = inscripciones.map((i) => i.id_deportista);
       if (deportistaIds.length === 0) {
-        registros = [];
-      } else {
-        registros = await this.prisma.$queryRawUnsafe(`
-          ${queryBase} AND deportista_id = ANY('{${deportistaIds.join(',')}}'::int[])
-        `);
+        return [];
       }
-    } else {
-      registros = await this.prisma.$queryRawUnsafe(queryBase);
     }
 
-    const resultado = registros.map((r: any) => {
+    const registros = deportistaIds
+      ? await this.prisma.$queryRaw<PlanillaVistaRow[]>`
+          SELECT * FROM "PlanillaPagosAcademia"
+          WHERE gestion = ${gestionConsulta}
+            AND ("matricula_pagada" = false OR ${Prisma.sql([condicionesMes])})
+            AND deportista_id = ANY(${deportistaIds})
+        `
+      : await this.prisma.$queryRaw<PlanillaVistaRow[]>`
+          SELECT * FROM "PlanillaPagosAcademia"
+          WHERE gestion = ${gestionConsulta}
+            AND ("matricula_pagada" = false OR ${Prisma.sql([condicionesMes])})
+        `;
+
+    const resultado = registros.map((r) => {
       const mesesPendientes = MESES_ACADEMICOS
-        .filter((m) => !r[`mes_${m}_pagado`])
-        .map((m) => MESES_NOMBRES[m].substring(0, 3).replace(/^(.)/, (_, c) => c.toUpperCase()));
+        .filter((m) => !r[`mes_${m}_pagado` as keyof PlanillaParaEstado])
+        .map((m) => MESES_NOMBRES[m].substring(0, 3).replace(/^(.)/, (_, c: string) => c.toUpperCase()));
 
       return {
         deportista_id: r.deportista_id,
@@ -361,9 +373,7 @@ export class PagosService {
       };
     });
 
-    return resultado.sort(
-      (a: any, b: any) => b.saldo_pendiente - a.saldo_pendiente,
-    );
+    return resultado.sort((a, b) => b.saldo_pendiente - a.saldo_pendiente);
   }
 
   async getPagosDeportista(deportista_id: number) {
@@ -383,98 +393,102 @@ export class PagosService {
       orderBy: { fecha_pago: "desc" },
     });
 
-    return pagos.map((p: any) => this.mapPago(p));
+    return pagos.map((p) => this.mapPago(p));
   }
 
   async registrarPago(dto: CreatePagoDto) {
-    const deportista = await this.prisma.deportistas.findUnique({
-      where: { id_deportista: dto.id_deportista_beneficiario },
-    });
-    if (!deportista) {
-      throw new NotFoundException(
-        `Deportista con id ${dto.id_deportista_beneficiario} no encontrado`,
+    return this.prisma.$transaction(async (tx) => {
+      const deportista = await tx.deportistas.findUnique({
+        where: { id_deportista: dto.id_deportista_beneficiario },
+      });
+      if (!deportista) {
+        throw new NotFoundException(
+          `Deportista con id ${dto.id_deportista_beneficiario} no encontrado`,
+        );
+      }
+
+      const concepto = await tx.conceptos_pago.findUnique({
+        where: { id_concepto: dto.id_concepto },
+      });
+      if (!concepto) {
+        throw new NotFoundException(
+          `Concepto de pago con id ${dto.id_concepto} no encontrado`,
+        );
+      }
+
+      const persona = await tx.personas.findUnique({
+        where: { id_persona: dto.id_persona_pago },
+      });
+      if (!persona) {
+        throw new NotFoundException(
+          `Persona con id ${dto.id_persona_pago} no encontrada`,
+        );
+      }
+
+      const pagoExistente = await tx.pagos.findFirst({
+        where: {
+          id_deportista_beneficiario: dto.id_deportista_beneficiario,
+          id_concepto: dto.id_concepto,
+          mes_correspondiente: dto.mes_correspondiente,
+          gestion: dto.gestion,
+          estado_factura: "Activa",
+        },
+      });
+      if (pagoExistente) {
+        throw new ConflictException(
+          `Ya existe un pago registrado para el mes ${dto.mes_correspondiente} de la gestión ${dto.gestion}`,
+        );
+      }
+
+      this.logger.log(
+        `Registrando pago: deportista #${dto.id_deportista_beneficiario}, concepto #${dto.id_concepto}, monto ${dto.monto_pagado}`,
       );
-    }
 
-    const concepto = await this.prisma.conceptos_pago.findUnique({
-      where: { id_concepto: dto.id_concepto },
+      const pago = await tx.pagos.create({
+        data: {
+          id_persona_pago: dto.id_persona_pago,
+          id_deportista_beneficiario: dto.id_deportista_beneficiario,
+          id_concepto: dto.id_concepto,
+          id_transaccion_caja: dto.id_transaccion_caja,
+          monto_pagado: dto.monto_pagado,
+          fecha_pago: new Date(`${dto.fecha_pago}T12:00:00.000Z`),
+          mes_correspondiente: dto.mes_correspondiente,
+          gestion: dto.gestion,
+          estado_factura: "Activa",
+        },
+        include: { conceptos_pago: true },
+      });
+
+      this.logger.log(`Pago registrado: #${pago.id_pago}`);
+
+      return this.mapPago(pago);
     });
-    if (!concepto) {
-      throw new NotFoundException(
-        `Concepto de pago con id ${dto.id_concepto} no encontrado`,
-      );
-    }
-
-    const persona = await this.prisma.personas.findUnique({
-      where: { id_persona: dto.id_persona_pago },
-    });
-    if (!persona) {
-      throw new NotFoundException(
-        `Persona con id ${dto.id_persona_pago} no encontrada`,
-      );
-    }
-
-    const pagoExistente = await this.prisma.pagos.findFirst({
-      where: {
-        id_deportista_beneficiario: dto.id_deportista_beneficiario,
-        id_concepto: dto.id_concepto,
-        mes_correspondiente: dto.mes_correspondiente,
-        gestion: dto.gestion,
-        estado_factura: "Activa",
-      },
-    });
-    if (pagoExistente) {
-      throw new ConflictException(
-        `Ya existe un pago registrado para el mes ${dto.mes_correspondiente} de la gestión ${dto.gestion}`,
-      );
-    }
-
-    this.logger.log(
-      `Registrando pago: deportista #${dto.id_deportista_beneficiario}, concepto #${dto.id_concepto}, monto ${dto.monto_pagado}`,
-    );
-
-    const pago = await this.prisma.pagos.create({
-      data: {
-        id_persona_pago: dto.id_persona_pago,
-        id_deportista_beneficiario: dto.id_deportista_beneficiario,
-        id_concepto: dto.id_concepto,
-        id_transaccion_caja: dto.id_transaccion_caja,
-        monto_pagado: dto.monto_pagado,
-        fecha_pago: new Date(`${dto.fecha_pago}T12:00:00.000Z`),
-        mes_correspondiente: dto.mes_correspondiente,
-        gestion: dto.gestion,
-        estado_factura: "Activa",
-      },
-      include: { conceptos_pago: true },
-    });
-
-    this.logger.log(`Pago registrado: #${pago.id_pago}`);
-
-    return this.mapPago(pago);
   }
 
   async anularPago(id: number) {
-    const pago = await this.prisma.pagos.findUnique({
-      where: { id_pago: id },
+    return this.prisma.$transaction(async (tx) => {
+      const pago = await tx.pagos.findUnique({
+        where: { id_pago: id },
+      });
+
+      if (!pago) {
+        throw new NotFoundException(`Pago con id ${id} no encontrado`);
+      }
+
+      if (pago.estado_factura === "Anulado") {
+        throw new ConflictException(`El pago con id ${id} ya está anulado`);
+      }
+
+      const pagoAnulado = await tx.pagos.update({
+        where: { id_pago: id },
+        data: { estado_factura: "Anulado" },
+        include: { conceptos_pago: true },
+      });
+
+      this.logger.log(`Pago anulado: #${id}`);
+
+      return this.mapPago(pagoAnulado);
     });
-
-    if (!pago) {
-      throw new NotFoundException(`Pago con id ${id} no encontrado`);
-    }
-
-    if (pago.estado_factura === "Anulado") {
-      throw new ConflictException(`El pago con id ${id} ya está anulado`);
-    }
-
-    const pagoAnulado = await this.prisma.pagos.update({
-      where: { id_pago: id },
-      data: { estado_factura: "Anulado" },
-      include: { conceptos_pago: true },
-    });
-
-    this.logger.log(`Pago anulado: #${id}`);
-
-    return this.mapPago(pagoAnulado);
   }
 
   async getTotalRecaudado(gestion?: number) {

@@ -5,9 +5,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { mailConfig } from '../config/mail.config';
 import { Prisma } from '@prisma/client';
+import { formatFechaBO } from '../common/utils/response-mapper';
 
 type ReservaConRelaciones = Prisma.reservasGetPayload<{
-  include: { espacios: true };
+  include: { espacios: true; personas_aprobador: true };
 }>;
 
 function formatHora(dt: Date): string {
@@ -15,6 +16,11 @@ function formatHora(dt: Date): string {
   const h = dt.getUTCHours().toString().padStart(2, '0');
   const m = dt.getUTCMinutes().toString().padStart(2, '0');
   return `${h}:${m}`;
+}
+
+function nombreCompleto(persona: { nombres: string; ape_paterno: string; ape_materno: string | null } | null): string {
+  if (!persona) return '';
+  return `${persona.nombres} ${persona.ape_paterno} ${persona.ape_materno ?? ''}`.trim();
 }
 
 @Injectable()
@@ -35,7 +41,7 @@ export class MailService {
 
   private getTemplate(): handlebars.TemplateDelegate {
     if (!this.compiledTemplate) {
-      const tplPath = path.join(__dirname, '..', '..', 'src', 'mail', 'templates', 'reserva-confirmada.hbs');
+      const tplPath = path.join(__dirname, 'templates', 'reserva-confirmada.hbs');
       const source = fs.readFileSync(tplPath, 'utf8');
       this.compiledTemplate = handlebars.compile(source);
     }
@@ -48,12 +54,7 @@ export class MailService {
       return;
     }
 
-    const fecha = new Date(reserva.fecha_reserva).toLocaleDateString('es-BO', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    const fecha = formatFechaBO(reserva.fecha_reserva);
 
     const ciStr = reserva.complemento
       ? `${reserva.ci} ${reserva.complemento}`
@@ -64,10 +65,11 @@ export class MailService {
       nombre_solicitante: reserva.nombre_solicitante,
       carnet: ciStr,
       espacio_nombre: reserva.espacios?.nombre_espacio ?? '',
+      tipo_reserva: reserva.tipo_reserva,
       fecha,
       hora_inicio: formatHora(reserva.hora_inicio),
       hora_fin: formatHora(reserva.hora_fin),
-      motivo: reserva.motivo,
+      aprobador_nombre: nombreCompleto(reserva.personas_aprobador),
       estado: reserva.estado,
     });
 

@@ -8,6 +8,7 @@ import {
   Query,
   ParseIntPipe,
   Res,
+  BadRequestException,
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 
@@ -18,6 +19,7 @@ import { UpdateReservaDto } from "./dto/update-reserva.dto";
 import { ApiOperation, ApiSecurity, ApiTags, ApiQuery } from "@nestjs/swagger";
 import { ReportesService } from "../reportes/reportes.service";
 import { Roles } from "../auth/decorators/roles.decorator";
+import { OptionalParseIntPipe } from "../common/pipes/optional-parse-int.pipe";
 
 @ApiTags("reservas")
 @ApiSecurity("permisos-rol")
@@ -37,21 +39,14 @@ export class ReservasController {
       "Obtiene todas las reservas. Se puede filtrar por espacioId y por fecha (YYYY-MM-DD).",
   })
   findAll(
-    @Query("espacioId") espacioId?: string,
+    @Query("espacioId", new OptionalParseIntPipe()) espacioId?: number,
     @Query("fecha") fecha?: string,
-    @Query("page") page?: string,
-    @Query("limit") limit?: string,
+    @Query("page", new OptionalParseIntPipe()) page?: number,
+    @Query("limit", new OptionalParseIntPipe()) limit?: number,
     @Query("estado") estado?: string,
     @Query("busqueda") busqueda?: string,
   ) {
-    return this.reservasService.findAll(
-      espacioId ? parseInt(espacioId) : undefined,
-      fecha,
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 7,
-      estado,
-      busqueda,
-    );
+    return this.reservasService.findAll(espacioId, fecha, page, limit, estado, busqueda);
   }
 
   @Get("reporte")
@@ -71,6 +66,10 @@ export class ReservasController {
     @Query("hasta") hasta?: string,
     @Query("estado") estado?: string,
   ) {
+    if (formato !== "pdf" && formato !== "excel") {
+      throw new BadRequestException("El formato debe ser 'pdf' o 'excel'");
+    }
+
     const reservas = await this.reservasService.getReservasForReport({ desde, hasta, estado });
 
     const datosFormateados = reservas.map((r: any) => ({

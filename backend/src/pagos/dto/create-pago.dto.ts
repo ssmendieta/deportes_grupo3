@@ -4,7 +4,8 @@ import {
   IsPositive,
   IsNumber,
   IsString,
-  IsDateString,
+  IsNotEmpty,
+  IsISO8601,
   Min,
   Max,
 } from "class-validator";
@@ -31,14 +32,16 @@ export class CreatePagoDto {
 
   @ApiProperty({ example: "CAJA-001", description: "ID de transacción de caja" })
   @IsString()
+  @IsNotEmpty({ message: "id_transaccion_caja es obligatorio" })
   id_transaccion_caja!: string;
 
   @ApiProperty({ example: 120.0, description: "Monto pagado" })
   @IsNumber()
+  @IsPositive({ message: "monto_pagado debe ser mayor a 0" })
   monto_pagado!: number;
 
   @ApiProperty({ example: "2026-04-30", description: "Fecha del pago" })
-  @IsDateString()
+  @IsISO8601({ strict: true }, { message: "fecha_pago debe ser una fecha ISO válida" })
   fecha_pago!: string;
 
   @ApiProperty({ example: 3, description: "Mes correspondiente (0=matrícula, 1-12=mensualidad)" })
@@ -51,5 +54,7 @@ export class CreatePagoDto {
   @ApiProperty({ example: 2026, description: "Gestión (año)" })
   @Type(() => Number)
   @IsInt()
+  @Min(2000, { message: "gestión fuera de rango" })
+  @Max(2100, { message: "gestión fuera de rango" })
   gestion!: number;
 }

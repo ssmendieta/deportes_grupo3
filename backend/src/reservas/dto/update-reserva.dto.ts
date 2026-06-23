@@ -6,8 +6,12 @@ import {
   IsString,
   IsEnum,
   Matches,
+  IsEmail,
 } from "class-validator";
+import { Type } from "class-transformer";
 import { EstadoReserva } from "@prisma/client";
+
+const HORA_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 export class UpdateReservaDto {
   @ApiPropertyOptional({
@@ -26,13 +30,13 @@ export class UpdateReservaDto {
   @ApiPropertyOptional({ example: "14:00" })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{2}:\d{2}$/)
+  @Matches(HORA_REGEX, { message: "hora_inicio debe ser una hora válida en formato HH:MM" })
   hora_inicio?: string;
 
   @ApiPropertyOptional({ example: "16:00" })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{2}:\d{2}$/)
+  @Matches(HORA_REGEX, { message: "hora_fin debe ser una hora válida en formato HH:MM" })
   hora_fin?: string;
 
   @ApiPropertyOptional({ example: "entrenamiento" })
@@ -47,6 +51,7 @@ export class UpdateReservaDto {
 
   @ApiPropertyOptional({ example: 12345678 })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   ci?: number;
 
@@ -57,7 +62,7 @@ export class UpdateReservaDto {
 
   @ApiPropertyOptional({ example: "juan@ucb.edu.bo" })
   @IsOptional()
-  @IsString()
+  @IsEmail({}, { message: "correo_solicitante debe ser un email válido" })
   correo_solicitante?: string;
 
   @ApiPropertyOptional({ example: "Entrenamiento de vóleibol" })
@@ -67,16 +72,19 @@ export class UpdateReservaDto {
 
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   espacio_id?: number;
 
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   id_persona_aprobador?: number;
 
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   id_solicitante?: number;
 }
